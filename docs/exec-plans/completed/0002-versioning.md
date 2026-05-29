@@ -1,7 +1,7 @@
 ---
 plan: versioning
 seq: 0002
-stage: checkpoint
+stage: done
 owner: main
 ---
 # Versioning, update & GitHub releases
@@ -76,11 +76,12 @@ last synced. On update, compare `base`, `cur` (on disk), `new` (incoming source)
 - 3-way merge of conflicts (we hand the user `.new`; they merge).
 
 ## Now (resume here)
-- All 5 slices built + green (66/66). Checkpoint written. Commit the feature on a
-  branch, then cut the real `v0.1.0` release (tag + GitHub release).
+- DONE. Shipped as **v0.1.0**: tag pushed + GitHub release published
+  (github.com/harness-mini/harness-mini/releases/tag/v0.1.0). 66/66 green.
 
 ## Next
-- After release: move this plan to `docs/exec-plans/completed/`.
+- Future bumps: `bin/harness.sh release <x.y.z>` (MINOR for new skills/agents/CLI).
+- Installed projects upgrade via `bin/harness.sh update`.
 
 ## Decisions log
 - 2026-05-29: grill-me resolved 4 forks (above). Plan authored; stage=issues.
