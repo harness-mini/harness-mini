@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-05-29
+
 ### Added
 - **`bin/harness.sh`** — the front-door CLI with three subcommands:
   - `version` — report the installed version (from `harness/harness.lock`, else
