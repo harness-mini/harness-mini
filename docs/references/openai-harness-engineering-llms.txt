@@ -1,0 +1,70 @@
+# OpenAI — Harness engineering: leveraging Codex in an agent-first world (distillate)
+
+Source: openai.com harness-engineering (Ryan Lopopolo, 2026-02-11)
+Context: ~1M LOC product, ~5 months, no human-written code, 3→7 engineers,
+~1,500 PRs. "Humans steer. Agents execute."
+
+## The shift
+Engineers stop writing code; their job becomes **designing environments,
+specifying intent, and building feedback loops** so agents work reliably.
+Depth-first: break goals into building blocks; when stuck, the fix is almost
+never "try harder" — it's "what capability is missing, and how do we make it
+legible and enforceable to the agent?"
+
+## Repo as system of record
+- An agent can only use what's in context at runtime. Knowledge in Slack, Google
+  Docs, or someone's head **does not exist**. Push context INTO the repo.
+- AGENTS.md is a **table of contents (~100 lines)**, NOT an encyclopedia.
+  A giant instructions file fails: it crowds out the task, becomes ineffective
+  ("when everything's important, nothing is"), rots immediately, is hard to verify.
+- Knowledge lives in a structured docs/ tree:
+  ```
+  AGENTS.md  ARCHITECTURE.md
+  docs/{design-docs,exec-plans/{active,completed},generated,product-specs,
+        references/*-llms.txt}  + DESIGN/FRONTEND/RELIABILITY/SECURITY.md
+  ```
+- Plans are first-class artifacts: exec-plans carry progress + decision logs,
+  committed and versioned. **Progressive disclosure**: small stable entry point,
+  pointers to deeper truth. Linters/CI verify docs are fresh + cross-linked; a
+  "doc-gardening" agent files PRs to fix stale docs.
+
+## Make the app legible to the agent
+- Launch the app per git worktree; wire Chrome DevTools so the agent reproduces
+  bugs, verifies fixes, reasons about the UI (DOM snapshots, screenshots).
+- Ephemeral per-worktree observability stack: logs/metrics/traces shown to the
+  agent (LogQL/PromQL), torn down when the task completes. Enables prompts like
+  "no span in these journeys may exceed 2s."
+
+## Spec architecture + taste, enforce invariants (don't micromanage)
+- Strict layering per domain, forward-only deps:
+  **Types → Config → Repo → Service → Runtime → UI**; cross-cutting concerns
+  enter via a single **Providers** seam. Enforced by custom linters + structure
+  tests (agent-generated). Lint error messages embed fix instructions.
+- Parse data shapes at boundaries; don't dictate the library.
+- Constrain boundaries centrally; allow local autonomy in expression.
+- Correct + maintainable + legible-to-future-agents > matching human style.
+
+## Throughput changes the merge philosophy
+- Short-lived PRs, minimal blocking gates; flaky tests → re-run, not block.
+  When agent throughput >> human attention, error-correction is cheap, waiting
+  is expensive.
+
+## Entropy & garbage collection
+- Agents replicate existing patterns, including bad ones → drift.
+- Encode "golden principles" (opinionated mechanical rules) + a recurring
+  cleanup loop. Pay tech debt in small continuous installments (high-interest
+  loan analogy). Background Codex tasks scan drift, update quality scores, file
+  small auto-mergeable refactor PRs.
+
+## End-to-end autonomy (emergent)
+Given a prompt the agent can: verify state → reproduce bug → record video →
+fix → verify by running → record second video → open PR → respond to review →
+fix build → escalate only on judgment → merge. (Depends on the specific
+investment; doesn't generalize for free.)
+
+## → How harness-mini uses this
+This is the spine. AGENTS.md as map · docs/ + exec-plans as system of record ·
+references/*-llms.txt · forward-only layer stack (slice-coding) ·
+ephemeral .trace/runtime vs committed .trace/checkpoints · garden agent =
+GC/doc-gardening · golden principles in principles.md · ralph-loop = the
+review-until-satisfied loop.

@@ -1,0 +1,80 @@
+# harness-mini — agent map
+
+> This file is a **map, not an encyclopedia** (~100 lines). It is injected into
+> every run. Keep it small: a table of contents pointing at the system of record.
+> If everything is "important," nothing is. Prune aggressively.
+
+You are operating inside the **harness-mini** framework. The repository is the
+system of record: anything not in a version-controlled file does not exist to
+you. Read the pointer you need, when you need it — never preload everything.
+
+## The one rule that governs everything: the 40% line
+
+Context occupancy below **40%** is the *smart zone* (you reason sharply); at or
+above 40% is the *dumb zone* (you degrade, lose instructions, get "context
+anxiety"). Keep yourself smart:
+
+1. **Delegate heavy work.** Any operation that would read more than ~2k tokens
+   (broad searches, large files, log scans) → spawn the **explorer** agent and
+   take back only its distilled answer. Sub-agents are context firewalls.
+2. **Checkpoint at 40%.** When you cross the line, stop taking new work, write a
+   checkpoint (`checkpoint` skill → `.trace/checkpoints/`), update the active
+   exec-plan, and reset. Hand off *while you are still smart enough to write a
+   good handoff.*
+3. **One bounded task per session.** A session scoped to a single plan-step never
+   needs to hold everything.
+
+Estimate occupancy any time with `bin/ctx.sh <used_tokens> [window]`.
+Full contract: `docs/smart-dumb.md`.
+
+## Lifecycle (the state machine you live inside)
+
+```
+intake → prd → issues → implement ⇄ evaluate → checkpoint → done
+                           ↑___________|   (loop until criteria pass)
+       garden ──── runs orthogonally, periodically ────
+```
+
+- Only the **main agent** (via the `stage-viewer` skill) advances the stage.
+  **No worker may promote its own work to "done."** (Anti-self-praise firewall.)
+- Each requirement is a file in `docs/exec-plans/active/<plan>.md` with a
+  `stage:` field. Read it before acting; act only within your role's stage.
+
+## Where things live (progressive disclosure)
+
+| Need | Go to |
+|------|-------|
+| Core beliefs + Musk's Five-Step core-mind | `docs/principles.md` |
+| The smart/dumb (40%) contract | `docs/smart-dumb.md` |
+| Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
+| Active work + decision logs | `docs/exec-plans/active/` |
+| Source-blog distillates | `docs/references/*-llms.txt` |
+| Skills (how to do a task) | `.claude/skills/` |
+| Sub-agents (who does the work) | `.claude/agents/` |
+| Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
+| Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
+
+## Skills by stage
+
+- **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `five-step`, `grill-me`
+- **intake (new project only):** `founder-check`
+- **plan:** `to-prd`, `to-issues`
+- **implement:** `tdd`, `slice-coding`, `clean-code`, `refactor`
+- **evaluate:** `evaluate`
+- **maintain:** `garden`
+
+## Sub-agents (separate context windows = firewalls)
+
+| Agent | Role | Skills | Model |
+|-------|------|--------|-------|
+| planner | goal → exec-plan | to-prd, to-issues, five-step | sonnet |
+| generator | build one slice via TDD | tdd, slice-coding, clean-code, refactor, checkpoint | sonnet |
+| evaluator | grade vs criteria (separate window) | evaluate, clean-code | opus |
+| explorer | disposable read/search → distillate | (none) | haiku |
+| gardener | entropy GC, demote stale context | garden, refactor, clean-code | haiku |
+
+## Tracing (best-effort, never blocks work)
+
+Log events with `bin/trace.sh <agent> <stage> <event> [k=v ...]` → appends JSONL
+to `.trace/runtime/`. Include `ctx_pct=<n>` so the 40% line is observable.
+Commit milestones as checkpoints in `.trace/checkpoints/` (the `checkpoint` skill).

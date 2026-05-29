@@ -1,0 +1,82 @@
+# The Founder's Playbook: Building an AI-Native Startup (distillate)
+
+Source: Anthropic, "The Founder's Playbook" (2026). Especially useful for NEW
+(greenfield) projects — drives the founder-check intake gate.
+
+## The reframed founder
+The founder is now an **orchestrator of agents**, not an individual contributor.
+Attention shifts up the stack: generating ideas and directing the systems
+(agents, tools, small team) that execute them. Three leverage areas: research,
+agentic coding, workflow automation. Lean-by-design: validate / earn revenue /
+reach profitability before scaling headcount.
+
+## Four stages, each an EVIDENCE exercise
+Idea → MVP → Launch → Scale. The guiding question evolves:
+"Is this worth building?" → "What should we build first?" → "Does the business
+deserve to grow?" → "Can it scale without losing the edge?"
+
+## Idea stage — validate before building
+Goal: research-oriented validation = evidence a real problem exists before
+committing to build. Answer in order:
+1. Is the problem real, specific, frequent? (name exactly who, how often, how
+   severe, what they do today)
+2. Who has it — is that a market?
+3. Who else solves it, how well?
+4. What must a solution do — does my idea do that?
+Exit = problem-solution fit: yes to (a) problem real & specific, (b) solution
+addresses the *revealed* problem (not the assumed one), (c) enough signal to
+justify building.
+Get specific: "people struggle with X" (observation) vs "finance managers at
+mid-market cos spend 4+h/wk reconciling because tools don't integrate"
+(testable hypothesis).
+Build only a **lightweight prototype** = the single core interaction, as a
+pressure-testing prop for user conversations. The conversations are the evidence,
+NOT the prototype.
+Pitfalls: mistaking building for validating · premature scaling · loss of
+objectivity (AI will confirm whatever you ask — point it at disconfirming
+evidence instead; use it as structured devil's advocate).
+
+## MVP stage — translate validated problem into a used product
+Smallest focused iteration that generates real evidence of product-market fit.
+Two equally important secondary goals:
+- **Don't accrue compounding AI technical debt.** Without specs + architectural
+  constraints written where the AI can read them, every session re-derives
+  foundational decisions and they drift → incoherent codebase that collapses.
+- **Invest in persistent context from day one** (CLAUDE.md / spec / arch docs).
+  Legibility is foundational; the codebase is something you collaborate with AI
+  on session after session.
+Discipline:
+- **Define architecture before building** → save as CLAUDE.md (persistent memory,
+  the guardrails the agent operates inside).
+- **Define + enforce scope before building**: what it does, what it deliberately
+  does NOT do, and the user-evidence bar that would justify additions
+  (anti scope-creep — friction is gone, so write the friction down).
+- **Security review before any user touches it** (AI first-pass, human review for
+  auth/secrets/data).
+- **Build the measurement framework before launch**; define what a false positive
+  looks like (signups w/o activation, revenue w/o retention).
+- Start each Code session with scope + arch context; end by logging decisions.
+PMF litmus: Sean Ellis test (>40% "very disappointed" if they lost it) + the
+effort test (product pulls instead of you pushing). Pivot when evidence demands.
+
+## Launch stage — prove the business deserves to grow
+Turn traction into a repeatable, channel-driven growth engine; harden infra;
+build the company. Exit: (1) repeatable channel growth with known CAC/LTV/payback,
+(2) product handles production workloads (infra/security/compliance hardened),
+(3) operations run without the founder as bottleneck.
+Challenges: MVP technical debt comes due (audit → targeted refactor → expand test
+coverage) · founder becomes the bottleneck (audit personal load → automate /
+delegate / keep only founder-judgment work) · security & compliance no longer
+deferrable · expansion before ready kills PMF.
+
+## Scale stage
+Founder re-centers from builder to public-facing executive; scale org + infra
+while preserving the lean AI-centered advantage.
+
+## → How harness-mini uses this
+founder-check skill (greenfield intake) encodes the Idea-stage four questions +
+riskiest-assumption lens · "validate before building" → five-step delete pass ·
+"persistent context / arch before build" → AGENTS.md + exec-plans + the repo as
+system of record · "compounding AI debt" → garden agent + clean-code/refactor ·
+"scope written down" → to-prd Out-of-scope section · evidence-not-completeness →
+evaluator grades against criteria, not vibes.

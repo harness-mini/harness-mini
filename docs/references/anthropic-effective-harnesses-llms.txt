@@ -1,0 +1,47 @@
+# Anthropic — Effective harnesses for long-running agents (distillate)
+
+Source: anthropic.com/engineering/effective-harnesses-for-long-running-agents
+
+## Core pattern: two-phase harness
+- **Initializer agent** (first session) sets up foundational infrastructure.
+- **Coding agent** (later sessions) makes incremental progress.
+- Why: each new session starts with no memory of the last → you need deliberate
+  handoff mechanisms between context windows.
+
+## Smart vs dumb context (as used here)
+- **Structured/"smart":** JSON feature list with pass/fail (deliberately
+  constrained so the model can't corrupt it), git logs, progress files, init.sh.
+- **Unstructured/"dumb":** natural-language prompts, high-level goals decomposed
+  into discrete units.
+
+## Context management
+- Incremental decomposition: work on **one feature at a time**.
+- Progress tracking prevents premature "done" declarations.
+- Git history enables rollback when an agent leaves a broken state.
+
+## Session bootstrap pattern (every coding session)
+1. Read environment state (pwd, git log, progress files).
+2. Verify existing functionality with automated tests.
+3. Select the next unfinished feature.
+4. Make incremental changes.
+5. Document + commit before context runs out.
+
+## Failure modes → solutions
+| Problem | Solution |
+|---|---|
+| Premature completion | Structured feature inventory (JSON pass/fail) |
+| Undocumented progress | Git commits + progress logs |
+| Incomplete testing | Browser automation (e.g. Puppeteer) for real verification |
+| Lost setup time | Pre-written init.sh |
+
+## Principles
+- Mimic human shift-handoff: artifacts (commit msgs, progress notes) = memory.
+- Testing is verification, not decoration — agents change code without
+  end-to-end validation unless forced to.
+- Artifact-driven state: constrained file formats + version control hold truth,
+  not model memory.
+
+## → How harness-mini uses this
+init.sh (bootstrap) · exec-plans + .trace/checkpoints (handoff artifacts) ·
+one-task-per-session + the 40% checkpoint trigger · evaluator agent prevents
+premature completion · tdd forces real verification.

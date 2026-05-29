@@ -1,0 +1,45 @@
+# Anthropic — Harness design for long-running apps (distillate)
+
+Source: anthropic.com/engineering/harness-design-long-running-apps
+
+## Multi-agent specialization
+- **Planner**: expands high-level requirements into detailed specs.
+- **Generator**: implements features iteratively.
+- **Evaluator**: external quality assessment.
+- Key failure addressed: agents asked to evaluate their own work confidently
+  praise it even when it's obviously mediocre → the evaluator MUST be separate.
+
+## Context: resets vs compaction
+- **Resets**: clean slate between sessions; require structured handoff artifacts.
+- **Compaction**: summarize in place; preserves continuity but risks "context
+  anxiety." (Sonnet 4.5 showed it strongly; newer models reduced it.)
+
+## Sprint contracts (negotiated criteria)
+- Generator + evaluator negotiate testable acceptance criteria before building.
+- Bridges high-level stories ↔ concrete implementation; avoids over-specifying.
+
+## File-based communication
+- Agents pass structured artifacts (files), not just conversation history →
+  versioned specs/code/results, clean resets without info loss, clear ownership.
+
+## Evaluation as a design lever
+- Make subjective quality gradable: design quality, originality, craft,
+  functionality. Calibrate the evaluator with few-shot scored examples.
+- Evaluator verifies by **interaction** (e.g. Playwright MCP), not static review.
+
+## Progressive simplification
+- "Every component in a harness encodes an assumption about what the model can't
+  do on its own — stress-test those assumptions."
+- As models improve, REMOVE scaffolding (drop sprint decomposition, single-pass
+  the evaluator). The design space shifts, it doesn't shrink.
+
+## Cost/benefit (illustrative)
+- Solo agent: ~20 min / $9. Full harness: ~6 h / $200. Tuned: ~3.8 h / $125.
+- The evaluator earns its cost when the task is beyond what the model does
+  reliably solo.
+
+## → How harness-mini uses this
+planner/generator/evaluator agents · evaluator on opus, separate window
+(anti-self-praise) · to-prd acceptance criteria = sprint contract ·
+exec-plans = file-based handoff · resets at the 40% line · keep the harness
+"mini" and stress-test every load-bearing piece.
