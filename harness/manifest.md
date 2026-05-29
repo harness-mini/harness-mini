@@ -13,6 +13,7 @@ cursor) should read the files below directly.
 - grill-me.md
 - ralph-loop.md
 - refactor.md
+- release.md
 - slice-coding.md
 - stage-viewer.md
 - tdd.md

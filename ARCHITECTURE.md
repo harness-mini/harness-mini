@@ -7,8 +7,12 @@ Top-level map of how harness-mini is laid out and how work flows through it.
 ```
 AGENTS.md              # ~100-line map injected every run (table of contents)
 ARCHITECTURE.md        # this file
+VERSION                # canonical version (SemVer); bumped by `harness.sh release`
+CHANGELOG.md           # Keep-a-Changelog; rolled on release
 init.sh                # additive, idempotent installer (new vs existing)
 bin/
+  harness.sh           # front-door CLI: version · update · release
+  _harness_lib.sh      # shared helpers: managed-set, checksums, lockfile
   ctx.sh               # context % estimate vs the 40% threshold
   trace.sh             # append runtime JSONL (best-effort, never blocks)
   ralph.sh             # ralph-loop driver (work → check → repeat)
@@ -22,11 +26,30 @@ docs/
     completed/         # archived plans (committed)
   references/          # *-llms.txt distillates of the source blogs
 tests/run.sh           # zero-dep TDD suite for bin/* and init.sh
-harness/manifest.md    # neutral pointer list for non-Claude CLIs
+harness/
+  manifest.md          # neutral pointer list for non-Claude CLIs
+  harness.lock         # installed version + pristine checksums of managed files
 .trace/
   checkpoints/         # COMMITTED — decisions, milestones, handoffs
   runtime/             # GITIGNORED — ephemeral per-run JSONL
 ```
+
+## Versioning & update model
+
+An install is a snapshot of the **managed set** — the files harness-mini owns
+(`bin/*`, `.claude/skills/*`, `.claude/agents/*`, `docs/principles.md`,
+`docs/smart-dumb.md`, `docs/references/*`, `AGENTS.md`, `ARCHITECTURE.md`). The
+set is defined once, in `emit_managed_pairs()` (`bin/_harness_lib.sh`), and is the
+single boundary between "harness territory" and "user territory" (your
+exec-plans, `.trace/`, and project code are never in it).
+
+`init.sh` writes `harness/harness.lock` recording the version and the **pristine
+upstream checksum** of each managed file. `harness.sh update` diffs three states
+per file — `base` (lock baseline), `cur` (on disk), `new` (upstream) — to decide
+ADD / UNCHANGED / UPDATE / CONFLICT, so a newer harness can be pulled in without
+ever clobbering a file you edited. `harness.sh release` is the inverse end: it
+stamps a new `VERSION`, rolls `CHANGELOG.md`, tags `v<x.y.z>`, and publishes a
+GitHub release (gated on green tests + a clean tree).
 
 ## Lifecycle FSM
 

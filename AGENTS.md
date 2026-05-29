@@ -54,9 +54,22 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
 
+## Versioning (the `harness.sh` CLI)
+
+`bin/harness.sh` is the front door. Installed version + checksums live in
+`harness/harness.lock` (canonical source version: `VERSION`).
+
+- `harness.sh version` — installed version (+ best-effort latest).
+- `harness.sh update [--src DIR]` — pull a newer harness in, checksum-guarded:
+  untouched files are refreshed, **your edits are kept** (upstream lands as
+  `<file>.new`), new files are added; `docs/exec-plans/` and `.trace/` are never
+  touched.
+- `harness.sh release <x.y.z>` — source-repo only; bump + tag + GitHub release
+  (gated on semver + green tests + clean tree). See the `release` skill.
+
 ## Skills by stage
 
-- **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `five-step`, `grill-me`
+- **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `five-step`, `grill-me`, `release`
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `clean-code`, `refactor`

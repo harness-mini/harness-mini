@@ -20,9 +20,15 @@
 #         HARNESS_MODE  force "new" or "existing" (default: auto-detect)
 set -u
 
-SRC="${HARNESS_SRC:-$(cd "$(dirname "$0")" && pwd)}"
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+SRC="${HARNESS_SRC:-$SELF_DIR}"
 DEST="$PWD"
 MODE="${HARNESS_MODE:-}"
+
+# shared helpers (managed-set + lockfile); sourced from this installer's own bin/
+# so it works even when HARNESS_SRC points at a stripped-down asset tree.
+# shellcheck source=bin/_harness_lib.sh
+. "$SELF_DIR/bin/_harness_lib.sh"
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -96,6 +102,16 @@ if [ ! -f "$DEST/harness/manifest.md" ]; then
     echo "## Map: AGENTS.md   Architecture: ARCHITECTURE.md"
   } > "$DEST/harness/manifest.md"
   say "add   harness/manifest.md"
+fi
+
+# --- version lockfile (additive: only on first install) ----------------------
+# Records the version + pristine upstream checksums so `harness.sh update` can
+# tell user-edited managed files from upstream changes. Left untouched on
+# re-run; thereafter maintained by `harness.sh update`.
+if [ ! -f "$DEST/harness/harness.lock" ]; then
+  src_ver="0.0.0"
+  [ -f "$SRC/VERSION" ] && src_ver="$(tr -d ' \t\r\n' < "$SRC/VERSION")"
+  write_lock "$SRC" "$DEST" "$src_ver" && say "add   harness/harness.lock (v$src_ver)"
 fi
 
 # --- .gitignore: ensure ephemeral runtime traces are ignored (additive) ------

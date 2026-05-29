@@ -30,6 +30,24 @@ to re-run). It behaves asymmetrically:
 Skills install to `.claude/skills/` and agents to `.claude/agents/` (auto-loaded
 by Claude Code); `harness/manifest.md` is a neutral pointer list for other CLIs.
 
+## Versioning & updates
+
+The install is versioned. `bin/harness.sh` is the front door:
+
+```bash
+bin/harness.sh version              # installed version (+ latest, best-effort)
+bin/harness.sh update               # pull a newer harness into this project
+bin/harness.sh release <x.y.z>      # (source repo) bump + tag + GitHub release
+```
+
+`init.sh` records the version and a checksum of every harness-owned file in
+`harness/harness.lock`. `update` is **checksum-guarded**: files you never touched
+are refreshed silently, files **you edited are kept** (the upstream copy is
+written next to them as `<file>.new`), and brand-new files are added — your
+exec-plans, `.trace/`, and project code are never touched. `release` stamps
+`VERSION`, rolls `CHANGELOG.md`, tags `v<x.y.z>`, and cuts a GitHub release,
+gated on green tests + a clean tree (see the `release` skill).
+
 ## The one rule: the 40% line
 
 Context occupancy **below 40% = smart zone**; **at/above 40% = dumb zone**. Every
@@ -56,8 +74,11 @@ anti-self-praise gate.
 | `AGENTS.md` | ~100-line map injected every run |
 | `ARCHITECTURE.md` | layer stack + lifecycle FSM |
 | `init.sh` | additive/idempotent installer |
+| `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
+| `bin/harness.sh` | front-door CLI: `version` · `update` · `release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
-| `skills/` → `.claude/skills/` | 13 skills (how to do a task) |
+| `harness/harness.lock` | installed version + managed-file checksums |
+| `skills/` → `.claude/skills/` | 14 skills (how to do a task) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
 | `docs/principles.md` | golden principles + Musk's Five-Step core-mind |
 | `docs/smart-dumb.md` | the 40% contract |
@@ -80,7 +101,7 @@ anti-self-praise gate.
 ## Develop
 
 ```bash
-bash tests/run.sh   # 35 assertions, zero dependencies
+bash tests/run.sh   # 66 assertions, zero dependencies
 ```
 
 ## References distilled in `docs/references/`

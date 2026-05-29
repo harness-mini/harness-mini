@@ -137,6 +137,122 @@ assert_eq "1" "$nplans" "re-run does not duplicate the seed plan"
 rm -rf "$FSRC" "$NEW" "$EXIST"
 
 # =============================================================================
+echo "harness.sh version — report the installed harness version"
+HARN="$BIN/harness.sh"
+# from the source repo (no lock), version falls back to the root VERSION file
+out=$(HARNESS_NO_NET=1 bash "$HARN" version 2>/dev/null); code=$?
+assert_exit 0 "$code" "harness version exits 0"
+assert_contains "$out" "harness-mini" "version names the project"
+assert_contains "$out" "$(cat "$ROOT/VERSION" 2>/dev/null)" "version prints the VERSION file's value"
+# unknown subcommand is a usage error
+code=0; bash "$HARN" bogus >/dev/null 2>&1 || code=$?
+assert_exit 64 "$code" "unknown subcommand is a usage error (64)"
+# no subcommand prints usage, non-zero
+code=0; bash "$HARN" >/dev/null 2>&1 || code=$?
+assert_exit 64 "$code" "no subcommand is a usage error (64)"
+# an installed lock takes precedence over the root VERSION file
+LK="$(mktemp -d)"; mkdir -p "$LK/harness"
+printf 'version: 9.9.9\nabc123  AGENTS.md\n' > "$LK/harness/harness.lock"
+out=$(HARNESS_ROOT="$LK" HARNESS_NO_NET=1 bash "$HARN" version 2>/dev/null)
+assert_contains "$out" "9.9.9" "version prefers the installed lock over VERSION"
+rm -rf "$LK"
+
+# =============================================================================
+echo "init.sh — writes harness/harness.lock (version + managed checksums)"
+LSRC="$(mktemp -d)"
+mkdir -p "$LSRC/skills" "$LSRC/agents" "$LSRC/bin" "$LSRC/docs"
+printf 'skill body\n' > "$LSRC/skills/five-step.md"
+printf 'agent body\n' > "$LSRC/agents/planner.md"
+printf 'echo hi\n'    > "$LSRC/bin/ctx.sh"
+printf 'map\n'        > "$LSRC/AGENTS.md"
+printf '0.4.2\n'      > "$LSRC/VERSION"
+LDEST="$(mktemp -d)"
+HARNESS_SRC="$LSRC" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1
+lock="$(cat "$LDEST/harness/harness.lock" 2>/dev/null)"
+assert_contains "$lock" "version: 0.4.2" "lock records the source VERSION"
+assert_contains "$lock" ".claude/skills/five-step.md" "lock lists a managed skill by target path"
+assert_contains "$lock" "AGENTS.md" "lock lists managed AGENTS.md"
+# the lock must record the PRISTINE source checksum, not a user-edited copy
+src_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$BIN/_harness_lib.sh" "$LSRC/AGENTS.md")"
+assert_contains "$lock" "$src_sha  AGENTS.md" "lock stores the pristine upstream checksum"
+# additive: a second init does not error and leaves the lock present
+code=0; HARNESS_SRC="$LSRC" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "re-init with a lock present is idempotent"
+rm -rf "$LSRC" "$LDEST"
+
+# =============================================================================
+echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
+# old upstream -> install it (records baseline lock)
+UOLD="$(mktemp -d)"; mkdir -p "$UOLD/skills" "$UOLD/agents" "$UOLD/docs"
+printf 'keep-body\n'  > "$UOLD/skills/keep.md"
+printf 'old-upd\n'    > "$UOLD/skills/upd.md"
+printf 'old-edit\n'   > "$UOLD/skills/edit.md"
+printf 'old-agents\n' > "$UOLD/AGENTS.md"
+printf '0.1.0\n'      > "$UOLD/VERSION"
+UDEST="$(mktemp -d)"
+HARNESS_SRC="$UOLD" bash "$ROOT/init.sh" "$UDEST" >/dev/null 2>&1
+# user edits one managed file, and owns plan + trace files
+printf 'USER-edit\n' > "$UDEST/.claude/skills/edit.md"
+mkdir -p "$UDEST/docs/exec-plans/active" "$UDEST/.trace/runtime"
+printf 'my plan\n' > "$UDEST/docs/exec-plans/active/0009-mine.md"
+printf '{"x":1}\n' > "$UDEST/.trace/runtime/run.jsonl"
+# new upstream: keep unchanged, upd changed, edit changed, add brand new
+UNEW="$(mktemp -d)"; mkdir -p "$UNEW/skills" "$UNEW/agents" "$UNEW/docs"
+printf 'keep-body\n'  > "$UNEW/skills/keep.md"
+printf 'NEW-upd\n'    > "$UNEW/skills/upd.md"
+printf 'NEW-edit\n'   > "$UNEW/skills/edit.md"
+printf 'brand-new\n'  > "$UNEW/skills/add.md"
+printf 'old-agents\n' > "$UNEW/AGENTS.md"
+printf '0.2.0\n'      > "$UNEW/VERSION"
+code=0; HARNESS_ROOT="$UDEST" HARNESS_NO_NET=1 bash "$HARN" update --src "$UNEW" >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "update exits 0"
+assert_eq "NEW-upd"   "$(cat "$UDEST/.claude/skills/upd.md")"       "UPDATE: untouched managed file is refreshed"
+assert_eq "keep-body" "$(cat "$UDEST/.claude/skills/keep.md")"      "UNCHANGED: identical file stays"
+assert_eq "USER-edit" "$(cat "$UDEST/.claude/skills/edit.md")"      "CONFLICT: user-edited file is preserved"
+assert_eq "NEW-edit"  "$(cat "$UDEST/.claude/skills/edit.md.new" 2>/dev/null)" "CONFLICT: upstream written as .new"
+assert_eq "brand-new" "$(cat "$UDEST/.claude/skills/add.md" 2>/dev/null)"      "ADD: new upstream file is installed"
+assert_eq "my plan"   "$(cat "$UDEST/docs/exec-plans/active/0009-mine.md")"    "user exec-plan is never touched"
+assert_eq '{"x":1}'   "$(cat "$UDEST/.trace/runtime/run.jsonl")"   "user .trace is never touched"
+assert_contains "$(cat "$UDEST/harness/harness.lock")" "version: 0.2.0" "update rewrites the lock version"
+rm -rf "$UOLD" "$UDEST" "$UNEW"
+
+# =============================================================================
+echo "harness.sh release — guarded bump + tag (throwaway repos; --no-push/--no-gh)"
+mkrepo() { # <dir> <version> <tests-exit> — a minimal source repo
+  git -C "$1" init -q
+  printf '%s\n' "$2" > "$1/VERSION"
+  mkdir -p "$1/tests"; printf 'exit %s\n' "$3" > "$1/tests/run.sh"
+  printf '# Changelog\n\n## [Unreleased]\n- a change\n' > "$1/CHANGELOG.md"
+  git -C "$1" add -A >/dev/null 2>&1; git -C "$1" commit -qm init >/dev/null 2>&1
+}
+# happy path
+RREPO="$(mktemp -d)"; mkrepo "$RREPO" 0.1.0 0
+code=0; HARNESS_ROOT="$RREPO" HARNESS_NO_NET=1 bash "$HARN" release 0.2.0 --no-push --no-gh >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "release happy path exits 0"
+assert_eq "0.2.0" "$(tr -d '[:space:]' < "$RREPO/VERSION")" "release bumps VERSION"
+assert_contains "$(cat "$RREPO/CHANGELOG.md")" "## [0.2.0]" "release rolls a CHANGELOG section"
+assert_contains "$(git -C "$RREPO" tag)" "v0.2.0" "release creates the git tag"
+# refuses bad semver
+code=0; HARNESS_ROOT="$RREPO" bash "$HARN" release 1.2 --no-push --no-gh >/dev/null 2>&1 || code=$?
+assert_exit 64 "$code" "release rejects non-semver version"
+# refuses a dirty tree (RREPO is clean after release; dirty it)
+printf 'x\n' >> "$RREPO/VERSION"
+code=0; HARNESS_ROOT="$RREPO" bash "$HARN" release 0.3.0 --no-push --no-gh >/dev/null 2>&1 || code=$?
+assert_exit 1 "$code" "release refuses a dirty working tree"
+# refuses red tests
+RRED="$(mktemp -d)"; mkrepo "$RRED" 0.1.0 1
+code=0; HARNESS_ROOT="$RRED" bash "$HARN" release 0.2.0 --no-push --no-gh >/dev/null 2>&1 || code=$?
+assert_exit 1 "$code" "release refuses when tests are red"
+assert_eq "0.1.0" "$(tr -d '[:space:]' < "$RRED/VERSION")" "red-test release leaves VERSION untouched"
+# dry-run mutates nothing
+RDRY="$(mktemp -d)"; mkrepo "$RDRY" 0.1.0 0
+code=0; HARNESS_ROOT="$RDRY" bash "$HARN" release 0.2.0 --dry-run --no-push --no-gh >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "release --dry-run exits 0"
+assert_eq "0.1.0" "$(tr -d '[:space:]' < "$RDRY/VERSION")" "dry-run does not bump VERSION"
+assert_eq "" "$(git -C "$RDRY" tag)" "dry-run creates no tag"
+rm -rf "$RREPO" "$RRED" "$RDRY"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]
