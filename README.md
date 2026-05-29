@@ -14,7 +14,8 @@ The harness *is the environment*, not a program. Any agent that can run shell
 It installs like a skill — tell your agent *"install harness-mini here"*, or run:
 
 ```bash
-bash /path/to/harness-mini/init.sh /path/to/your/project
+git clone https://github.com/harness-mini/harness-mini.git
+bash harness-mini/init.sh /path/to/your/project
 ```
 
 `init.sh` is **additive** (never overwrites your files) and **idempotent** (safe
