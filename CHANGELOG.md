@@ -7,6 +7,11 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **`LICENSE`** — MIT.
+- **`CONTRIBUTING.md`** — ways to contribute, PR expectations, docs/community
+  guidance, and how to report bugs / propose features.
+
 ## [0.1.0] - 2026-05-29
 
 ### Added

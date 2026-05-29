@@ -109,3 +109,13 @@ bash tests/run.sh   # 66 assertions, zero dependencies
 - Anthropic — Harness design for long-running apps
 - OpenAI — Harness engineering (leveraging Codex)
 - Anthropic — The Founder's Playbook
+
+## Contributing
+
+Issues and PRs welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). It's a small,
+opinionated harness: most contributions are Markdown (skills, agents, docs) plus
+the occasional ~30 lines of test-first shell. Ship thin, keep it smart.
+
+## License
+
+[MIT](LICENSE) © 2026 harness-mini contributors.
