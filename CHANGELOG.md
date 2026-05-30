@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-30
+
 ### Added
 - **`LICENSE`** — MIT.
 - **`CONTRIBUTING.md`** — ways to contribute, PR expectations, docs/community
