@@ -81,8 +81,9 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 ```
 
 Only the main agent advances the stage (via `stage-viewer`). No worker promotes
-its own work to "done" — the `evaluator` (separate window, opus) is the
-anti-self-praise gate.
+its own work to "done" — evaluation happens in a **separate context** (the
+anti-self-praise gate), **tiered by risk**: L0 self-check · **L1 lightweight
+reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 
 ## Layout
 

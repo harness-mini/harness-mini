@@ -82,7 +82,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `clean-code`, `refactor`
-- **evaluate:** `evaluate`
+- **evaluate:** `evaluate` (tiered by risk: L0 self-check · **L1 lightweight, default** · L2 full Opus evaluator)
 - **maintain:** `garden`
 
 ## Sub-agents (separate context windows = firewalls)
