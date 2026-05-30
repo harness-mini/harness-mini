@@ -56,14 +56,14 @@ heavier to install or harder to reason about. Resolved via a grill-me session
 - Each PR: branch → green `tests/run.sh` → PR (per [[git-flow-preference]]).
 
 ## Now (resume here)
-- **PR A merged.** **PR B done** (branch `walkthrough-demo`): `docs/walkthrough.md`
-  (one full loop) + authored `docs/examples/demo-auth/` (`0001-demo-auth.md` +
-  3 checkpoints), labeled illustrative, under docs/examples/ (not exec-plans/).
-  README links it. 69/69 green. → open PR.
+- **PRs A + B merged.** **PR C done** (branch `tiered-eval`): L0/L1/L2 convention
+  in `skills/evaluate/SKILL.md` (default L1); wired into `stage-viewer`,
+  `evaluator`, `AGENTS.md`, README; `.claude/` mirror synced. 69/69 green. → open PR.
 
 ## Next
-- PR C (tiered eval L0/L1/L2 → `skills/evaluate/SKILL.md`, default L1) → PR D
-  (doctor + status + #9 divergence check + #5 ctx_pct surfacing, TDD).
+- **PR D (last)** — the only code/TDD PR: `harness.sh doctor` (3-severity soft
+  exit) + `harness.sh status` (grep/awk/tail) + #9 source↔mirror divergence check
+  + #5 ctx_pct surfacing in status. After D merges, consider a 0.3.0 release.
 
 ## Decisions log
 - 2026-05-30: grill-me converged all 10 + 4-PR delivery. Stage=implement.

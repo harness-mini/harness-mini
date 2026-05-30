@@ -12,10 +12,15 @@ You are the main agent holding the tiller. Only you advance the FSM.
    to resume it.
 
 ## Route (simple vs complex)
-- **Simple** (one obvious change, <1 slice): skip planning ceremony — go
-  straight to `implement` with a lightweight plan note.
-- **Complex** (multi-step, ambiguous, cross-cutting): run the full funnel
-  (intake→prd→issues) before implementing.
+- **Simple** (one obvious change, <1 slice): **quick mode** — skip planning
+  ceremony, go straight to `implement` with a lightweight plan note
+  (`docs/templates/quick-plan.md`); evaluate at **L0/L1**.
+- **Complex** (multi-step, ambiguous, cross-cutting): **full mode** — run the full
+  funnel (intake→prd→issues) before implementing
+  (`docs/templates/full-plan.md`); evaluate at **L1/L2**.
+
+Record the chosen evaluation tier in the plan's `eval:` field (see the `evaluate`
+skill); the `evaluate` exit condition below reads it.
 
 ## Advance a stage
 You may move a plan forward only when the stage's exit condition is met:
@@ -26,7 +31,7 @@ You may move a plan forward only when the stage's exit condition is met:
 | prd | PRD written and grilled (`grill-me`) |
 | issues | atomic, testable issues exist |
 | implement | a vertical slice is green; ready for evaluation |
-| evaluate | **evaluator agent passed** all criteria (else loop back to implement) |
+| evaluate | the **eval tier passed** all criteria — L0/L1/L2, default L1, per the plan's `eval:` field (else loop back to implement) |
 | checkpoint | checkpoint written to `.trace/checkpoints/` |
 | done | plan moved to `docs/exec-plans/completed/` |
 

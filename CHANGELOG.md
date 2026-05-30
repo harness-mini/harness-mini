@@ -7,6 +7,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Tiered evaluation** (`skills/evaluate/SKILL.md`): evaluation now scales with
+  risk instead of always spawning an Opus evaluator — **L0** self-check + evidence
+  (tiny/low-risk) · **L1** independent lightweight reviewer (**default**) · **L2**
+  full Opus evaluator (cross-slice/architecture/security/data-loss/public-API/
+  release). The tier is recorded in the plan's `eval:` field; the firewall is the
+  *separate context*, not the model. Wired into `stage-viewer`, `evaluator`,
+  `AGENTS.md`, and the README. A convention, not a runtime.
+
 ### Added
 - **Walkthrough:** `docs/walkthrough.md` shows one complete loop end-to-end
   (install → recon → route → plan → TDD slice → evaluate → checkpoint → cold
