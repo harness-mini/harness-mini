@@ -8,6 +8,10 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Added
+- **Walkthrough:** `docs/walkthrough.md` shows one complete loop end-to-end
+  (install → recon → route → plan → TDD slice → evaluate → checkpoint → cold
+  resume), backed by a committed illustrative example under
+  `docs/examples/demo-auth/` (a plan + 3 checkpoints). Linked from the README.
 - **First-run guidance docs:** `docs/codex-getting-started.md` and
   `docs/cursor-getting-started.md` (use the harness from non-Claude agents — read
   the files, run the shell, reproduce sub-agents as separate threads); a README
