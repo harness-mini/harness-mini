@@ -19,6 +19,29 @@ The threshold is configurable (`HARNESS_CTX_THRESHOLD`, default 40) but 40 is
 the deliberate default. Every agent — main and sub — is responsible for keeping
 **itself** smart.
 
+## Tuning the threshold — a default operating line, not a universal law
+
+40% is a conservative default chosen so quality never gets a chance to slide. It
+is **not** sacred. Set `HARNESS_CTX_THRESHOLD` to the number that matches your
+risk tolerance and task:
+
+```bash
+HARNESS_CTX_THRESHOLD=30 bash bin/ctx.sh 60000 200000   # 30% → 2 (checkpoint)
+HARNESS_CTX_THRESHOLD=40 bash bin/ctx.sh 60000 200000   # 40% → 0 (smart) [default]
+HARNESS_CTX_THRESHOLD=60 bash bin/ctx.sh 60000 200000   # 60% → 0 (smart)
+```
+
+| Threshold | When | Trade-off |
+|-----------|------|-----------|
+| **30%** | high-stakes / long-horizon / unfamiliar code; you want maximum headroom for reasoning and a pristine handoff | checkpoints more often; more session resets |
+| **40% (default)** | normal work | balanced |
+| **60%** | a solo dev on a small, well-understood task who values flow over frequent resets, and accepts some quality risk | fewer resets; closer to the degradation cliff |
+
+Rule of thumb for solo devs: lower the line when the **cost of a bad handoff** is
+high (architecture, security, data); raise it when the task is small and you'd
+rather not break flow. Never push it near the model's real limit — the whole
+point is to checkpoint *while still sharp*.
+
 ## How the line is held (in priority order)
 
 ### 1. Sub-agent fan-out — the load-bearing mechanism

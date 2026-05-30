@@ -30,6 +30,22 @@ to re-run). It behaves asymmetrically:
 Skills install to `.claude/skills/` and agents to `.claude/agents/` (auto-loaded
 by Claude Code); `harness/manifest.md` is a neutral pointer list for other CLIs.
 
+**Other agents (Codex, Cursor, …):** the harness is plain Markdown + shell, so any
+agent can use it by reading the files — see
+[`docs/codex-getting-started.md`](docs/codex-getting-started.md) and
+[`docs/cursor-getting-started.md`](docs/cursor-getting-started.md).
+
+## Your first task: quick or full?
+
+harness-mini does **not** force ceremony onto every change. Route first:
+
+| If the task is… | Use | Path |
+|---|---|---|
+| a small bug fix · one obvious change · no ambiguity (≤ ~1 slice) | **Quick mode** | copy [`docs/templates/quick-plan.md`](docs/templates/quick-plan.md) → implement (`tdd`) → L0/L1 eval → checkpoint |
+| ambiguous · cross-cutting · architecture/security/data-loss impact | **Full mode** | copy [`docs/templates/full-plan.md`](docs/templates/full-plan.md) → PRD → issues → implement → L1/L2 evaluate → checkpoint |
+
+The `stage-viewer` skill makes this call; the templates are its two shapes.
+
 ## Versioning & updates
 
 The install is versioned. `bin/harness.sh` is the front door:
@@ -88,6 +104,12 @@ anti-self-praise gate.
 | `.trace/runtime/` | gitignored ephemeral JSONL traces |
 | `tests/run.sh` | zero-dep TDD suite |
 
+> **Editing skills?** `skills/<name>/SKILL.md` (and `agents/<name>.md`) are the
+> **canonical source** — edit there. `.claude/skills/` and `.claude/agents/` are a
+> committed **generated mirror** so Claude Code discovers the harness in this repo;
+> regenerate with `cp -R skills/. .claude/skills/` (and `agents/`). Don't hand-edit
+> the mirror.
+
 ## Sub-agents
 
 | Agent | Role | Model |
@@ -101,8 +123,12 @@ anti-self-praise gate.
 ## Develop
 
 ```bash
-bash tests/run.sh   # 66 assertions, zero dependencies
+bash tests/run.sh   # 69 assertions, zero dependencies
 ```
+
+Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
+and safe to call from `zsh`. See the compatibility notes in
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before contributing shell.
 
 ## References distilled in `docs/references/`
 - Anthropic — Effective harnesses for long-running agents

@@ -137,15 +137,27 @@ owner: main
 ---
 # Recon graft
 
-This harness was grafted onto an existing project. Before any new work:
+This harness was grafted onto an existing project. Before any new work, map the
+ground. Do NOT run the greenfield funnel — this project already exists.
 
 ## Now (resume here)
-- Spawn the **explorer** agent to map the codebase into `ARCHITECTURE.md`:
-  domains, layers, test command, build command, entry points.
-- Do NOT run the founder funnel — this project already exists.
+Spawn the **explorer** agent to fill this schema into `ARCHITECTURE.md`'s
+"Domains & layers" section (verify commands by running them where safe):
+
+- [ ] Entry points (file:line)
+- [ ] Test command
+- [ ] Build command
+- [ ] Lint / typecheck command
+- [ ] Main domains
+- [ ] Layer structure actually in use
+- [ ] Where product behaviour lives
+- [ ] Where tests live (+ naming)
+- [ ] Risky dirs to avoid
+- [ ] Generated / vendor dirs (do not edit)
+- [ ] One recommended first vertical slice
 
 ## Next
-- Wait for the user to point at a requirement, then advance the stage
+- Once mapped, wait for the user to point at a requirement, then advance the stage
   (`stage-viewer`) to `prd` and decompose with `to-issues`.
 
 ## Decisions
