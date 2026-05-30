@@ -44,7 +44,8 @@ harness-mini does **not** force ceremony onto every change. Route first:
 | a small bug fix · one obvious change · no ambiguity (≤ ~1 slice) | **Quick mode** | copy [`docs/templates/quick-plan.md`](docs/templates/quick-plan.md) → implement (`tdd`) → L0/L1 eval → checkpoint |
 | ambiguous · cross-cutting · architecture/security/data-loss impact | **Full mode** | copy [`docs/templates/full-plan.md`](docs/templates/full-plan.md) → PRD → issues → implement → L1/L2 evaluate → checkpoint |
 
-The `stage-viewer` skill makes this call; the templates are its two shapes.
+The `stage-viewer` skill makes this call; the templates are its two shapes. **New
+to the loop? Watch one run end-to-end: [`docs/walkthrough.md`](docs/walkthrough.md).**
 
 ## Versioning & updates
 

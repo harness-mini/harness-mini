@@ -56,15 +56,18 @@ heavier to install or harder to reason about. Resolved via a grill-me session
 - Each PR: branch → green `tests/run.sh` → PR (per [[git-flow-preference]]).
 
 ## Now (resume here)
-- **PR A done** (branch `first-run-docs`): #2 codex/cursor, #10 quick/full +
-  README table, #6 shell-compat, #9-docs source-vs-mirror, #5-docs threshold
-  tuning + ctx.sh -h, #7 recon schema. 69/69 green. → open PR.
+- **PR A merged.** **PR B done** (branch `walkthrough-demo`): `docs/walkthrough.md`
+  (one full loop) + authored `docs/examples/demo-auth/` (`0001-demo-auth.md` +
+  3 checkpoints), labeled illustrative, under docs/examples/ (not exec-plans/).
+  README links it. 69/69 green. → open PR.
 
 ## Next
-- PR B (walkthrough + demo-auth example) → PR C (tiered eval) → PR D (doctor +
-  status + #9 divergence check + #5 ctx_pct surfacing, TDD).
+- PR C (tiered eval L0/L1/L2 → `skills/evaluate/SKILL.md`, default L1) → PR D
+  (doctor + status + #9 divergence check + #5 ctx_pct surfacing, TDD).
 
 ## Decisions log
 - 2026-05-30: grill-me converged all 10 + 4-PR delivery. Stage=implement.
 - 2026-05-30: PR A built (docs only; also fixed stale skills/*.md links left by
   the folder migration). Forward-refs to unbuilt status/doctor/walkthrough avoided.
+- 2026-05-30: PR A merged (#2). PR B built — walkthrough uses an authored
+  demo-auth bundle (illustrative; not a live run) per the grill decision.
