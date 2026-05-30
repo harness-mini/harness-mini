@@ -11,6 +11,22 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 - **`LICENSE`** — MIT.
 - **`CONTRIBUTING.md`** — ways to contribute, PR expectations, docs/community
   guidance, and how to report bugs / propose features.
+- **The Mini constraint** — codified as a first-class principle
+  (`docs/principles.md`) and surfaced in `AGENTS.md`: shell-or-doc first, no
+  environment dependence, no complex languages; delete before you add.
+
+### Changed
+- **Skill layout → canonical Agent Skills format.** Each skill is now a folder
+  `skills/<name>/SKILL.md` (mirrored to `.claude/skills/<name>/SKILL.md`) instead
+  of a flat `<name>.md` — matching how Claude Code discovers project skills, with
+  room for optional `scripts/ references/ assets/ examples/ tests/`. Agents stay
+  flat (`.claude/agents/<name>.md`). `emit_managed_pairs()` now recurses `skills/`
+  so the lock + `update` track every file under a skill folder.
+
+### Note
+- Pre-1.0 layout change: existing installs may keep orphaned flat
+  `.claude/skills/*.md` after `update` (it never deletes) — a fresh install or
+  manual cleanup is cleanest.
 
 ## [0.1.0] - 2026-05-29
 

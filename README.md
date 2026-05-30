@@ -78,7 +78,7 @@ anti-self-praise gate.
 | `bin/harness.sh` | front-door CLI: `version` · `update` · `release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
 | `harness/harness.lock` | installed version + managed-file checksums |
-| `skills/` → `.claude/skills/` | 14 skills (how to do a task) |
+| `skills/<name>/SKILL.md` → `.claude/skills/` | 15 skills (one folder each) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
 | `docs/principles.md` | golden principles + Musk's Five-Step core-mind |
 | `docs/smart-dumb.md` | the 40% contract |

@@ -95,8 +95,9 @@ rm -f "$FLAG"
 echo "init.sh — additive, idempotent installer with new/existing asymmetry"
 # Build a fake source tree so installer logic is tested independent of real assets.
 FSRC="$(mktemp -d)"
-mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs"
+mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs" "$FSRC/skills/demo"
 printf 'skill body\n' > "$FSRC/skills/five-step.md"
+printf 'demo body\n'  > "$FSRC/skills/demo/SKILL.md"   # canonical folder-form skill
 printf 'agent body\n' > "$FSRC/agents/planner.md"
 printf 'echo hi\n'    > "$FSRC/bin/ctx.sh"
 printf 'map\n'        > "$FSRC/AGENTS.md"
@@ -106,6 +107,7 @@ NEW="$(mktemp -d)"
 code=0; HARNESS_SRC="$FSRC" bash "$BIN/../init.sh" "$NEW" >/dev/null 2>&1 || code=$?
 assert_exit 0 "$code" "init succeeds on empty project"
 assert_eq "true" "$([ -f "$NEW/.claude/skills/five-step.md" ] && echo true || echo false)" "skills install to .claude/skills/"
+assert_eq "true" "$([ -f "$NEW/.claude/skills/demo/SKILL.md" ] && echo true || echo false)" "folder-form skill installs to .claude/skills/<name>/SKILL.md"
 assert_eq "true" "$([ -f "$NEW/.claude/agents/planner.md" ] && echo true || echo false)" "agents install to .claude/agents/"
 assert_eq "true" "$([ -f "$NEW/harness/manifest.md" ] && echo true || echo false)" "neutral harness/manifest.md mirror written"
 assert_eq "true" "$([ -f "$NEW/.gitignore" ] && grep -q '.trace/runtime' "$NEW/.gitignore" && echo true || echo false)" "gitignore carries .trace/runtime"
@@ -160,8 +162,9 @@ rm -rf "$LK"
 # =============================================================================
 echo "init.sh — writes harness/harness.lock (version + managed checksums)"
 LSRC="$(mktemp -d)"
-mkdir -p "$LSRC/skills" "$LSRC/agents" "$LSRC/bin" "$LSRC/docs"
+mkdir -p "$LSRC/skills" "$LSRC/agents" "$LSRC/bin" "$LSRC/docs" "$LSRC/skills/demo"
 printf 'skill body\n' > "$LSRC/skills/five-step.md"
+printf 'demo body\n'  > "$LSRC/skills/demo/SKILL.md"   # folder-form skill
 printf 'agent body\n' > "$LSRC/agents/planner.md"
 printf 'echo hi\n'    > "$LSRC/bin/ctx.sh"
 printf 'map\n'        > "$LSRC/AGENTS.md"
@@ -171,6 +174,7 @@ HARNESS_SRC="$LSRC" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1
 lock="$(cat "$LDEST/harness/harness.lock" 2>/dev/null)"
 assert_contains "$lock" "version: 0.4.2" "lock records the source VERSION"
 assert_contains "$lock" ".claude/skills/five-step.md" "lock lists a managed skill by target path"
+assert_contains "$lock" ".claude/skills/demo/SKILL.md" "lock recurses folder-form skills (<name>/SKILL.md)"
 assert_contains "$lock" "AGENTS.md" "lock lists managed AGENTS.md"
 # the lock must record the PRISTINE source checksum, not a user-edited copy
 src_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$BIN/_harness_lib.sh" "$LSRC/AGENTS.md")"
@@ -183,10 +187,11 @@ rm -rf "$LSRC" "$LDEST"
 # =============================================================================
 echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
 # old upstream -> install it (records baseline lock)
-UOLD="$(mktemp -d)"; mkdir -p "$UOLD/skills" "$UOLD/agents" "$UOLD/docs"
+UOLD="$(mktemp -d)"; mkdir -p "$UOLD/skills" "$UOLD/agents" "$UOLD/docs" "$UOLD/skills/fold"
 printf 'keep-body\n'  > "$UOLD/skills/keep.md"
 printf 'old-upd\n'    > "$UOLD/skills/upd.md"
 printf 'old-edit\n'   > "$UOLD/skills/edit.md"
+printf 'old-fold\n'   > "$UOLD/skills/fold/SKILL.md"   # folder-form skill, untouched by user
 printf 'old-agents\n' > "$UOLD/AGENTS.md"
 printf '0.1.0\n'      > "$UOLD/VERSION"
 UDEST="$(mktemp -d)"
@@ -197,11 +202,12 @@ mkdir -p "$UDEST/docs/exec-plans/active" "$UDEST/.trace/runtime"
 printf 'my plan\n' > "$UDEST/docs/exec-plans/active/0009-mine.md"
 printf '{"x":1}\n' > "$UDEST/.trace/runtime/run.jsonl"
 # new upstream: keep unchanged, upd changed, edit changed, add brand new
-UNEW="$(mktemp -d)"; mkdir -p "$UNEW/skills" "$UNEW/agents" "$UNEW/docs"
+UNEW="$(mktemp -d)"; mkdir -p "$UNEW/skills" "$UNEW/agents" "$UNEW/docs" "$UNEW/skills/fold"
 printf 'keep-body\n'  > "$UNEW/skills/keep.md"
 printf 'NEW-upd\n'    > "$UNEW/skills/upd.md"
 printf 'NEW-edit\n'   > "$UNEW/skills/edit.md"
 printf 'brand-new\n'  > "$UNEW/skills/add.md"
+printf 'NEW-fold\n'   > "$UNEW/skills/fold/SKILL.md"   # folder-form skill changed upstream
 printf 'old-agents\n' > "$UNEW/AGENTS.md"
 printf '0.2.0\n'      > "$UNEW/VERSION"
 code=0; HARNESS_ROOT="$UDEST" HARNESS_NO_NET=1 bash "$HARN" update --src "$UNEW" >/dev/null 2>&1 || code=$?
@@ -211,6 +217,7 @@ assert_eq "keep-body" "$(cat "$UDEST/.claude/skills/keep.md")"      "UNCHANGED: 
 assert_eq "USER-edit" "$(cat "$UDEST/.claude/skills/edit.md")"      "CONFLICT: user-edited file is preserved"
 assert_eq "NEW-edit"  "$(cat "$UDEST/.claude/skills/edit.md.new" 2>/dev/null)" "CONFLICT: upstream written as .new"
 assert_eq "brand-new" "$(cat "$UDEST/.claude/skills/add.md" 2>/dev/null)"      "ADD: new upstream file is installed"
+assert_eq "NEW-fold"  "$(cat "$UDEST/.claude/skills/fold/SKILL.md" 2>/dev/null)" "UPDATE: nested folder-form skill is refreshed"
 assert_eq "my plan"   "$(cat "$UDEST/docs/exec-plans/active/0009-mine.md")"    "user exec-plan is never touched"
 assert_eq '{"x":1}'   "$(cat "$UDEST/.trace/runtime/run.jsonl")"   "user .trace is never touched"
 assert_contains "$(cat "$UDEST/harness/harness.lock")" "version: 0.2.0" "update rewrites the lock version"

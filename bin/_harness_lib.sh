@@ -21,8 +21,16 @@ cksum_file() {
 # set: user space (docs/exec-plans/, .trace/, project code) is deliberately
 # absent, so update/lock never touch it.
 emit_managed_pairs() {
-  local s="$1" f tab; tab="$(printf '\t')"
-  for f in "$s"/skills/*.md;            do [ -e "$f" ] && printf '%s%s.claude/skills/%s\n'  "$f" "$tab" "$(basename "$f")"; done
+  local s="$1" f rel tab; tab="$(printf '\t')"
+  # Skills are folders (<name>/SKILL.md plus optional scripts/ references/ …), so
+  # recurse and mirror the whole tree into .claude/skills/. (Flat <name>.md is
+  # still handled — it just maps to .claude/skills/<name>.md.)
+  if [ -d "$s/skills" ]; then
+    find "$s/skills" -type f 2>/dev/null | LC_ALL=C sort | while IFS= read -r f; do
+      rel="${f#"$s"/skills/}"
+      printf '%s%s.claude/skills/%s\n' "$f" "$tab" "$rel"
+    done
+  fi
   for f in "$s"/agents/*.md;            do [ -e "$f" ] && printf '%s%s.claude/agents/%s\n'  "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/bin/*;                  do [ -e "$f" ] && printf '%s%sbin/%s\n'             "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/docs/references/*;      do [ -e "$f" ] && printf '%s%sdocs/references/%s\n' "$f" "$tab" "$(basename "$f")"; done

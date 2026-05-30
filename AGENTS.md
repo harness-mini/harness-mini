@@ -27,6 +27,15 @@ anxiety"). Keep yourself smart:
 Estimate occupancy any time with `bin/ctx.sh <used_tokens> [window]`.
 Full contract: `docs/smart-dumb.md`.
 
+## Core constraint: Mini (when changing the harness itself)
+
+The harness *is the environment, not a program.* Before adding anything to
+harness-mini: **shell-or-doc first, no environment dependence, no complex
+languages.** A new capability is a Markdown skill/agent/doc by default and only
+becomes a small POSIX `bin/*.sh` when it must execute — never a runtime, package
+manager, or third-party binary. Apply the Five-Step to the harness itself: try to
+**delete** before you add. Full contract: `docs/principles.md` → "The Mini constraint."
+
 ## Lifecycle (the state machine you live inside)
 
 ```
@@ -49,8 +58,8 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
 | Active work + decision logs | `docs/exec-plans/active/` |
 | Source-blog distillates | `docs/references/*-llms.txt` |
-| Skills (how to do a task) | `.claude/skills/` |
-| Sub-agents (who does the work) | `.claude/agents/` |
+| Skills (how to do a task) | `.claude/skills/<name>/SKILL.md` (one folder per skill) |
+| Sub-agents (who does the work) | `.claude/agents/<name>.md` (flat) |
 | Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
 

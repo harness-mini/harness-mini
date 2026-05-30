@@ -3,22 +3,22 @@
 Claude Code auto-loads skills/agents from .claude/. Other CLIs (codex,
 cursor) should read the files below directly.
 
-## Skills (.claude/skills/)
-- checkpoint.md
-- clean-code.md
-- evaluate.md
-- five-step.md
-- founder-check.md
-- garden.md
-- grill-me.md
-- ralph-loop.md
-- refactor.md
-- release.md
-- slice-coding.md
-- stage-viewer.md
-- tdd.md
-- to-issues.md
-- to-prd.md
+## Skills (.claude/skills/ — one folder per skill, instructions in SKILL.md)
+- checkpoint/SKILL.md
+- clean-code/SKILL.md
+- evaluate/SKILL.md
+- five-step/SKILL.md
+- founder-check/SKILL.md
+- garden/SKILL.md
+- grill-me/SKILL.md
+- ralph-loop/SKILL.md
+- refactor/SKILL.md
+- release/SKILL.md
+- slice-coding/SKILL.md
+- stage-viewer/SKILL.md
+- tdd/SKILL.md
+- to-issues/SKILL.md
+- to-prd/SKILL.md
 
 ## Agents (.claude/agents/)
 - evaluator.md

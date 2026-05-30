@@ -16,8 +16,11 @@ bin/
   ctx.sh               # context % estimate vs the 40% threshold
   trace.sh             # append runtime JSONL (best-effort, never blocks)
   ralph.sh             # ralph-loop driver (work → check → repeat)
-skills/                # source skills → installed to .claude/skills/
-agents/                # source sub-agents → installed to .claude/agents/
+skills/                # one folder per skill: <name>/SKILL.md (required;
+                       #   metadata in frontmatter) + optional scripts/
+                       #   references/ assets/ examples/ tests/.
+                       #   Installed (recursively) to .claude/skills/<name>/
+agents/                # sub-agents, flat <name>.md → installed to .claude/agents/
 docs/
   principles.md        # golden principles + Five-Step core-mind
   smart-dumb.md        # the 40% occupancy contract
@@ -37,9 +40,11 @@ harness/
 ## Versioning & update model
 
 An install is a snapshot of the **managed set** — the files harness-mini owns
-(`bin/*`, `.claude/skills/*`, `.claude/agents/*`, `docs/principles.md`,
-`docs/smart-dumb.md`, `docs/references/*`, `AGENTS.md`, `ARCHITECTURE.md`). The
-set is defined once, in `emit_managed_pairs()` (`bin/_harness_lib.sh`), and is the
+(`bin/*`, `.claude/skills/**` recursively, `.claude/agents/*`,
+`docs/principles.md`, `docs/smart-dumb.md`, `docs/references/*`, `AGENTS.md`,
+`ARCHITECTURE.md`). The set is defined once, in `emit_managed_pairs()`
+(`bin/_harness_lib.sh`) — which recurses `skills/` so every file under a skill
+folder is tracked — and is the
 single boundary between "harness territory" and "user territory" (your
 exec-plans, `.trace/`, and project code are never in it).
 
