@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-30
+
 ### Added
 - **`harness.sh doctor`** — install health check (3 severities: ok/warn/fail;
   exit 1 only on a fail). Checks AGENTS.md, the lock (or source repo), skill
