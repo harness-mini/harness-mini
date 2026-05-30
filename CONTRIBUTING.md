@@ -27,15 +27,19 @@ faith, critique ideas not people, and help newcomers land their first PR.
 
 You don't have to write code to make a real difference:
 
-- **New skills** (`skills/*.md`) — a reusable "how to do a task" play. Keep it
-  one job, ~1 screen, with frontmatter `name:` + `description:` (the description
-  is how an agent decides to load it). Mirror it into `.claude/skills/` and add
-  it to `harness/manifest.md`.
-- **New sub-agents** (`agents/*.md`) — a role with its own context window. Set
-  `tools:`, `model:` (haiku/sonnet/opus per the tier table), and `skills:`.
+- **New skills** (`skills/<name>/SKILL.md`) — a reusable "how to do a task" play,
+  one folder per skill. `SKILL.md` is required (frontmatter `name:` + `description:`
+  — the description is how an agent decides to load it); add optional `scripts/`,
+  `references/`, `assets/`, `examples/`, `tests/` only if the skill genuinely
+  needs them (don't scaffold empty dirs). Keep it one job, ~1 screen. Mirror the
+  folder into `.claude/skills/<name>/` and add it to `harness/manifest.md`.
+- **New sub-agents** (`agents/<name>.md`, flat) — a role with its own context
+  window. Set `tools:`, `model:` (haiku/sonnet/opus per the tier table), `skills:`.
 - **Shell glue** (`bin/*.sh`) — must be POSIX-friendly, dependency-free, and
-  test-first (see below). Glue stays *thin*: if it wants a framework, it doesn't
-  belong here.
+  test-first (see below). This is the **Mini constraint**
+  ([`docs/principles.md`](docs/principles.md)): shell-or-doc first, no runtime /
+  package manager / third-party binary, no complex languages. If it wants a
+  framework or a `pip install`, it doesn't belong here.
 - **Reference distillates** (`docs/references/*-llms.txt`) — condense a source
   blog/paper into the harness's own idiom. Cite the source.
 - **Real-world reports** — install it (`bin/harness.sh update`), use it on a real

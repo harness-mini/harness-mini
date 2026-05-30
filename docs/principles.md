@@ -4,6 +4,32 @@
 > agent-generated codebase readable and coherent for the *next* agent run.
 > Taste, encoded once, applied to every line.
 
+## The Mini constraint (how this harness may grow)
+
+**This is the first gate on every change to harness-mini itself.** The harness
+*is the environment, not a program* — it must stay droppable into any project,
+runnable by any agent CLI, with nothing to install.
+
+1. **Shell-or-doc first.** A capability is a Markdown skill/agent/doc by default.
+   Only when it genuinely needs to *execute* does it become a small POSIX
+   `sh`/`bash` script in `bin/`. Reach for shell **after** you've tried to express
+   it as a convention.
+2. **No environment dependence.** No runtime, no package manager, no language
+   toolchain (Python/Node/Go/…), no third-party binaries. If a contribution needs
+   `pip install` or `npm i`, it does not belong in the harness. Tests are
+   zero-dependency (`tests/run.sh`); glue uses only POSIX utilities present on a
+   bare macOS/Linux box.
+3. **No complex languages.** Keep glue boringly simple — readable by an agent at a
+   glance, debuggable with `set -x`. Cleverness is a smell; a 30-line script that
+   one obvious thing beats a framework.
+4. **Mini beats featureful.** Apply the Five-Step below *to the harness itself*:
+   question the requirement, then try to **delete** it before adding code. Most
+   new "features" should be a new skill or a paragraph in a doc, not new code.
+
+> If a change can't be done in shell or a doc without adding a dependency, the
+> answer is usually "make it a convention" or "don't." Carve-outs must be argued
+> in the PR and recorded in the decision log.
+
 ## Core-mind: Musk's Five-Step Algorithm
 
 Apply **in order** before building anything. The order matters more than any

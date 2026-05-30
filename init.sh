@@ -94,7 +94,10 @@ if [ ! -f "$DEST/harness/manifest.md" ]; then
     echo "cursor) should read the files below directly."
     echo
     echo "## Skills (.claude/skills/)"
-    ( cd "$DEST/.claude/skills" 2>/dev/null && ls *.md 2>/dev/null ) | sed 's/^/- /'
+    ( cd "$DEST/.claude/skills" 2>/dev/null && {
+        for d in */; do [ -f "${d}SKILL.md" ] && printf -- '- %sSKILL.md\n' "$d"; done
+        for m in *.md; do [ -f "$m" ] && printf -- '- %s\n' "$m"; done
+      } )
     echo
     echo "## Agents (.claude/agents/)"
     ( cd "$DEST/.claude/agents" 2>/dev/null && ls *.md 2>/dev/null ) | sed 's/^/- /'
