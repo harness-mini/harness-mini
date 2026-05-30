@@ -1,7 +1,7 @@
 ---
 plan: adoption-observability
 seq: 0004
-stage: implement
+stage: done
 owner: main
 ---
 # Adoption & observability (the 10 directions)
@@ -56,15 +56,12 @@ heavier to install or harder to reason about. Resolved via a grill-me session
 - Each PR: branch → green `tests/run.sh` → PR (per [[git-flow-preference]]).
 
 ## Now (resume here)
-- **PRs A + B + C merged.** **PR D done** (branch `health-commands`): `harness.sh
-  doctor` (3-severity soft exit; +source↔mirror divergence + source-repo aware) and
-  `harness.sh status` (grep/awk/tail; surfaces last `ctx_pct`); TDD, 69→84 green.
-  Docs wired (AGENTS/README/ARCHITECTURE/CONTRIBUTING). → open PR.
+- **DONE.** All 4 PRs merged (#2–#5); all 10 directions delivered. Shipped as
+  **v0.3.0** (tag + GitHub release). 84/84 green.
 
 ## Next
-- **All 10 directions delivered.** After PR D merges: cut **0.3.0** (rolls the
-  walkthrough + tiered-eval + doctor/status + first-run-docs entries) and move this
-  plan to `docs/exec-plans/completed/`.
+- Nothing for 0004. Future work starts a fresh plan (`stage-viewer` routes
+  quick vs full).
 
 ## Decisions log
 - 2026-05-30: grill-me converged all 10 + 4-PR delivery. Stage=implement.
