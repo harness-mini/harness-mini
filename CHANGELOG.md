@@ -7,6 +7,25 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **First-run guidance docs:** `docs/codex-getting-started.md` and
+  `docs/cursor-getting-started.md` (use the harness from non-Claude agents — read
+  the files, run the shell, reproduce sub-agents as separate threads); a README
+  **quick-vs-full** decision table; `docs/templates/{quick,full}-plan.md`.
+- **Threshold tuning docs:** `docs/smart-dumb.md` now presents 40% as a tunable
+  default with 30/40/60 examples + when a solo dev should move it; `bin/ctx.sh -h`
+  prints worked examples.
+- **Recon schema:** the seeded `0001-recon.md` and `agents/explorer.md` now carry
+  a concrete output schema (entry points, test/build/lint commands, domains,
+  layers, risky + generated dirs, where behaviour/tests live, first slice).
+- **Shell-compatibility notes** in `CONTRIBUTING.md` (bash 3.2/macOS, Linux bash,
+  zsh-callable, no deps, GNU/BSD pitfalls) + a brief README line.
+
+### Changed
+- **Source vs installed tree made explicit** (README + CONTRIBUTING): edit
+  `skills/<name>/SKILL.md` / `agents/<name>.md`; `.claude/` is a committed
+  generated mirror — regenerate with `cp -R`. Fixed stale `skills/*.md` doc links.
+
 ## [0.2.0] - 2026-05-30
 
 ### Added

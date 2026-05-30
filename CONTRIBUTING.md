@@ -23,6 +23,24 @@ faith, critique ideas not people, and help newcomers land their first PR.
   - [`docs/principles.md`](docs/principles.md) — golden principles + Musk's Five-Step.
   - [`docs/smart-dumb.md`](docs/smart-dumb.md) — the smart/dumb context contract.
 
+### Source vs installed tree (read this once)
+
+The repo has two skill/agent trees, and confusing them is the #1 contributor trap:
+
+| Tree | Status | You |
+|------|--------|-----|
+| `skills/<name>/SKILL.md`, `agents/<name>.md` | **canonical source** | **edit here** |
+| `.claude/skills/`, `.claude/agents/` | committed **generated mirror** (lets Claude Code discover the harness *in this repo*) | **don't hand-edit** |
+
+After editing a skill or agent, regenerate the mirror so they don't drift:
+
+```bash
+cp -R skills/.  .claude/skills/
+cp -R agents/.  .claude/agents/
+```
+
+(A `doctor` health check that flags source↔mirror drift is on the roadmap.)
+
 ## 1. Ways to contribute
 
 You don't have to write code to make a real difference:
@@ -31,8 +49,9 @@ You don't have to write code to make a real difference:
   one folder per skill. `SKILL.md` is required (frontmatter `name:` + `description:`
   — the description is how an agent decides to load it); add optional `scripts/`,
   `references/`, `assets/`, `examples/`, `tests/` only if the skill genuinely
-  needs them (don't scaffold empty dirs). Keep it one job, ~1 screen. Mirror the
-  folder into `.claude/skills/<name>/` and add it to `harness/manifest.md`.
+  needs them (don't scaffold empty dirs). Keep it one job, ~1 screen. Then sync
+  the generated mirror (see "Source vs installed tree" below) and add it to
+  `harness/manifest.md`.
 - **New sub-agents** (`agents/<name>.md`, flat) — a role with its own context
   window. Set `tools:`, `model:` (haiku/sonnet/opus per the tier table), `skills:`.
 - **Shell glue** (`bin/*.sh`) — must be POSIX-friendly, dependency-free, and
@@ -59,9 +78,9 @@ Checklist before you open a PR:
 - [ ] **Tests are green:** `bash tests/run.sh` (zero dependencies, runs anywhere).
 - [ ] **You added tests *first*.** This repo is TDD — a behavioral change to
       `bin/*.sh` or `init.sh` lands with a failing test that your change turns
-      green. See [`skills/tdd.md`](skills/tdd.md).
+      green. See [`skills/tdd/SKILL.md`](skills/tdd/SKILL.md).
 - [ ] **You followed `slice-coding`** for anything multi-step: a thin vertical
-      slice end-to-end before breadth. See [`skills/slice-coding.md`](skills/slice-coding.md).
+      slice end-to-end before breadth. See [`skills/slice-coding/SKILL.md`](skills/slice-coding/SKILL.md).
 - [ ] **`AGENTS.md` stays a map** (~100 lines). If your change adds a pointer,
       add one line — don't turn the map into an encyclopedia.
 - [ ] **Docs updated** alongside the code (README / ARCHITECTURE / manifest as relevant).
@@ -71,8 +90,8 @@ Checklist before you open a PR:
       the single source of truth for what `harness.sh update` owns.
 - [ ] **SemVer note** in the PR description: is this a PATCH (glue fix), MINOR
       (new skill/agent/CLI), or MAJOR (breaks the install layout or lock contract)?
-      Maintainers cut releases via the [`release` skill](skills/release.md); you
-      don't bump `VERSION` in a PR.
+      Maintainers cut releases via the [`release` skill](skills/release/SKILL.md);
+      you don't bump `VERSION` in a PR.
 
 **Commit style:** short, imperative, Conventional-Commits-flavoured subjects —
 `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`. Link the issue
@@ -81,6 +100,24 @@ Checklist before you open a PR:
 **The review loop is the `implement ⇄ evaluate` loop:** a maintainer (the
 anti-self-praise gate) verifies against the change's stated acceptance criteria.
 Expect requests for changes — that's the system working, not a rejection.
+
+### Shell compatibility
+
+The glue must run on a bare machine, no dependencies. When contributing shell:
+
+- **Targets:** macOS `bash` **3.2** (the system bash — old!) and modern Linux
+  `bash`. Scripts use `#!/usr/bin/env bash`; being **callable from `zsh`** (e.g.
+  `bash bin/...`) is supported and expected.
+- **No third-party binaries.** Only POSIX/coreutils that exist out of the box. No
+  `jq`, no GNU-only tools, no `pip`/`npm` anything.
+- **Mind GNU vs BSD differences** — they bite on macOS:
+  - `sed -i` differs (BSD needs `-i ''`); prefer a temp file + `mv`.
+  - avoid GNU-only `grep -P`, `readlink -f`, `date -d`, `sort -h`.
+  - `find`, `stat`, `cp` flags differ; stick to the portable subset.
+- **bash 3.2 means no bash 4+ features:** no associative arrays (`declare -A`), no
+  `${var^^}`/`${var,,}` case conversion, no `mapfile`/`readarray`, no `&>>`.
+- **Test it:** `bash tests/run.sh` is zero-dep and is the gate. Add assertions for
+  new behavior; keep them dependency-free too.
 
 ## 3. Documentation and community contributions
 
