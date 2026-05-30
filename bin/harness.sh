@@ -211,11 +211,134 @@ cmd_release() {
   return 0
 }
 
+# cmd_doctor — install health. 3 severities (ok/warn/fail); exit 1 iff any FAIL.
+cmd_doctor() {
+  local root="$HARNESS_ROOT" fails=0 warns=0
+  emit() { # <sev> <msg>
+    case "$1" in
+      ok)   printf '  ok   %s\n' "$2" ;;
+      warn) printf '  warn %s\n' "$2"; warns=$((warns + 1)) ;;
+      fail) printf '  fail %s\n' "$2"; fails=$((fails + 1)) ;;
+    esac
+  }
+
+  [ -f "$root/AGENTS.md" ] && emit ok "AGENTS.md present" || emit fail "AGENTS.md missing"
+  if [ -f "$LOCK" ]; then
+    emit ok "harness.lock present (v$(installed_version))"
+  elif [ -f "$root/VERSION" ] && [ -d "$root/skills" ]; then
+    emit ok "source repo (VERSION $(installed_version); no lock needed)"
+  else
+    emit fail "harness/harness.lock missing (run init.sh)"
+  fi
+
+  if [ -d "$root/.claude/skills" ]; then
+    local nfolders nflat
+    nfolders=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+    nflat=$(find "$root/.claude/skills" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+    [ "$nfolders" -gt 0 ] && emit ok "$nfolders skills in <name>/SKILL.md shape" \
+                          || emit fail ".claude/skills has no <name>/SKILL.md"
+    [ "$nflat" -gt 0 ] && emit warn "$nflat flat .md skill(s) in .claude/skills (old shape)"
+  else
+    emit fail ".claude/skills missing"
+  fi
+
+  if [ -f "$root/harness/manifest.md" ]; then
+    grep -q '\.md' "$root/harness/manifest.md" && emit ok "manifest lists skills" \
+                                               || emit warn "harness/manifest.md lists no skills"
+  else
+    emit warn "harness/manifest.md missing"
+  fi
+
+  ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1 \
+    && emit ok "active exec-plan present" || emit warn "no active exec-plan"
+
+  { [ -f "$root/.gitignore" ] && grep -q '\.trace/runtime' "$root/.gitignore"; } \
+    && emit ok ".trace/runtime gitignored" || emit warn ".trace/runtime not in .gitignore"
+
+  local nnew; nnew="$(count_dotnew "$root")"
+  [ "$nnew" -eq 0 ] && emit ok "no unresolved .new files" \
+                    || emit warn "$nnew unresolved .new file(s) from update — resolve & delete"
+
+  if [ -f "$root/VERSION" ] && [ -f "$LOCK" ]; then
+    local fv lv; fv="$(tr -d ' \t\r\n' < "$root/VERSION")"; lv="$(installed_version)"
+    [ "$fv" = "$lv" ] && emit ok "VERSION matches lock ($lv)" \
+                      || emit warn "VERSION ($fv) != lock ($lv)"
+  fi
+
+  # #9 source<->mirror divergence (only meaningful when the source trees exist)
+  if [ -d "$root/skills" ] && [ -d "$root/.claude/skills" ]; then
+    diff -r "$root/skills" "$root/.claude/skills" >/dev/null 2>&1 \
+      && emit ok "skills source == .claude mirror" \
+      || emit warn "skills/ and .claude/skills/ diverge — regen: cp -R skills/. .claude/skills/"
+  fi
+  if [ -d "$root/agents" ] && [ -d "$root/.claude/agents" ]; then
+    diff -r "$root/agents" "$root/.claude/agents" >/dev/null 2>&1 \
+      && emit ok "agents source == .claude mirror" \
+      || emit warn "agents/ and .claude/agents/ diverge — regen: cp -R agents/. .claude/agents/"
+  fi
+
+  if [ "$fails" -eq 0 ]; then
+    printf 'doctor: healthy (%s warning(s))\n' "$warns"
+  else
+    printf 'doctor: %s problem(s), %s warning(s)\n' "$fails" "$warns"
+  fi
+  [ "$fails" -eq 0 ]
+}
+
+# cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
+cmd_status() {
+  local root="$HARNESS_ROOT"
+  echo "harness-mini $(installed_version)"
+
+  if ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
+    echo "active plans:"
+    local f plan stage cp
+    for f in "$root"/docs/exec-plans/active/*.md; do
+      plan="$(awk -F': *' '/^plan:/{print $2; exit}' "$f")"
+      stage="$(awk -F': *' '/^stage:/{print $2; exit}' "$f")"
+      [ -z "$plan" ] && plan="$(basename "$f" .md)"
+      printf '  %-24s stage: %s\n' "$plan" "${stage:-?}"
+      cp="$(ls "$root"/.trace/checkpoints/"$plan"-*.md 2>/dev/null | sort | tail -n1)"
+      [ -n "$cp" ] && printf '     last checkpoint: %s\n' "$(basename "$cp" .md)"
+    done
+  else
+    echo "active plans: none"
+  fi
+
+  echo "update conflicts: $(count_dotnew "$root") .new file(s)"
+
+  local newest last cpct ev run
+  newest="$(ls -t "$root"/.trace/runtime/*.jsonl 2>/dev/null | head -n1)"
+  if [ -n "$newest" ]; then
+    last="$(tail -n1 "$newest" 2>/dev/null)"
+    cpct="$(printf '%s' "$last" | sed -n 's/.*"ctx_pct":\([0-9][0-9]*\).*/\1/p')"
+    ev="$(printf '%s' "$last" | sed -n 's/.*"event":"\([^"]*\)".*/\1/p')"
+    run="$(printf '%s' "$last" | sed -n 's/.*"run":"\([^"]*\)".*/\1/p')"
+    printf 'last trace: ctx_pct=%s event=%s (%s)\n' "${cpct:-?}" "${ev:-?}" "${run:-?}"
+  else
+    echo "last trace: none"
+  fi
+
+  local hasplan=no hascp=no
+  ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1 && hasplan=yes
+  ls "$root"/.trace/checkpoints/*.md >/dev/null 2>&1 && hascp=yes
+  if [ "$hasplan" = yes ] && [ "$hascp" = yes ]; then
+    echo "resumable: yes (active plan + checkpoint)"
+  elif [ "$hasplan" = yes ]; then
+    echo "resumable: partial (plan, no checkpoint yet)"
+  else
+    echo "resumable: no (no active plan)"
+  fi
+  return 0
+}
+
 usage() {
   cat >&2 <<'EOF'
 usage: harness.sh <command>
   version                 show installed version (+ latest, best-effort)
   update [--src DIR]      pull a newer version into this project (checksum-guarded)
+  doctor                  check install health (ok/warn/fail; exit 1 on a fail)
+  status                  show current work state (plans, checkpoints, resumability)
   release <x.y.z> [opts]  bump + tag + GitHub release (source repo only)
 EOF
 }
@@ -226,6 +349,8 @@ sub="$1"; shift
 case "$sub" in
   version) cmd_version "$@" ;;
   update)  cmd_update "$@" ;;
+  doctor)  cmd_doctor "$@" ;;
+  status)  cmd_status "$@" ;;
   release) cmd_release "$@" ;;
   -h|--help|help) usage; exit 0 ;;
   *) echo "harness.sh: unknown command: $sub" >&2; usage; exit 64 ;;

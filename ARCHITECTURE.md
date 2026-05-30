@@ -11,7 +11,7 @@ VERSION                # canonical version (SemVer); bumped by `harness.sh relea
 CHANGELOG.md           # Keep-a-Changelog; rolled on release
 init.sh                # additive, idempotent installer (new vs existing)
 bin/
-  harness.sh           # front-door CLI: version · update · release
+  harness.sh           # front-door CLI: version·update·doctor·status·release
   _harness_lib.sh      # shared helpers: managed-set, checksums, lockfile
   ctx.sh               # context % estimate vs the 40% threshold
   trace.sh             # append runtime JSONL (best-effort, never blocks)
