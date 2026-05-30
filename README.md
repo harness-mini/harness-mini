@@ -54,6 +54,8 @@ The install is versioned. `bin/harness.sh` is the front door:
 ```bash
 bin/harness.sh version              # installed version (+ latest, best-effort)
 bin/harness.sh update               # pull a newer harness into this project
+bin/harness.sh doctor               # install health: ok/warn/fail (exit 1 on fail)
+bin/harness.sh status               # current work state (plans, checkpoints, resumable)
 bin/harness.sh release <x.y.z>      # (source repo) bump + tag + GitHub release
 ```
 
@@ -93,7 +95,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `ARCHITECTURE.md` | layer stack + lifecycle FSM |
 | `init.sh` | additive/idempotent installer |
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
-| `bin/harness.sh` | front-door CLI: `version` · `update` · `release` |
+| `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
 | `harness/harness.lock` | installed version + managed-file checksums |
 | `skills/<name>/SKILL.md` → `.claude/skills/` | 15 skills (one folder each) |

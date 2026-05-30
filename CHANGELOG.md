@@ -7,6 +7,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **`harness.sh doctor`** — install health check (3 severities: ok/warn/fail;
+  exit 1 only on a fail). Checks AGENTS.md, the lock (or source repo), skill
+  folder-shape, manifest, an active exec-plan, `.trace/runtime` ignored,
+  unresolved `.new` files, VERSION↔lock, and **source↔`.claude` mirror divergence**.
+- **`harness.sh status`** — current work state for cold resume: installed version,
+  active plans + stages, latest checkpoint per plan, `.new` conflict count, last
+  `ctx_pct` from the trace tail, and resumability. grep/awk/tail only — no parser.
+
 ### Changed
 - **Tiered evaluation** (`skills/evaluate/SKILL.md`): evaluation now scales with
   risk instead of always spawning an Opus evaluator — **L0** self-check + evidence

@@ -260,6 +260,61 @@ assert_eq "" "$(git -C "$RDRY" tag)" "dry-run creates no tag"
 rm -rf "$RREPO" "$RRED" "$RDRY"
 
 # =============================================================================
+echo "harness.sh doctor — install health (3-severity, soft exit)"
+DDIR="$(mktemp -d)"
+bash "$ROOT/init.sh" "$DDIR" >/dev/null 2>&1          # a healthy fresh install
+out="$(HARNESS_ROOT="$DDIR" bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: healthy install exits 0"
+assert_contains "$out" "ok" "doctor reports ok checks"
+assert_contains "$out" "AGENTS.md" "doctor checks AGENTS.md"
+# a .new file is a WARN, not a FAIL → still exit 0
+touch "$DDIR/.claude/skills/tdd/SKILL.md.new"
+out="$(HARNESS_ROOT="$DDIR" bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: a .new file warns but does not fail"
+assert_contains "$out" "warn" "doctor warns about unresolved .new"
+# missing AGENTS.md is a hard FAIL → exit 1
+rm -f "$DDIR/AGENTS.md"
+code=0; HARNESS_ROOT="$DDIR" bash "$HARN" doctor >/dev/null 2>&1 || code=$?
+assert_exit 1 "$code" "doctor: missing AGENTS.md is a FAIL (exit 1)"
+rm -rf "$DDIR"
+# source<->mirror divergence (#9): craft a dir with both trees
+MDIR="$(mktemp -d)"; mkdir -p "$MDIR/skills/x" "$MDIR/.claude/skills/x" "$MDIR/harness"
+printf 'AGENTS\n' > "$MDIR/AGENTS.md"; printf 'version: 0.0.0\n' > "$MDIR/harness/harness.lock"
+printf 'same\n' > "$MDIR/skills/x/SKILL.md"; printf 'same\n' > "$MDIR/.claude/skills/x/SKILL.md"
+out="$(HARNESS_ROOT="$MDIR" bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "mirror" "doctor: identical source/mirror reported ok"
+printf 'DIVERGED\n' > "$MDIR/.claude/skills/x/SKILL.md"
+out="$(HARNESS_ROOT="$MDIR" bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "diverge" "doctor: source/mirror divergence warns"
+rm -rf "$MDIR"
+# source repo (VERSION + skills/ but no lock) is healthy, not a missing-lock FAIL
+PDIR="$(mktemp -d)"; mkdir -p "$PDIR/skills/x" "$PDIR/.claude/skills/x"
+printf 'AGENTS\n' > "$PDIR/AGENTS.md"; printf '0.0.0\n' > "$PDIR/VERSION"
+printf 'same\n' > "$PDIR/skills/x/SKILL.md"; printf 'same\n' > "$PDIR/.claude/skills/x/SKILL.md"
+out="$(HARNESS_ROOT="$PDIR" bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: source repo without a lock is not a FAIL"
+assert_contains "$out" "source repo" "doctor recognizes the source repo (no lock needed)"
+rm -rf "$PDIR"
+
+# =============================================================================
+echo "harness.sh status — current work state (grep/awk/tail only)"
+SDIR="$(mktemp -d)"
+bash "$ROOT/init.sh" "$SDIR" >/dev/null 2>&1          # lock + seeded active plan
+splan="$(awk -F': *' '/^plan:/{print $2; exit}' "$SDIR"/docs/exec-plans/active/0001-*.md)"
+mkdir -p "$SDIR/.trace/checkpoints"
+printf -- '---\nplan: %s\nseq: 001\n---\n' "$splan" > "$SDIR/.trace/checkpoints/$splan-001.md"
+HARNESS_TRACE_DIR="$SDIR/.trace/runtime" HARNESS_RUN="r-stat" \
+  bash "$BIN/trace.sh" main implement test ctx_pct=42 >/dev/null 2>&1
+out="$(HARNESS_ROOT="$SDIR" bash "$HARN" status 2>&1)"; code=$?
+assert_exit 0 "$code" "status exits 0"
+slv="$(awk -F': *' '/^version:/{print $2; exit}' "$SDIR/harness/harness.lock")"
+assert_contains "$out" "$slv" "status shows the installed version"
+assert_contains "$out" "$splan" "status lists the active plan"
+assert_contains "$out" "ctx_pct=42" "status surfaces last ctx_pct from the trace tail"
+assert_contains "$out" "resumable" "status reports resumability"
+rm -rf "$SDIR"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

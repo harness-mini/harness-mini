@@ -58,3 +58,13 @@ lock_version() { awk -F': *' '/^version:/{print $2; exit}' "$1" 2>/dev/null; }
 
 # lock_sha <lockfile> <relpath> — print the recorded baseline checksum for a path.
 lock_sha() { awk -v p="$2" '$2==p{print $1; exit}' "$1" 2>/dev/null; }
+
+# count_dotnew <root> — number of unresolved <file>.new files left by `update`,
+# searched only in managed areas (not the whole tree). grep/find only, no parsing.
+count_dotnew() {
+  local root="$1" n
+  n=$(find "$root/.claude" "$root/bin" "$root/docs" "$root/harness" -name '*.new' 2>/dev/null | wc -l | tr -d ' ')
+  [ -f "$root/AGENTS.md.new" ] && n=$((n + 1))
+  [ -f "$root/ARCHITECTURE.md.new" ] && n=$((n + 1))
+  printf '%s' "$n"
+}

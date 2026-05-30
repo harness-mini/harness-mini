@@ -56,14 +56,15 @@ heavier to install or harder to reason about. Resolved via a grill-me session
 - Each PR: branch → green `tests/run.sh` → PR (per [[git-flow-preference]]).
 
 ## Now (resume here)
-- **PRs A + B merged.** **PR C done** (branch `tiered-eval`): L0/L1/L2 convention
-  in `skills/evaluate/SKILL.md` (default L1); wired into `stage-viewer`,
-  `evaluator`, `AGENTS.md`, README; `.claude/` mirror synced. 69/69 green. → open PR.
+- **PRs A + B + C merged.** **PR D done** (branch `health-commands`): `harness.sh
+  doctor` (3-severity soft exit; +source↔mirror divergence + source-repo aware) and
+  `harness.sh status` (grep/awk/tail; surfaces last `ctx_pct`); TDD, 69→84 green.
+  Docs wired (AGENTS/README/ARCHITECTURE/CONTRIBUTING). → open PR.
 
 ## Next
-- **PR D (last)** — the only code/TDD PR: `harness.sh doctor` (3-severity soft
-  exit) + `harness.sh status` (grep/awk/tail) + #9 source↔mirror divergence check
-  + #5 ctx_pct surfacing in status. After D merges, consider a 0.3.0 release.
+- **All 10 directions delivered.** After PR D merges: cut **0.3.0** (rolls the
+  walkthrough + tiered-eval + doctor/status + first-run-docs entries) and move this
+  plan to `docs/exec-plans/completed/`.
 
 ## Decisions log
 - 2026-05-30: grill-me converged all 10 + 4-PR delivery. Stage=implement.

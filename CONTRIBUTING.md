@@ -39,7 +39,8 @@ cp -R skills/.  .claude/skills/
 cp -R agents/.  .claude/agents/
 ```
 
-(A `doctor` health check that flags source↔mirror drift is on the roadmap.)
+`bin/harness.sh doctor` warns if the source and mirror diverge — run it before
+you push.
 
 ## 1. Ways to contribute
 

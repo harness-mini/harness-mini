@@ -73,6 +73,10 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   untouched files are refreshed, **your edits are kept** (upstream lands as
   `<file>.new`), new files are added; `docs/exec-plans/` and `.trace/` are never
   touched.
+- `harness.sh doctor` — install health (ok/warn/fail; exit 1 on a fail), incl.
+  source↔`.claude` mirror divergence and unresolved `.new` files.
+- `harness.sh status` — current work state for cold resume: active plans + stages,
+  latest checkpoint per plan, `.new` conflicts, last `ctx_pct`, resumability.
 - `harness.sh release <x.y.z>` — source-repo only; bump + tag + GitHub release
   (gated on semver + green tests + clean tree). See the `release` skill.
 
