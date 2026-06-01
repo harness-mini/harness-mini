@@ -55,6 +55,14 @@ distillate. Structural, therefore reliable.
 > Rule of thumb: any operation that would pull in more than ~2k tokens →
 > delegate it.
 
+Fan-out is not only for *reading*. In the implement stage, once the vertical
+skeleton is proven, the main agent fans out **write** work too — one `generator`
+per independent issue, in parallel (`parallel-slices`). The safety rule there is
+**disjoint file footprints** (no two generators write the same file), and the same
+firewall discipline applies in reverse: the orchestrator takes back each
+generator's *distillate* (tests green, footprint touched), never the raw diffs —
+read the code through the evaluator, not by inflating the orchestrator's window.
+
 ### 2. 40% = the checkpoint-and-reset trigger (not a hard wall)
 Crossing 40% does not mean "stop blindly." It means: **checkpoint now, while you
 are still sharp.** Write `.trace/checkpoints/<plan>-<seq>.md`, update the active

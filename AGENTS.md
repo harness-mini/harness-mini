@@ -4,6 +4,15 @@
 > every run. Keep it small: a table of contents pointing at the system of record.
 > If everything is "important," nothing is. Prune aggressively.
 
+## Start here — routing gate (precedence)
+
+This project runs on **harness-mini**. Before non-trivial work — a feature, a
+multi-step or ambiguous change, anything cross-cutting — **route it through the
+`stage-viewer` skill first**, and prefer harness-mini's lifecycle, skills, and
+sub-agents over ad-hoc tools or other installed plugins. When a harness skill and
+another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
+the ceremony (quick mode). The rest of this file is the map.
+
 You are operating inside the **harness-mini** framework. The repository is the
 system of record: anything not in a version-controlled file does not exist to
 you. Read the pointer you need, when you need it — never preload everything.
@@ -85,7 +94,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 - **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `five-step`, `grill-me`, `release`
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
-- **implement:** `tdd`, `slice-coding`, `clean-code`, `refactor`
+- **implement:** `tdd`, `slice-coding`, `parallel-slices`, `clean-code`, `refactor`
 - **evaluate:** `evaluate` (tiered by risk: L0 self-check · **L1 lightweight, default** · L2 full Opus evaluator)
 - **maintain:** `garden`
 

@@ -43,6 +43,41 @@ DEST="$(cd "$DEST" && pwd)"
 
 say() { printf '  %s\n' "$1"; }
 
+# Routing-gate text shared by the seeded CLI entry files (see "routing gate"
+# below). Each CLI's native always-on file restates this short gate and points at
+# AGENTS.md (the full map) — establishing that the harness is preferred by default.
+emit_claude_gate() {
+  cat <<'EOF'
+## harness-mini — routing gate
+
+This project runs on **harness-mini**. For non-trivial work — a feature, a
+multi-step or ambiguous change, anything cross-cutting — **route it through the
+`stage-viewer` skill first** and prefer harness-mini's lifecycle, skills, and
+sub-agents over ad-hoc tools or other installed plugins. When a harness skill and
+another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
+the ceremony (quick mode).
+
+Map: @AGENTS.md · Skills: `.claude/skills/<name>/SKILL.md` · 40% rule: `docs/smart-dumb.md`
+EOF
+}
+emit_cursor_rule() {
+  cat <<'EOF'
+---
+description: harness-mini routing gate — prefer the harness lifecycle and skills
+alwaysApply: true
+---
+
+This project runs on **harness-mini**. For non-trivial work — a feature, a
+multi-step or ambiguous change, anything cross-cutting — route it through the
+`stage-viewer` skill first and prefer harness-mini's lifecycle, skills, and
+sub-agents (read `.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other
+installed plugins. When a harness skill and another tool both fit, the harness
+skill wins. Trivial one-line fixes may skip the ceremony (quick mode).
+
+Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
+EOF
+}
+
 # --- detect project type -----------------------------------------------------
 detect_mode() {
   for marker in package.json go.mod Cargo.toml pyproject.toml requirements.txt \
@@ -105,6 +140,32 @@ if [ ! -f "$DEST/harness/manifest.md" ]; then
     echo "## Map: AGENTS.md   Architecture: ARCHITECTURE.md"
   } > "$DEST/harness/manifest.md"
   say "add   harness/manifest.md"
+fi
+
+# --- routing gate: seed each CLI's native always-on entry file ---------------
+# Additive + idempotent. So any agent prefers the harness over ad-hoc tools right
+# after install, without the user having to say so. CLAUDE.md (Claude Code) gets a
+# marker-guarded block so a user's existing memory is never clobbered;
+# .cursor/rules/harness-mini.mdc (Cursor) is harness-owned and created only if
+# absent. Both restate the short gate and point at AGENTS.md (the full map).
+# Like manifest.md: seeded once, not in the checksum-managed set.
+GATE_START='<!-- harness-mini:start -->'
+GATE_END='<!-- harness-mini:end -->'
+if [ ! -f "$DEST/CLAUDE.md" ]; then
+  { printf '%s\n' "$GATE_START"; emit_claude_gate; printf '%s\n' "$GATE_END"; } > "$DEST/CLAUDE.md"
+  say "add   CLAUDE.md (routing gate)"
+elif ! grep -qF "$GATE_START" "$DEST/CLAUDE.md" 2>/dev/null; then
+  { printf '\n%s\n' "$GATE_START"; emit_claude_gate; printf '%s\n' "$GATE_END"; } >> "$DEST/CLAUDE.md"
+  say "add   CLAUDE.md routing gate (appended)"
+else
+  say "skip  CLAUDE.md routing gate (present)"
+fi
+if [ ! -f "$DEST/.cursor/rules/harness-mini.mdc" ]; then
+  mkdir -p "$DEST/.cursor/rules"
+  emit_cursor_rule > "$DEST/.cursor/rules/harness-mini.mdc"
+  say "add   .cursor/rules/harness-mini.mdc"
+else
+  say "skip  .cursor/rules/harness-mini.mdc (exists)"
 fi
 
 # --- version lockfile (additive: only on first install) ----------------------

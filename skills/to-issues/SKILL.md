@@ -11,12 +11,20 @@ and **bounded** (one session, under the 40% rule).
 - A failing test you can write first (TDD-ready).
 - A clear layer footprint (which of Types→Config→Repo→Service→Runtime→UI it
   touches) per `slice-coding`.
+- A **file footprint** — the files/dirs the issue will create or edit. This is
+  load-bearing: it's what lets the main agent run independent issues in parallel
+  without two generators clobbering the same file (`parallel-slices`).
+- A **`depends-on`** marker — the issue numbers that must land first (or "none").
 - An explicit "done = test green + criteria met" line.
 
 ## Ordering
 - **Vertical first:** order issues so the first few compose into a thin
   walking skeleton that runs end-to-end. Then expand horizontally.
 - Front-load the issue that tests the riskiest assumption (from founder-check).
+- **Mark parallel groups:** after the skeleton, group the remaining issues that
+  are independent (`depends-on: none` of each other) **and** have disjoint file
+  footprints — those can be built concurrently (`parallel-slices`). Issues that
+  share a file or depend on each other stay sequential.
 
 ## Format
 Record issues as a checklist in the active plan (or one file per issue under the

@@ -14,8 +14,11 @@ bash harness-mini/init.sh /path/to/your/project
 
 ## 2. Point Codex at the harness
 
-The harness is plain Markdown + shell. At the start of a Codex session, have it
-read the map and the manifest:
+The harness is plain Markdown + shell. `AGENTS.md` — which Codex reads by
+convention — opens with a **routing gate**: it tells the agent to route
+non-trivial work through `stage-viewer` first and prefer harness skills over
+ad-hoc tools (the harness skill wins ties). At the start of a Codex session, have
+it read the map and the manifest:
 
 > Read `AGENTS.md`, `ARCHITECTURE.md`, and `harness/manifest.md`. Follow the 40%
 > rule and the lifecycle they describe. The repo is the system of record.

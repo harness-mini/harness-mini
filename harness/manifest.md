@@ -11,6 +11,7 @@ cursor) should read the files below directly.
 - founder-check/SKILL.md
 - garden/SKILL.md
 - grill-me/SKILL.md
+- parallel-slices/SKILL.md
 - ralph-loop/SKILL.md
 - refactor/SKILL.md
 - release/SKILL.md

@@ -14,15 +14,15 @@ bash harness-mini/init.sh /path/to/your/project
 
 ## 2. Make the harness visible to Cursor
 
-Cursor reads your repo. Two good options:
+`init.sh` already does this for you: it seeds an **always-applied** Cursor rule at
+`.cursor/rules/harness-mini.mdc` (`alwaysApply: true`). That rule is the routing
+gate — it tells Cursor to prefer the harness lifecycle and skills over ad-hoc
+tools, and points at `AGENTS.md`. Nothing to add by hand. (Re-running `init.sh`
+won't clobber it — it's created only if absent.)
 
-- **Point its rules at the map.** Add a short Cursor rule (or `.cursorrules` line):
-  *"Follow `AGENTS.md` and `harness/manifest.md`. Honor the 40% context rule and
-  the lifecycle. The repo is the system of record; read a skill file before doing
-  its task."*
-- **Open files on demand.** When a task starts, open
-  `.claude/skills/<name>/SKILL.md` whose `description` matches — e.g.
-  `tdd`, `slice-coding`, `to-issues`. (Identical to `skills/<name>/SKILL.md`.)
+Beyond that, **open files on demand**: when a task starts, open
+`.claude/skills/<name>/SKILL.md` whose `description` matches — e.g.
+`tdd`, `slice-coding`, `to-issues`. (Identical to `skills/<name>/SKILL.md`.)
 
 ## 3. Prompt recipes
 

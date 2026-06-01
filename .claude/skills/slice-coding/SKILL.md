@@ -31,6 +31,14 @@ Types → Config → Repo → Service → Runtime → UI
 *A vertical slice proves the path; then expand horizontally across features
 within the same layered contract.* Prove, then widen.
 
+## Then fan out
+Once the vertical skeleton has proven the path and pinned the layer contract, the
+horizontal expansion is parallelizable: independent features over the same
+contract — vertically related, horizontally independent. Where two issues are
+independent and touch **disjoint file footprints**, the main agent may build them
+concurrently with parallel generators — see `parallel-slices`. Prove vertically,
+*then* widen in parallel.
+
 ## On dependencies (golden principle)
 Prefer "boring," stable, composable dependencies the agent can fully model.
 Sometimes reimplementing a small typed helper beats importing an opaque package

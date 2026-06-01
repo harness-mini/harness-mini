@@ -7,6 +7,27 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Routing gate — the harness is preferred by default after install.** `init.sh`
+  now seeds a short precedence gate into each CLI's native always-on file so an
+  agent reaches for the harness without being told: **`CLAUDE.md`** (Claude Code;
+  marker-guarded block, created or appended-once — an existing `CLAUDE.md` is never
+  clobbered), **`.cursor/rules/harness-mini.mdc`** (`alwaysApply: true`, Cursor),
+  and a precedence preamble atop **`AGENTS.md`** (Codex). The gate: route
+  non-trivial work through `stage-viewer` first; when a harness skill and another
+  tool both fit, *the harness skill wins*. Additive + idempotent; seeded once, like
+  `manifest.md` (not in the checksum-managed set). Getting-started docs + README
+  updated.
+- **`parallel-slices` skill — write fan-out for the implement stage.** After the
+  vertical walking skeleton passes evaluate, the main agent may build the remaining
+  **independent** issues in parallel — one `generator` per issue — gated on
+  **disjoint file footprints** (no two generators write the same file), then a
+  single **integration evaluate**. Vertical-first still holds; the generator is
+  unchanged (one issue per session). Wired into `to-issues` (file footprint +
+  `depends-on` annotations, parallel groups), `slice-coding`, `stage-viewer`,
+  the `generator` (stay-in-footprint, report-on-breach), `docs/smart-dumb.md`
+  (fan-out covers writes too), `ARCHITECTURE.md`, and the full-plan template.
+
 ## [0.3.0] - 2026-05-30
 
 ### Added
