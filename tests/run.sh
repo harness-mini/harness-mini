@@ -139,6 +139,39 @@ assert_eq "1" "$nplans" "re-run does not duplicate the seed plan"
 rm -rf "$FSRC" "$NEW" "$EXIST"
 
 # =============================================================================
+echo "init.sh — seeds the CLI routing gate (CLAUDE.md + .cursor rules; additive/idempotent)"
+GSRC="$(mktemp -d)"
+mkdir -p "$GSRC/skills" "$GSRC/agents" "$GSRC/bin" "$GSRC/docs"
+printf 'map\n' > "$GSRC/AGENTS.md"
+# empty project: both native always-on entry files are seeded with the gate
+GNEW="$(mktemp -d)"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GNEW" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$GNEW/CLAUDE.md" ] && echo true || echo false)" "seeds CLAUDE.md"
+assert_contains "$(cat "$GNEW/CLAUDE.md")" "harness-mini" "CLAUDE.md carries the routing gate"
+assert_contains "$(cat "$GNEW/CLAUDE.md")" "stage-viewer" "CLAUDE.md gate routes through stage-viewer"
+assert_eq "true" "$([ -f "$GNEW/.cursor/rules/harness-mini.mdc" ] && echo true || echo false)" "seeds .cursor/rules/harness-mini.mdc"
+assert_contains "$(cat "$GNEW/.cursor/rules/harness-mini.mdc")" "alwaysApply: true" "cursor rule is always-applied"
+# idempotent: re-run does not duplicate the marker-guarded block
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GNEW" >/dev/null 2>&1
+n=$(grep -cF 'harness-mini:start' "$GNEW/CLAUDE.md")
+assert_eq "1" "$n" "re-run does not duplicate the CLAUDE.md gate block"
+# additive: a pre-existing CLAUDE.md keeps its content; the gate is appended once
+GEX="$(mktemp -d)"
+printf 'MY MEMORY\n' > "$GEX/CLAUDE.md"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GEX" >/dev/null 2>&1
+assert_contains "$(cat "$GEX/CLAUDE.md")" "MY MEMORY" "existing CLAUDE.md content is preserved"
+assert_contains "$(cat "$GEX/CLAUDE.md")" "harness-mini:start" "gate is appended to an existing CLAUDE.md"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GEX" >/dev/null 2>&1
+n=$(grep -cF 'harness-mini:start' "$GEX/CLAUDE.md")
+assert_eq "1" "$n" "re-run appends the gate at most once"
+rm -rf "$GSRC" "$GNEW" "$GEX"
+
+# =============================================================================
+echo "repo assets — parallel-slices skill exists and is mirrored to .claude/"
+assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill source exists"
+assert_eq "true" "$([ -f "$ROOT/.claude/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill is mirrored to .claude/skills/"
+
+# =============================================================================
 echo "harness.sh version — report the installed harness version"
 HARN="$BIN/harness.sh"
 # from the source repo (no lock), version falls back to the root VERSION file

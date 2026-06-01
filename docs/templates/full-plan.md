@@ -29,12 +29,21 @@ eval: L1        # L1 default; bump to L2 for arch/security/data-loss/public-API/
 - [ ] <criterion>
 
 ## Issues (run `to-issues`)
-1. <atomic, independently testable unit → one vertical slice or a step within one>
+<!-- Each issue: outcome · failing test · layer footprint · FILE footprint ·
+     depends-on. The file footprint + depends-on are what let independent issues
+     run in parallel (`parallel-slices`). -->
+1. <unit> — files: `<path…>` — depends-on: <none|#n>
 2. <…>
 
 ## Vertical slices (build order)
 1. <walking skeleton end-to-end first, via `tdd` + `slice-coding`>
 2. <expand horizontally across the layer stack>
+
+## Parallel groups (after the skeleton passes evaluate)
+<!-- Group independent issues with disjoint file footprints; the main agent fans
+     these out to parallel generators, then runs one integration evaluate. -->
+- Group A (parallel): #<n>, #<n>   — disjoint footprints, no inter-dependency
+- Sequential (shared files / depends-on): #<n> → #<n>
 
 ## Evaluation
 - Tier: <L1 default; L2 if cross-slice / architecture / security / data-loss /

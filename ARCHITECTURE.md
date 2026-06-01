@@ -89,6 +89,11 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   features within the same layered contract.* Enforce mechanically where the
   project allows (lint / structure tests); the generator reads this before
   writing code.
+- **Parallel horizontal expansion:** once the vertical skeleton passes evaluate,
+  the main agent may fan the remaining independent issues out to parallel
+  generators — gated on **disjoint file footprints** so no two collide — then run
+  a single integration evaluate (`parallel-slices`). Vertical-first, then widen in
+  parallel.
 
 ## New vs existing project (set by `init.sh`)
 

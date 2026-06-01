@@ -23,11 +23,13 @@ install → recon → route → plan → implement(slice, TDD) ⇄ evaluate → 
 $ git clone https://github.com/harness-mini/harness-mini.git
 $ bash harness-mini/init.sh ~/demo-api
 harness-mini: installing into /Users/you/demo-api  (mode: existing)
-  add   .claude/skills/… (15 skills)
+  add   .claude/skills/… (16 skills)
   add   .claude/agents/… (5 agents)
   add   bin/ctx.sh bin/trace.sh bin/ralph.sh bin/harness.sh …
   add   AGENTS.md ARCHITECTURE.md
   add   harness/manifest.md
+  add   CLAUDE.md (routing gate)
+  add   .cursor/rules/harness-mini.mdc
   add   harness/harness.lock (v0.2.0)
   add   docs/exec-plans/active/0001-recon.md
 harness-mini: done.

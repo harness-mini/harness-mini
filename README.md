@@ -30,6 +30,14 @@ to re-run). It behaves asymmetrically:
 Skills install to `.claude/skills/` and agents to `.claude/agents/` (auto-loaded
 by Claude Code); `harness/manifest.md` is a neutral pointer list for other CLIs.
 
+So the agent **prefers the harness by default** (rather than waiting to be told),
+`init.sh` also seeds a short **routing gate** into each CLI's native always-on
+file — `CLAUDE.md` (Claude Code), `.cursor/rules/harness-mini.mdc` (Cursor), and
+the top of `AGENTS.md` (Codex). The gate says: route non-trivial work through
+`stage-viewer` first and, when a harness skill and another tool both fit, *the
+harness skill wins*. Seeding is additive + idempotent — an existing `CLAUDE.md`
+keeps its content (the gate is appended once, marker-guarded).
+
 **Other agents (Codex, Cursor, …):** the harness is plain Markdown + shell, so any
 agent can use it by reading the files — see
 [`docs/codex-getting-started.md`](docs/codex-getting-started.md) and
@@ -98,7 +106,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
 | `harness/harness.lock` | installed version + managed-file checksums |
-| `skills/<name>/SKILL.md` → `.claude/skills/` | 15 skills (one folder each) |
+| `skills/<name>/SKILL.md` → `.claude/skills/` | 16 skills (one folder each) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
 | `docs/principles.md` | golden principles + Musk's Five-Step core-mind |
 | `docs/smart-dumb.md` | the 40% contract |
@@ -127,7 +135,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 ## Develop
 
 ```bash
-bash tests/run.sh   # 69 assertions, zero dependencies
+bash tests/run.sh   # 95 assertions, zero dependencies
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
