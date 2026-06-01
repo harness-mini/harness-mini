@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-01
+
 ### Added
 - **Routing gate — the harness is preferred by default after install.** `init.sh`
   now seeds a short precedence gate into each CLI's native always-on file so an
