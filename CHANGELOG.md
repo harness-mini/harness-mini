@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-06-02
+
 ### Changed
 - **Golden principle #5 sharpened** (`docs/principles.md`): "Parse at the boundary"
   → "**Type the boundary; never guess the shape**" — now leads with *depend on a
