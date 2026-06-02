@@ -7,6 +7,14 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Golden principle #5 sharpened** (`docs/principles.md`): "Parse at the boundary"
+  → "**Type the boundary; never guess the shape**" — now leads with *depend on a
+  typed SDK/client* (acquire types from the source) and falls back to parse +
+  validate at the seam where no typed SDK exists; nothing downstream may build on a
+  guessed/untyped structure. `slice-coding`'s dependency note aligned to match.
+  Wording-only; no behavior change.
+
 ## [0.4.0] - 2026-06-01
 
 ### Added

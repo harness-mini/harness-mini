@@ -41,7 +41,10 @@ concurrently with parallel generators — see `parallel-slices`. Prove verticall
 
 ## On dependencies (golden principle)
 Prefer "boring," stable, composable dependencies the agent can fully model.
-Sometimes reimplementing a small typed helper beats importing an opaque package
-— it keeps invariants in-repo and testable.
+**Type the boundary** (golden principle #5): reach for a **typed SDK/client** so
+the data shape comes from the source; where none exists, parse and validate at the
+seam and pass typed values inward — never build on a guessed structure. Sometimes
+reimplementing a small typed helper beats importing an opaque package — it keeps
+invariants in-repo and testable.
 
 Trace: `bin/trace.sh generator implement slice axis=vertical|horizontal`.
