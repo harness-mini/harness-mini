@@ -348,6 +348,32 @@ assert_contains "$out" "resumable" "status reports resumability"
 rm -rf "$SDIR"
 
 # =============================================================================
+echo "harness.sh status — garden trigger (cadence + smell backlog)"
+GDIR="$(mktemp -d)"; mkdir -p "$GDIR/.trace/checkpoints" "$GDIR/harness"
+printf 'version: 0.0.0\n' > "$GDIR/harness/harness.lock"
+mkcp() { printf -- '---\nplan: p\nseq: %s\n---\n' "$1" > "$GDIR/.trace/checkpoints/p-$1.md"; }
+# 5 committed checkpoints, no backlog yet -> DUE by cadence (default threshold 5)
+for i in 001 002 003 004 005; do mkcp "$i"; done
+out="$(HARNESS_ROOT="$GDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
+assert_exit 0 "$code" "status exits 0 with garden block"
+assert_contains "$out" "garden: DUE" "garden DUE at 5 checkpoints since last (cadence)"
+assert_contains "$out" "5 checkpoint" "garden line counts checkpoints since last garden"
+# stamp gardened-at to the current count -> since 0 -> ok
+printf '# Garden backlog\n<!-- gardened-at: 5 -->\n\n## Open\n' > "$GDIR/.trace/garden-backlog.md"
+out="$(HARNESS_ROOT="$GDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "garden: ok" "garden ok once gardened-at marks the current count"
+# one HIGH-severity open item flips it DUE even with since=0
+printf -- '- [ ] 2026-06-03 | a.ts:1 | long-fn | high | x\n' >> "$GDIR/.trace/garden-backlog.md"
+out="$(HARNESS_ROOT="$GDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "garden: DUE" "garden DUE on a high-severity backlog item"
+assert_contains "$out" "1 backlog item" "garden line counts open backlog items"
+# 2 non-high items, gardened-at current -> under both thresholds -> ok
+printf '# Garden backlog\n<!-- gardened-at: 5 -->\n\n## Open\n- [ ] d | b.ts:1 | dup | low | x\n- [ ] d | c.ts:1 | dup | med | y\n' > "$GDIR/.trace/garden-backlog.md"
+out="$(HARNESS_ROOT="$GDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "garden: ok" "garden ok with <3 non-high items and no cadence overflow"
+rm -rf "$GDIR"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

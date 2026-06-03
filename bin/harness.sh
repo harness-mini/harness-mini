@@ -319,6 +319,27 @@ cmd_status() {
     echo "last trace: none"
   fi
 
+  # garden trigger — cadence (committed checkpoints since the last sweep) + the
+  # smell backlog. grep/ls/sed only, like the rest of status. DUE iff there are
+  # >= HARNESS_GARDEN_EVERY (default 5) checkpoints since last garden, OR any
+  # high-severity open item, OR >= 3 open items in .trace/garden-backlog.md.
+  local bl="$root/.trace/garden-backlog.md" total gat since open high gdue
+  total=$(ls "$root"/.trace/checkpoints/*.md 2>/dev/null | wc -l | tr -d ' ')
+  gat=0; open=0; high=0
+  if [ -f "$bl" ]; then
+    gat=$(sed -n 's/.*gardened-at: *\([0-9][0-9]*\).*/\1/p' "$bl" | head -n1)
+    [ -z "$gat" ] && gat=0
+    open=$(grep -Ec '^- \[ \]' "$bl" 2>/dev/null); [ -z "$open" ] && open=0
+    high=$(grep -Ec '^- \[ \].*\| *high *\|' "$bl" 2>/dev/null); [ -z "$high" ] && high=0
+  fi
+  since=$((total - gat)); [ "$since" -lt 0 ] && since=0
+  if [ "$since" -ge "${HARNESS_GARDEN_EVERY:-5}" ] || [ "$high" -gt 0 ] || [ "$open" -ge 3 ]; then
+    gdue=DUE
+  else
+    gdue=ok
+  fi
+  printf 'garden: %s (%s checkpoint(s) since last; %s backlog item(s))\n' "$gdue" "$since" "$open"
+
   local hasplan=no hascp=no
   ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1 && hasplan=yes
   ls "$root"/.trace/checkpoints/*.md >/dev/null 2>&1 && hascp=yes

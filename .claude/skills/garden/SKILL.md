@@ -7,7 +7,40 @@ Technical debt is a high-interest loan. Pay it in small, continuous
 installments (golden principle #7) — never let it compound to a once-a-quarter
 cleanup.
 
-## Sweep (run periodically / in background)
+## When to garden (triggers — agreed, not "whenever")
+Gardening is orthogonal to the lifecycle, but it fires on **concrete triggers**,
+not vibes. `harness.sh status` computes them and prints `garden: DUE|ok`; the
+main agent dispatches the gardener when DUE.
+
+- **Cadence — "after several visits":** a *visit* = one committed checkpoint.
+  Garden is **due** after **≥5 checkpoints since the last sweep**
+  (`HARNESS_GARDEN_EVERY` overrides the 5). Also garden **when a plan completes**
+  (moves to `docs/exec-plans/completed/`) and **before a release**.
+- **Smell — "an unpleasant odor":** garden is **due** when the backlog holds **any
+  `high`-severity item** or **≥3 open items**.
+
+## The backlog — `.trace/garden-backlog.md` (committed)
+Smells get *noticed* mid-task but mustn't be fixed inline (that breaks slice
+discipline / bloats the diff). So they're **recorded**, never dropped. The file is
+committed institutional debt (it lives outside `.trace/runtime/`):
+
+```markdown
+# Garden backlog — deferred smells (committed debt)
+<!-- gardened-at: 0 -->          # total checkpoint count at the last sweep
+
+## Open
+- [ ] 2026-06-03 | src/x.ts:42 | long-function | high | splits two concerns
+- [ ] 2026-06-03 | src/y.ts:8  | duplication   | med  | 3rd copy of this guard
+
+## Cleared
+- [x] 2026-06-03 | extracted parseHeader() | gardener
+```
+
+Open item = a line `^- [ ]`; severity is the 4th `|` field (`low|med|high`).
+**After a sweep** the gardener flips fixed items to `[x]` and stamps `gardened-at:`
+to the current total checkpoint count (resetting the cadence counter).
+
+## Sweep (run on a trigger)
 1. **Stale docs:** find docs that no longer match code behavior. Flag or open a
    fix PR. (Mimics OpenAI's "doc-gardening" agent.)
 2. **Demote dead smart context:** anything in `AGENTS.md` or always-loaded files

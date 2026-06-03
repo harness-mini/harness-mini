@@ -74,7 +74,9 @@ single step. (See the `five-step` skill for the operational checklist.)
 6. **Prefer shared utilities over hand-rolled helpers**, so invariants live in
    one place.
 7. **Pay technical debt in small, continuous installments** — the garbage
-   collector (`garden`), not a once-a-quarter cleanup.
+   collector (`garden`), not a once-a-quarter cleanup. Gardening fires on
+   concrete triggers (≥5 checkpoints, plan-completion, pre-release, or the smell
+   backlog crossing its threshold), surfaced by `harness.sh status`.
 8. **Correct, maintainable, readable beats stylistically human.** Agent-written
    code need not match human style; it must be right and clear for the next run.
 

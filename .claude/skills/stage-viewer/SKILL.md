@@ -46,6 +46,13 @@ You may move a plan forward only when the stage's exit condition is met:
 To advance: edit the plan's `stage:` field, append a line to the plan's
 Decisions log, and `bin/trace.sh main <new-stage> stage_advance plan=<plan>`.
 
+## Garden gate (orthogonal, you dispatch it)
+When a plan reaches `done` (and as a release pre-flight), run `bin/harness.sh
+status` and read the `garden:` line. If it says **DUE** — ≥5 checkpoints since the
+last sweep, or the smell backlog crossed its threshold — **dispatch the gardener**
+before opening the next plan. It's non-blocking and small; the gardener never
+advances a stage or grades feature work. See the `garden` skill for the policy.
+
 ## Hard rule
 A sub-agent never edits `stage:` and never declares "done." If a worker claims
 completion, you route it to the **evaluator** first. Anti-self-praise.
