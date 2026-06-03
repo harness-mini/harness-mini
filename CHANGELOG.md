@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-03
+
 ### Added
 - **Gardening trigger policy — gardening now fires on concrete signals instead of
   vague "periodically."** Two agreed triggers: a **cadence** (a *visit* = one
