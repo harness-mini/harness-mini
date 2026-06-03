@@ -9,6 +9,11 @@ BIN="$ROOT/bin"
 PASS=0
 FAIL=0
 
+# Hermetic by default: no test should hit the network. The update-check tests
+# inject a latest version via HARNESS_LATEST (which short-circuits before the
+# network path), so this stays in force even for them.
+export HARNESS_NO_NET=1
+
 # --- assertion helpers -------------------------------------------------------
 assert_eq() { # <expected> <actual> <msg>
   if [ "$1" = "$2" ]; then
@@ -191,6 +196,42 @@ printf 'version: 9.9.9\nabc123  AGENTS.md\n' > "$LK/harness/harness.lock"
 out=$(HARNESS_ROOT="$LK" HARNESS_NO_NET=1 bash "$HARN" version 2>/dev/null)
 assert_contains "$out" "9.9.9" "version prefers the installed lock over VERSION"
 rm -rf "$LK"
+
+# =============================================================================
+echo "version_newer — dependency-free semver compare"
+vnew() { bash -c '. "$1"; version_newer "$2" "$3" && echo yes || echo no' _ "$BIN/_harness_lib.sh" "$1" "$2"; }
+assert_eq "yes" "$(vnew 0.5.0 0.6.0)"  "version_newer: 0.6.0 > 0.5.0"
+assert_eq "no"  "$(vnew 0.5.0 0.5.0)"  "version_newer: equal is not newer"
+assert_eq "no"  "$(vnew 0.6.0 0.5.0)"  "version_newer: older is not newer"
+assert_eq "yes" "$(vnew 0.9.0 0.10.0)" "version_newer: 0.10.0 > 0.9.0 (numeric, not lexical)"
+assert_eq "yes" "$(vnew 0.5.0 0.5.1)"  "version_newer: patch bump is newer"
+assert_eq "yes" "$(vnew v0.5.0 v1.0.0)" "version_newer: tolerates a leading v"
+assert_eq "no"  "$(vnew '' 0.6.0)"     "version_newer: empty installed is not a trigger"
+
+# =============================================================================
+echo "update reminder — surfaced in version / status / doctor (HARNESS_LATEST injects)"
+UDIR="$(mktemp -d)"; mkdir -p "$UDIR/harness" "$UDIR/.claude/skills/x" "$UDIR/docs/exec-plans/active"
+printf 'version: 0.5.0\n' > "$UDIR/harness/harness.lock"
+printf 'AGENTS\n' > "$UDIR/AGENTS.md"
+printf 'x\n' > "$UDIR/.claude/skills/x/SKILL.md"   # so doctor has no unrelated FAIL
+# version: newer latest -> reminder; equal -> up to date
+out="$(HARNESS_ROOT="$UDIR" HARNESS_LATEST=0.6.0 bash "$HARN" version 2>&1)"
+assert_contains "$out" "0.6.0" "version reminds when a newer release exists"
+assert_contains "$out" "harness.sh update" "version points at the update command"
+out="$(HARNESS_ROOT="$UDIR" HARNESS_LATEST=0.5.0 bash "$HARN" version 2>&1)"
+assert_contains "$out" "up to date" "version says up to date when current"
+# status: newer latest -> update line; offline (no inject) -> silent
+out="$(HARNESS_ROOT="$UDIR" HARNESS_LATEST=0.6.0 bash "$HARN" status 2>&1)"
+assert_contains "$out" "update: 0.6.0" "status surfaces an available update"
+out="$(HARNESS_ROOT="$UDIR" bash "$HARN" status 2>&1)"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'update:')" "status is silent about updates when offline"
+# doctor: behind latest -> WARN (exit 0, not a FAIL); current -> ok
+out="$(HARNESS_ROOT="$UDIR" HARNESS_LATEST=0.6.0 bash "$HARN" doctor 2>&1)"; code=$?
+assert_contains "$out" "0.6.0 available" "doctor warns when behind latest"
+assert_exit 0 "$code" "doctor: behind-latest is a WARN, not a FAIL"
+out="$(HARNESS_ROOT="$UDIR" HARNESS_LATEST=0.5.0 bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "up to date" "doctor reports up to date when current"
+rm -rf "$UDIR"
 
 # =============================================================================
 echo "init.sh — writes harness/harness.lock (version + managed checksums)"

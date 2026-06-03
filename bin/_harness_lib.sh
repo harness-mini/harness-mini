@@ -59,6 +59,26 @@ lock_version() { awk -F': *' '/^version:/{print $2; exit}' "$1" 2>/dev/null; }
 # lock_sha <lockfile> <relpath> — print the recorded baseline checksum for a path.
 lock_sha() { awk -v p="$2" '$2==p{print $1; exit}' "$1" 2>/dev/null; }
 
+# version_newer <a> <b> — exit 0 iff semver <b> is strictly newer than <a>.
+# Dependency-free numeric compare on dot-separated fields (no `sort -V`), so it
+# stays portable on a bare macOS/Linux box. Tolerates a leading "v" and any
+# pre-release suffix on a field. Empty operands are never "newer".
+version_newer() {
+  [ -n "${1:-}" ] && [ -n "${2:-}" ] || return 1
+  local a="${1#v}" b="${2#v}" ai bi
+  while [ -n "$a" ] || [ -n "$b" ]; do
+    ai="${a%%.*}"; bi="${b%%.*}"
+    ai="${ai%%[!0-9]*}"; bi="${bi%%[!0-9]*}"   # drop any non-numeric suffix
+    [ -n "$ai" ] || ai=0
+    [ -n "$bi" ] || bi=0
+    [ "$bi" -gt "$ai" ] && return 0
+    [ "$bi" -lt "$ai" ] && return 1
+    case "$a" in *.*) a="${a#*.}" ;; *) a="" ;; esac
+    case "$b" in *.*) b="${b#*.}" ;; *) b="" ;; esac
+  done
+  return 1
+}
+
 # count_dotnew <root> — number of unresolved <file>.new files left by `update`,
 # searched only in managed areas (not the whole tree). grep/find only, no parsing.
 count_dotnew() {

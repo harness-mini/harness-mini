@@ -67,6 +67,12 @@ bin/harness.sh status               # current work state (plans, checkpoints, re
 bin/harness.sh release <x.y.z>      # (source repo) bump + tag + GitHub release
 ```
 
+On entering a fresh session the agent checks for a newer release first (the
+routing gate + `stage-viewer` run `harness.sh version`); `version`, `status`, and
+`doctor` all surface an **update reminder** when one is available, so you're
+prompted to `update` rather than drifting behind. The check is best-effort and
+silent offline (`HARNESS_NO_NET`); `HARNESS_LATEST` pins it.
+
 `init.sh` records the version and a checksum of every harness-owned file in
 `harness/harness.lock`. `update` is **checksum-guarded**: files you never touched
 are refreshed silently, files **you edited are kept** (the upstream copy is

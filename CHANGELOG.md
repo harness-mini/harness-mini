@@ -7,6 +7,19 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Update reminder on entry — check for a newer harness-mini first.** On a fresh
+  session the agent now checks for a newer release before routing work (the
+  routing gate + `stage-viewer`'s on-entry step run `harness.sh version`); if one
+  exists it tells the user and offers `harness.sh update`. The reminder is
+  surfaced by **`version`** (semver-aware verdict), **`status`** (an `update:`
+  line), and **`doctor`** (a WARN — never a FAIL). Best-effort: silent offline
+  (`HARNESS_NO_NET`); `HARNESS_LATEST` pins/overrides the latest version.
+- New dependency-free `version_newer()` semver compare in `bin/_harness_lib.sh`
+  (no `sort -V`), so the "is a newer version available?" check is accurate
+  (`0.10.0 > 0.9.0`) and portable. The test suite is now hermetic (network off by
+  default; update-checks inject `HARNESS_LATEST`).
+
 ## [0.5.0] - 2026-06-03
 
 ### Added
