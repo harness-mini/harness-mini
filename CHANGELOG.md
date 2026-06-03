@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-06-03
+
 ### Added
 - **Update reminder on entry — check for a newer harness-mini first.** On a fresh
   session the agent now checks for a newer release before routing work (the
