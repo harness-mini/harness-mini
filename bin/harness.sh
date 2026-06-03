@@ -36,8 +36,10 @@ installed_version() {
 }
 
 # latest_version — best-effort newest published tag for HARNESS_REPO (no "v").
-# Never hangs the caller offline-on-purpose: HARNESS_NO_NET short-circuits it.
+# HARNESS_LATEST overrides (explicit pin / offline tests); HARNESS_NO_NET
+# short-circuits so the caller never hangs offline-on-purpose.
 latest_version() {
+  [ -n "${HARNESS_LATEST:-}" ] && { printf '%s' "${HARNESS_LATEST#v}"; return 0; }
   [ -n "${HARNESS_NO_NET:-}" ] && return 0
   local repo="${HARNESS_REPO:-harness-mini/harness-mini}" tag=""
   if command -v gh >/dev/null 2>&1; then
@@ -55,7 +57,7 @@ cmd_version() {
   echo "harness-mini ${v:-unknown} (installed)"
   latest="$(latest_version)"
   [ -z "$latest" ] && return 0
-  if [ "$latest" != "$v" ]; then
+  if version_newer "$v" "$latest"; then
     echo "latest: $latest — run \`harness.sh update\`"
   else
     echo "up to date."
@@ -231,6 +233,14 @@ cmd_doctor() {
     emit fail "harness/harness.lock missing (run init.sh)"
   fi
 
+  # update check (best-effort; never a FAIL) — skip silently when offline/unknown.
+  local latest; latest="$(latest_version)"
+  if [ -n "$latest" ]; then
+    version_newer "$(installed_version)" "$latest" \
+      && emit warn "harness-mini $latest available (installed $(installed_version)) — run harness.sh update" \
+      || emit ok "harness-mini up to date ($(installed_version))"
+  fi
+
   if [ -d "$root/.claude/skills" ]; then
     local nfolders nflat
     nfolders=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
@@ -289,6 +299,13 @@ cmd_doctor() {
 cmd_status() {
   local root="$HARNESS_ROOT"
   echo "harness-mini $(installed_version)"
+
+  # update check (best-effort) — remind on entry if a newer harness-mini exists.
+  # Silent when offline/unknown so the cold-resume view stays fast & quiet.
+  local _latest; _latest="$(latest_version)"
+  if [ -n "$_latest" ] && version_newer "$(installed_version)" "$_latest"; then
+    echo "update: $_latest available — run \`harness.sh update\`"
+  fi
 
   if ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"

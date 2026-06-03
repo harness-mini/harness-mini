@@ -11,7 +11,9 @@ multi-step or ambiguous change, anything cross-cutting — **route it through th
 `stage-viewer` skill first**, and prefer harness-mini's lifecycle, skills, and
 sub-agents over ad-hoc tools or other installed plugins. When a harness skill and
 another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
-the ceremony (quick mode). The rest of this file is the map.
+the ceremony (quick mode). On entering a fresh session, `stage-viewer` first
+checks for a newer harness-mini (`bin/harness.sh version`) and prompts you to
+update. The rest of this file is the map.
 
 You are operating inside the **harness-mini** framework. The repository is the
 system of record: anything not in a version-controlled file does not exist to
@@ -77,7 +79,9 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 `bin/harness.sh` is the front door. Installed version + checksums live in
 `harness/harness.lock` (canonical source version: `VERSION`).
 
-- `harness.sh version` — installed version (+ best-effort latest).
+- `harness.sh version` — installed version (+ best-effort latest). When a newer
+  release exists, `version`/`status`/`doctor` all surface an **update reminder**
+  (best-effort, silent offline). `stage-viewer` runs this on session entry.
 - `harness.sh update [--src DIR]` — pull a newer harness in, checksum-guarded:
   untouched files are refreshed, **your edits are kept** (upstream lands as
   `<file>.new`), new files are added; `docs/exec-plans/` and `.trace/` are never

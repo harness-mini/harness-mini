@@ -5,6 +5,13 @@ description: View and advance the lifecycle stage of every requirement. Main-age
 
 You are the main agent holding the tiller. Only you advance the FSM.
 
+## On entry — check for a newer harness (first thing)
+Before routing work in a fresh session, run `bin/harness.sh version` (or read the
+`update:` line `status` prints). If a newer harness-mini is published, **tell the
+user and offer `bin/harness.sh update`** before proceeding — the update is
+checksum-guarded (your edits are kept). It's best-effort: skip silently if
+offline. Then continue.
+
 ## View
 1. List `docs/exec-plans/active/*.md`. For each, read the `stage:` frontmatter.
 2. Report a one-line status per plan: `<plan> — <stage> — <one-line "Now">`.
