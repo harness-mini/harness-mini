@@ -50,7 +50,7 @@ manager, or third-party binary. Apply the Five-Step to the harness itself: try t
 ```
 intake → prd → issues → implement ⇄ evaluate → checkpoint → done
                            ↑___________|   (loop until criteria pass)
-       garden ──── runs orthogonally, periodically ────
+       garden ──── runs orthogonally, on triggers ────
 ```
 
 - Only the **main agent** (via the `stage-viewer` skill) advances the stage.
@@ -96,7 +96,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `parallel-slices`, `clean-code`, `refactor`
 - **evaluate:** `evaluate` (tiered by risk: L0 self-check · **L1 lightweight, default** · L2 full Opus evaluator)
-- **maintain:** `garden`
+- **maintain:** `garden` (triggers: ≥5 checkpoints · plan-done · pre-release · smell backlog; `harness.sh status` shows `garden: DUE|ok`)
 
 ## Sub-agents (separate context windows = firewalls)
 

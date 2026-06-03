@@ -7,6 +7,24 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Gardening trigger policy — gardening now fires on concrete signals instead of
+  vague "periodically."** Two agreed triggers: a **cadence** (a *visit* = one
+  committed checkpoint; due after **≥5 checkpoints** since the last sweep,
+  overridable via `HARNESS_GARDEN_EVERY`, plus at plan-completion and before a
+  release) and a **smell backlog** — out-of-scope smells are recorded to a
+  committed **`.trace/garden-backlog.md`** (never fixed inline / dropped), and
+  garden is due on any `high`-severity item or **≥3 open items**.
+- **`harness.sh status` surfaces it:** a new `garden: DUE|ok (<n> checkpoint(s)
+  since last; <k> backlog item(s))` line (grep/ls/sed only; always exits 0). The
+  gardener stamps `gardened-at:` after a sweep to reset the cadence counter.
+- Wired into the flow: `garden` (the policy + backlog format), `gardener`
+  (work the backlog, stamp the marker), `checkpoint` (log out-of-scope smells),
+  `stage-viewer` (dispatch the gardener when DUE at a plan boundary), `release`
+  (garden-if-due pre-flight), and the FSM notes in `AGENTS.md`/`ARCHITECTURE.md`/
+  `README.md`/`docs/principles.md`. The backlog is project data — created on
+  demand, never in the managed set, so `update` can't clobber it.
+
 ## [0.4.1] - 2026-06-02
 
 ### Changed

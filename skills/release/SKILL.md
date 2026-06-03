@@ -21,6 +21,9 @@ the plan first.
 3. Curate `CHANGELOG.md`: ensure the `## [Unreleased]` section lists what shipped
    in user-facing terms. `release` rolls Unreleased into `## [<version>] - <date>`
    and uses that section as the GitHub release notes.
+4. **Garden if due** (release is a gardening trigger): run `bin/harness.sh status`
+   and, if `garden: DUE`, dispatch the gardener and let its fixes land *before*
+   the release commit. Ship from a tended tree. See the `garden` skill.
 
 ## Cut it
 ```bash

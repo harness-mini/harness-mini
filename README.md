@@ -87,7 +87,7 @@ disclosure. See `docs/smart-dumb.md`. Estimate with `bin/ctx.sh <used> [window]`
 ```
 intake → prd → issues → implement ⇄ evaluate → checkpoint → done
                            ↑___________|   (loop until criteria pass)
-       garden ──── runs orthogonally, periodically ────
+       garden ──── runs orthogonally, on triggers ────
 ```
 
 Only the main agent advances the stage (via `stage-viewer`). No worker promotes

@@ -37,8 +37,16 @@ prev: <plan>-<seq-1 or none>
 ```
 
 3. Update the active exec-plan's `Now`/`Next` to match.
-4. `bin/trace.sh <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
-5. These files are **committed** (unlike `.trace/runtime/`). Commit them.
+4. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
+   scope? Don't fix it inline (that breaks slice discipline) and don't lose it —
+   append it to `.trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>
+   | <low|med|high> | <note>`). See the `garden` skill.
+5. `bin/trace.sh <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
+6. These files are **committed** (unlike `.trace/runtime/`). Commit them.
+
+> Each committed checkpoint is a gardening "visit": writing this one may tip
+> `harness.sh status` to `garden: DUE` (≥5 since the last sweep). The main agent
+> acts on that at the next plan boundary — see `garden`.
 
 ## Quality bar
 A good checkpoint lets a cold agent resume in one read. If "Next" is vague,

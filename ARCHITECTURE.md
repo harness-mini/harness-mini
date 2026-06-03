@@ -61,7 +61,7 @@ GitHub release (gated on green tests + a clean tree).
 ```
 intake → prd → issues → implement ⇄ evaluate → checkpoint → done
                            ↑___________|   (loop until criteria pass)
-       garden ──── runs orthogonally, periodically ────
+       garden ──── runs orthogonally, on triggers ────
 ```
 
 - State lives in each `docs/exec-plans/active/<plan>.md` frontmatter (`stage:`).
@@ -69,6 +69,11 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   only the **main agent** (via `stage-viewer`) advances the FSM. No sub-agent
   may mark its own output "done" — the evaluator gate plus main-agent control
   is the anti-self-praise firewall extended across the whole lifecycle.
+- **Garden triggers (orthogonal):** gardening fires on concrete signals, not
+  "periodically" — **≥5 checkpoints** since the last sweep, a plan completing, a
+  pending release, or the **smell backlog** (`.trace/garden-backlog.md`) crossing
+  its threshold (any `high` / ≥3 open). `harness.sh status` prints `garden:
+  DUE|ok`; the main agent dispatches the gardener. See the `garden` skill.
 
 ## Coding contract: horizontal + vertical (`slice-coding`)
 
