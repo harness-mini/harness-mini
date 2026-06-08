@@ -34,7 +34,8 @@ harness/
   harness.lock         # installed version + pristine checksums of managed files
 .trace/
   checkpoints/         # COMMITTED — decisions, milestones, handoffs
-  runtime/             # GITIGNORED — ephemeral per-run JSONL
+  evals/               # COMMITTED — <plan>-NNN.md verdicts (the done-gate)
+  runtime/             # GITIGNORED — ephemeral per-run JSONL (report reads these)
 ```
 
 ## Versioning & update model
@@ -69,6 +70,10 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   only the **main agent** (via `stage-viewer`) advances the FSM. No sub-agent
   may mark its own output "done" — the evaluator gate plus main-agent control
   is the anti-self-praise firewall extended across the whole lifecycle.
+- **The firewall has teeth:** promoting a plan to `done` requires a committed
+  `verdict: pass` record at `.trace/evals/<plan>-NNN.md`; `harness.sh doctor`
+  FAILs a done plan that lacks one. `harness.sh report` aggregates these verdicts
+  (+ the runtime ctx trend) so the loop is measured, not asserted.
 - **Garden triggers (orthogonal):** gardening fires on concrete signals, not
   "periodically" — **≥5 checkpoints** since the last sweep, a plan completing, a
   pending release, or the **smell backlog** (`.trace/garden-backlog.md`) crossing

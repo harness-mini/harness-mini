@@ -415,6 +415,76 @@ assert_contains "$out" "garden: ok" "garden ok with <3 non-high items and no cad
 rm -rf "$GDIR"
 
 # =============================================================================
+echo "harness.sh report — aggregate .trace into a metrics summary (grep/awk only)"
+RPT="$(mktemp -d)"; mkdir -p "$RPT/harness" "$RPT/.trace/runtime" "$RPT/.trace/checkpoints" "$RPT/.trace/evals"
+printf 'version: 0.6.0\n' > "$RPT/harness/harness.lock"
+# a runtime trace: two stage advances + ctx samples, one of which crosses 40%
+{
+  printf '{"ts":"t","run":"r-a","agent":"main","stage":"prd","event":"stage_advance"}\n'
+  printf '{"ts":"t","run":"r-a","agent":"main","stage":"implement","event":"stage_advance","ctx_pct":22}\n'
+  printf '{"ts":"t","run":"r-a","agent":"main","stage":"implement","event":"tool_post","ctx_pct":48}\n'
+} > "$RPT/.trace/runtime/r-a.jsonl"
+# durable eval records: one pass, one fail
+printf -- '---\nplan: p\nseq: 001\ntier: L1\nverdict: pass\ncriteria: 3/3\n---\n' > "$RPT/.trace/evals/p-001.md"
+printf -- '---\nplan: p\nseq: 002\ntier: L1\nverdict: fail\ncriteria: 2/3\n---\n' > "$RPT/.trace/evals/p-002.md"
+printf -- '---\nplan: p\nseq: 001\n---\n' > "$RPT/.trace/checkpoints/p-001.md"
+out="$(HARNESS_ROOT="$RPT" HARNESS_NO_NET=1 bash "$HARN" report 2>&1)"; code=$?
+assert_exit 0 "$code" "report exits 0"
+assert_contains "$out" "stage advance" "report counts stage advances"
+assert_contains "$out" "48" "report surfaces the max ctx_pct sample"
+assert_contains "$out" "over 40" "report counts context crossings of the 40% line"
+assert_contains "$out" "1 pass" "report counts eval passes"
+assert_contains "$out" "1 fail" "report counts eval fails (rework loops)"
+assert_contains "$out" "checkpoint" "report counts checkpoints"
+# scoping to a single run id still works
+out="$(HARNESS_ROOT="$RPT" HARNESS_NO_NET=1 bash "$HARN" report r-a 2>&1)"; code=$?
+assert_exit 0 "$code" "report <run> exits 0"
+assert_contains "$out" "r-a" "report <run> names the scoped run"
+rm -rf "$RPT"
+
+# =============================================================================
+echo "harness.sh doctor — eval-gate teeth (a done plan needs a passing eval record)"
+EG="$(mktemp -d)"; mkdir -p "$EG/.claude/skills/x" "$EG/docs/exec-plans/active" "$EG/.trace/evals" "$EG/harness"
+printf 'AGENTS\n' > "$EG/AGENTS.md"; printf 'version: 0.0.0\n' > "$EG/harness/harness.lock"
+printf 'x\n' > "$EG/.claude/skills/x/SKILL.md"
+# an active plan that reached `done` but has no evaluation on record -> FAIL
+printf -- '---\nplan: shipit\nseq: 0001\nstage: done\n---\n' > "$EG/docs/exec-plans/active/0001-shipit.md"
+out="$(HARNESS_ROOT="$EG" bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 1 "$code" "doctor: done plan without a passing eval is a FAIL"
+assert_contains "$out" "anti-self-praise" "doctor names the firewall it is enforcing"
+# add a passing eval record -> the gate clears
+printf -- '---\nplan: shipit\nseq: 001\ntier: L1\nverdict: pass\ncriteria: 2/2\n---\n' > "$EG/.trace/evals/shipit-001.md"
+out="$(HARNESS_ROOT="$EG" bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: done plan with a passing eval clears the gate"
+assert_contains "$out" "evaluation on record" "doctor confirms the eval record"
+rm -rf "$EG"
+
+# =============================================================================
+echo "ctx-hook.sh — heuristic context gauge for the Claude Code PostToolUse hook"
+HK="$BIN/ctx-hook.sh"
+HKT="$(mktemp -d)"
+big="$HKT/big.jsonl"; head -c 4000 /dev/zero | tr '\0' x > "$big"   # ~4000 bytes -> ~1000 est tokens
+# window 1000 -> est 1000/1000 = 100% -> over the 40% line: writes ctx_pct + warns
+errf="$HKT/err"
+out="$(printf '{"transcript_path":"%s"}' "$big" \
+  | HARNESS_TRACE_DIR="$HKT/run" HARNESS_RUN="r-hook" HARNESS_CTX_WINDOW=1000 \
+    bash "$HK" 2>"$errf")"; code=$?
+assert_exit 0 "$code" "ctx-hook exits 0 (best-effort, never blocks the tool)"
+line="$(cat "$HKT/run/r-hook.jsonl" 2>/dev/null)"
+assert_contains "$line" '"ctx_pct":' "ctx-hook emits a ctx_pct trace event"
+assert_contains "$(cat "$errf" 2>/dev/null)" "checkpoint" "ctx-hook nudges to checkpoint when over the line"
+# a tiny transcript -> under the line -> traces but does not warn
+small="$HKT/small.jsonl"; printf '{}\n' > "$small"; errf2="$HKT/err2"
+printf '{"transcript_path":"%s"}' "$small" \
+  | HARNESS_TRACE_DIR="$HKT/run2" HARNESS_RUN="r-hook2" HARNESS_CTX_WINDOW=1000 \
+    bash "$HK" >/dev/null 2>"$errf2"
+assert_eq "0" "$(grep -c checkpoint "$errf2" 2>/dev/null | tr -d ' ')" "ctx-hook stays quiet under the 40% line"
+# missing/garbage payload still exits 0 (best-effort)
+code=0; printf 'not json' | bash "$HK" >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "ctx-hook never fails the caller on a bad payload"
+rm -rf "$HKT"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

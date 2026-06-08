@@ -287,6 +287,24 @@ cmd_doctor() {
       || emit warn "agents/ and .claude/agents/ diverge — regen: cp -R agents/. .claude/agents/"
   fi
 
+  # eval-gate (anti-self-praise teeth): an active plan that reached `done` must
+  # have a passing evaluation on record (.trace/evals/<plan>-*.md, verdict: pass).
+  # Scoped to active/ so legacy completed/ plans are never retroactively failed.
+  local pf stg plan r rec
+  for pf in "$root"/docs/exec-plans/active/*.md; do
+    [ -f "$pf" ] || continue
+    stg="$(awk -F': *' '/^stage:/{print $2; exit}' "$pf")"
+    [ "$stg" = "done" ] || continue
+    plan="$(awk -F': *' '/^plan:/{print $2; exit}' "$pf")"
+    [ -z "$plan" ] && plan="$(basename "$pf" .md)"
+    rec=""
+    for r in "$root"/.trace/evals/"$plan"-*.md; do
+      [ -f "$r" ] && grep -q '^verdict: pass' "$r" && { rec="$r"; break; }
+    done
+    [ -n "$rec" ] && emit ok "$plan done: evaluation on record" \
+                  || emit fail "$plan marked done with no passing evaluation — anti-self-praise gate"
+  done
+
   if [ "$fails" -eq 0 ]; then
     printf 'doctor: healthy (%s warning(s))\n' "$warns"
   else
@@ -370,6 +388,56 @@ cmd_status() {
   return 0
 }
 
+# cmd_report [run] — aggregate .trace into a metrics summary so thresholds are
+# tuned by data, not vibes. grep/awk/sed/ls only; always exits 0. No arg = all
+# runs; <run> scopes the runtime trace to one run id.
+cmd_report() {
+  local root="$HARNESS_ROOT" run="${1:-}" thr="${HARNESS_CTX_THRESHOLD:-40}"
+  local rt="$root/.trace/runtime" glob files="" f
+  if [ -n "$run" ]; then
+    echo "harness-mini report — run $run"
+    glob="$rt/$run.jsonl"
+  else
+    echo "harness-mini report (all runs)"
+    glob="$rt/*.jsonl"
+  fi
+  for f in $glob; do [ -f "$f" ] && files="$files $f"; done
+
+  # stage advances (+ the last stage reached)
+  local advances=0 last=""
+  if [ -n "$files" ]; then
+    advances=$(grep -h '"event":"stage_advance"' $files 2>/dev/null | wc -l | tr -d ' ')
+    last=$(grep -h '"event":"stage_advance"' $files 2>/dev/null | tail -n1 \
+           | sed -n 's/.*"stage":"\([^"]*\)".*/\1/p')
+  fi
+  printf 'stage advances: %s (last: %s)\n' "$advances" "${last:-none}"
+
+  # context occupancy trend vs the 40% line
+  local samples=""
+  [ -n "$files" ] && samples=$(grep -ho '"ctx_pct":[0-9]*' $files 2>/dev/null | sed 's/.*://')
+  if [ -n "$samples" ]; then
+    local cnt nmax over
+    cnt=$(printf '%s\n' "$samples" | grep -c .)
+    nmax=$(printf '%s\n' "$samples" | sort -n | tail -n1)
+    over=$(printf '%s\n' "$samples" | awk -v t="$thr" '$1>=t{c++} END{print c+0}')
+    printf 'context: %s sample(s), max %s%%, %s over %s%%\n' "$cnt" "$nmax" "$over" "$thr"
+  else
+    printf 'context: no ctx_pct samples (enable bin/ctx-hook.sh — docs/smart-dumb.md)\n'
+  fi
+
+  # evaluation outcomes from the durable records (rework loops = fails)
+  local ep ef
+  ep=$(grep -l '^verdict: pass' "$root"/.trace/evals/*.md 2>/dev/null | wc -l | tr -d ' ')
+  ef=$(grep -l '^verdict: fail' "$root"/.trace/evals/*.md 2>/dev/null | wc -l | tr -d ' ')
+  printf 'evaluation: %s pass / %s fail (rework loops: %s)\n' "$ep" "$ef" "$ef"
+
+  # checkpoints written (committed institutional memory)
+  local ncp
+  ncp=$(ls "$root"/.trace/checkpoints/*.md 2>/dev/null | wc -l | tr -d ' ')
+  printf 'checkpoints: %s\n' "$ncp"
+  return 0
+}
+
 usage() {
   cat >&2 <<'EOF'
 usage: harness.sh <command>
@@ -377,6 +445,7 @@ usage: harness.sh <command>
   update [--src DIR]      pull a newer version into this project (checksum-guarded)
   doctor                  check install health (ok/warn/fail; exit 1 on a fail)
   status                  show current work state (plans, checkpoints, resumability)
+  report [run]            aggregate .trace metrics (stages, context, evals, checkpoints)
   release <x.y.z> [opts]  bump + tag + GitHub release (source repo only)
 EOF
 }
@@ -389,6 +458,7 @@ case "$sub" in
   update)  cmd_update "$@" ;;
   doctor)  cmd_doctor "$@" ;;
   status)  cmd_status "$@" ;;
+  report)  cmd_report "$@" ;;
   release) cmd_release "$@" ;;
   -h|--help|help) usage; exit 0 ;;
   *) echo "harness.sh: unknown command: $sub" >&2; usage; exit 64 ;;

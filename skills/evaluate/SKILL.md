@@ -43,9 +43,29 @@ criterion needs a human/agent call, it is at least L1.
 - **Any FAIL** → report fail with the gaps; the loop returns to `implement` (often
   via `ralph-loop`) until it passes.
 
+## Record the verdict (durable — this is what gives the firewall teeth)
+Every tier writes a committed record to `.trace/evals/<plan>-<NNN>.md` so the
+verdict outlives the session and can be audited:
+
+```markdown
+---
+plan: <plan>
+seq: <NNN>
+tier: L0|L1|L2
+verdict: pass|fail
+criteria: <pass>/<total>
+grader: evaluator|reviewer|main
+---
+## Evidence
+- <criterion> — PASS|FAIL — <evidence / smallest gap>
+```
+
+`stage-viewer` may not promote a plan to `done` without a `verdict: pass` record,
+and `harness.sh doctor` **FAILs** a done plan that has none. Keep the ephemeral
+`trace.sh` verdict line too (it feeds `harness.sh report`):
+`bin/trace.sh <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.
+
 ## Calibration
 - Be specific and harsh on evidence; never accept "looks done."
 - Don't move the goalposts — grade the stated criteria. If the criteria are wrong,
   flag it for the planner; don't silently regrade.
-
-Trace: `bin/trace.sh <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.

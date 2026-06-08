@@ -7,6 +7,25 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **`harness.sh report [run]` — measure the loop instead of asserting it.** A
+  pure-shell aggregator over `.trace/`: stage advances (+ last stage), the context
+  trend vs the 40% line (sample count, max %, crossings), evaluation pass/fail +
+  rework loops, and checkpoint count. So the thresholds (40%, garden cadence, eval
+  tier) can be tuned by data, not vibes.
+- **The anti-self-praise firewall now has teeth.** Evaluations write a committed
+  verdict to **`.trace/evals/<plan>-NNN.md`** (tier · verdict · criteria), and
+  `harness.sh doctor` **FAILs** any active plan marked `done` without a
+  `verdict: pass` record. `stage-viewer` won't promote to `done` without it. So
+  "done" is earned, not self-declared. (Scoped to active plans; legacy completed
+  plans are never retroactively failed.)
+- **`bin/ctx-hook.sh` — give the 40% rule teeth (opt-in, Claude Code).** A
+  PostToolUse adapter that estimates context after each tool call, records a
+  `ctx_pct` sample (feeding `report`), and nudges to checkpoint when over the
+  line. Opt-in via `.claude/settings.json` (documented in `docs/smart-dumb.md`);
+  `init.sh` never touches your settings. Heuristic (`bytes/4`), honestly framed —
+  the one Claude-Code-specific file; the harness stays CLI-agnostic.
+
 ## [0.6.0] - 2026-06-03
 
 ### Added

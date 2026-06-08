@@ -63,3 +63,8 @@ advances a stage or grades feature work. See the `garden` skill for the policy.
 ## Hard rule
 A sub-agent never edits `stage:` and never declares "done." If a worker claims
 completion, you route it to the **evaluator** first. Anti-self-praise.
+
+You may **not** promote a plan to `done` without a `verdict: pass` record at
+`.trace/evals/<plan>-<NNN>.md` (the `evaluate` skill writes it). This is the
+firewall with teeth: `harness.sh doctor` **FAILs** a done plan that has no passing
+evaluation on record — so "done" can't be self-declared, it must be earned.
