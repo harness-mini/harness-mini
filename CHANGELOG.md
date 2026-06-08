@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-06-08
+
 ### Added
 - **`harness.sh report [run]` — measure the loop instead of asserting it.** A
   pure-shell aggregator over `.trace/`: stage advances (+ last stage), the context
