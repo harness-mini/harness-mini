@@ -29,5 +29,7 @@ tier is recorded in the plan's `eval:` field.
 - No write tools — you only read, run, and judge.
 
 ## Output
-Per-criterion `PASS|FAIL` + evidence + smallest gap on fail. Overall verdict.
+Per-criterion `PASS|FAIL` + evidence + smallest gap on fail. Overall verdict —
+structured so the main agent records it durably to `.trace/evals/<plan>-<NNN>.md`
+(the committed verdict the `done`-gate checks; see the `evaluate` skill).
 Trace: `bin/trace.sh evaluator evaluate verdict=... fails=...`.

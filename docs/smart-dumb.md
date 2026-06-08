@@ -73,8 +73,9 @@ agent.
 ### 3. Measurement — best-effort, to *see* drift
 `bin/ctx.sh <used_tokens> [window]` prints `N%` and exits 2 at/over threshold.
 You cannot portably read a model's internal token counter, so this is an
-estimate (Claude Code can do better via a PostToolUse hook). It is good enough
-to watch trends in `.trace/runtime/`, not a hard interrupt.
+estimate. It is good enough to watch trends in `.trace/runtime/`, not a hard
+interrupt — and `bin/harness.sh report` charts those trends (max ctx%, how often
+the 40% line was crossed) so the threshold is tuned by data, not guesswork.
 
 ### 4. Progressive disclosure keeps the baseline low
 `AGENTS.md` is a ~100-line map of pointers, never an encyclopedia. Start
@@ -87,8 +88,27 @@ everything, so it naturally stays under budget.
 
 ## Enforcement style
 **Behavioral + structural**, not a hard runtime kill: agents follow this
-protocol and the explorer firewall does the heavy lifting. On Claude Code a
-PostToolUse hook may log real usage as a bonus tripwire.
+protocol and the explorer firewall does the heavy lifting.
+
+### Give the 40% line teeth (opt-in, Claude Code)
+The rule only bites if something *watches*. `bin/ctx-hook.sh` is a PostToolUse
+adapter that, after every tool call, estimates context from the transcript size,
+records a `ctx_pct` sample (so `harness.sh report` has real data), and nudges you
+to checkpoint once you cross the line. It's the one Claude-Code-specific file —
+**opt-in**, so the harness stays CLI-agnostic. Wire it up in `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      { "matcher": "*", "hooks": [ { "type": "command", "command": "bash bin/ctx-hook.sh" } ] }
+    ]
+  }
+}
+```
+
+Honest caveat: `bytes(transcript)/4` is a heuristic proxy for tokens, not a true
+count — good enough to see the trend and fire a reminder, which is all this asks.
 
 ## Entropy: smart context decays
 Smart context is **append-rarely, prune-aggressively.** Over time, once-useful

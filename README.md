@@ -64,8 +64,16 @@ bin/harness.sh version              # installed version (+ latest, best-effort)
 bin/harness.sh update               # pull a newer harness into this project
 bin/harness.sh doctor               # install health: ok/warn/fail (exit 1 on fail)
 bin/harness.sh status               # current work state (plans, checkpoints, resumable)
+bin/harness.sh report               # aggregate .trace metrics (stages, context, evals)
 bin/harness.sh release <x.y.z>      # (source repo) bump + tag + GitHub release
 ```
+
+The firewall has **teeth**: a plan can't reach `done` without a committed
+`verdict: pass` record in `.trace/evals/` — `doctor` FAILs otherwise. `report`
+turns the runtime traces into a metrics summary (context trend vs the 40% line,
+eval pass-rate + rework loops) so the thresholds are tuned by data, not vibes.
+Claude Code users can give the 40% rule teeth too with the opt-in
+`bin/ctx-hook.sh` (see `docs/smart-dumb.md`).
 
 On entering a fresh session the agent checks for a newer release first (the
 routing gate + `stage-viewer` run `harness.sh version`); `version`, `status`, and
@@ -109,8 +117,9 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `ARCHITECTURE.md` | layer stack + lifecycle FSM |
 | `init.sh` | additive/idempotent installer |
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
-| `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`release` |
+| `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`report`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
+| `bin/ctx-hook.sh` | opt-in Claude Code PostToolUse hook (auto ctx_pct + 40% nudge) |
 | `harness/harness.lock` | installed version + managed-file checksums |
 | `skills/<name>/SKILL.md` → `.claude/skills/` | 16 skills (one folder each) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
@@ -119,7 +128,8 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `docs/exec-plans/{active,completed}/` | plans + decision logs (committed) |
 | `docs/references/*-llms.txt` | the 4 source distillates |
 | `.trace/checkpoints/` | committed handoffs (institutional memory) |
-| `.trace/runtime/` | gitignored ephemeral JSONL traces |
+| `.trace/evals/` | committed evaluation verdicts (the `done`-gate `doctor` enforces) |
+| `.trace/runtime/` | gitignored ephemeral JSONL traces (`harness.sh report` reads these) |
 | `tests/run.sh` | zero-dep TDD suite |
 
 > **Editing skills?** `skills/<name>/SKILL.md` (and `agents/<name>.md`) are the

@@ -72,6 +72,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Skills (how to do a task) | `.claude/skills/<name>/SKILL.md` (one folder per skill) |
 | Sub-agents (who does the work) | `.claude/agents/<name>.md` (flat) |
 | Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
+| Committed evaluation verdicts (the `done`-gate) | `.trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
 
 ## Versioning (the `harness.sh` CLI)
@@ -90,6 +91,10 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   source↔`.claude` mirror divergence and unresolved `.new` files.
 - `harness.sh status` — current work state for cold resume: active plans + stages,
   latest checkpoint per plan, `.new` conflicts, last `ctx_pct`, resumability.
+- `harness.sh report [run]` — aggregate `.trace/` metrics (stage advances, context
+  trend vs the 40% line, eval pass/fail + rework loops, checkpoints) so thresholds
+  are tuned by data. `doctor` also enforces the **eval-gate**: a plan can't be
+  `done` without a `verdict: pass` record in `.trace/evals/`.
 - `harness.sh release <x.y.z>` — source-repo only; bump + tag + GitHub release
   (gated on semver + green tests + clean tree). See the `release` skill.
 
