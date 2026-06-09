@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-06-09
+
 ### Changed
 - **Contributing workflow is now issue-first.** `CONTRIBUTING.md` requires opening
   a GitHub issue before implementing **any** change (previously only non-trivial
