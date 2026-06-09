@@ -7,6 +7,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Contributing workflow is now issue-first.** `CONTRIBUTING.md` requires opening
+  a GitHub issue before implementing **any** change (previously only non-trivial
+  ones) and linking it from the PR (`Closes #N`); added a PR-checklist item. Repo
+  workflow only — deliberately not codified into the CLI-agnostic framework.
+
 ## [0.7.0] - 2026-06-08
 
 ### Added

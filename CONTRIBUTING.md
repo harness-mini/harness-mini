@@ -14,9 +14,11 @@ faith, critique ideas not people, and help newcomers land their first PR.
 ## Before you start
 
 - **Questions / "how do I…"** → open a [Discussion] or a `question` issue, not a PR.
-- **Anything non-trivial** → open an issue first so we can agree on the shape
-  before you spend time. Tiny fixes (typos, broken links, an obviously-missing
-  guard) can go straight to a PR.
+- **Open an issue first — for every change.** File a GitHub issue describing the
+  change *before* you implement it, so the *what* and *why* are on record and we
+  agree on the shape before time is spent. Then reference it from your PR
+  (`Closes #N`). This applies to **every** change, tiny fixes included — for a
+  one-line fix the issue can be one line. Issue → branch → PR, in that order.
 - **Read the conventions once.** They're short and they're the whole point:
   - [`AGENTS.md`](AGENTS.md) — the map, and the **40% rule** that governs everything.
   - [`ARCHITECTURE.md`](ARCHITECTURE.md) — layout, lifecycle FSM, the managed set.
@@ -76,6 +78,8 @@ gets reviewed today; a 1,000-line PR waits.
 
 Checklist before you open a PR:
 
+- [ ] **An issue exists and is linked.** You opened the issue *first* (see "Before
+      you start") and the PR references it (`Closes #N`).
 - [ ] **Tests are green:** `bash tests/run.sh` (zero dependencies, runs anywhere).
 - [ ] **You added tests *first*.** This repo is TDD — a behavioral change to
       `bin/*.sh` or `init.sh` lands with a failing test that your change turns
