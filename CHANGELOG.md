@@ -7,6 +7,19 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Claude Fable 5 support — the builder runs on it when available.** New
+  `bin/model.sh <role>` resolves a sub-agent's model **tier**. Static tiers are
+  unchanged (planner/generator → sonnet, evaluator → opus, explorer/gardener →
+  haiku); the one new behavior is that the **builder (generator) auto-upgrades to
+  `fable`** (Fable 5, the top tier above Opus) **when Fable 5 is available to the
+  account**, falling back to sonnet otherwise. The spawning agent passes the
+  resolved alias as the worker's model override (`AGENTS.md` / `README.md`).
+  Availability is plan- and time-gated, so it's **detected** best-effort (Models
+  API, offline-safe like the version check) — never hardcoded; overridable via
+  `HARNESS_FABLE` / `HARNESS_MODEL_BUILDER`, skipped under `HARNESS_NO_NET`.
+  Closes #13.
+
 ## [0.7.1] - 2026-06-09
 
 ### Changed
