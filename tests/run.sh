@@ -56,6 +56,30 @@ code=0; HARNESS_CTX_THRESHOLD=60 bash "$BIN/ctx.sh" 100000 200000 >/dev/null || 
 assert_exit 0 "$code" "ctx 50% is smart when threshold raised to 60"
 
 # =============================================================================
+echo "model.sh — resolve a role's model alias (builder auto-upgrades to fable)"
+# static tiers are the unchanged "current use" — never fable
+assert_eq "sonnet" "$(bash "$BIN/model.sh" planner)"   "planner -> sonnet (static tier)"
+assert_eq "opus"   "$(bash "$BIN/model.sh" evaluator)" "evaluator -> opus (static tier)"
+assert_eq "haiku"  "$(bash "$BIN/model.sh" explorer)"  "explorer -> haiku (static tier)"
+assert_eq "haiku"  "$(bash "$BIN/model.sh" gardener)"  "gardener -> haiku (static tier)"
+# auto + offline (HARNESS_NO_NET=1 is exported) -> not available -> builder falls back
+assert_eq "sonnet" "$(bash "$BIN/model.sh" generator)" "generator falls back to sonnet when fable not available"
+# explicit availability flag -> builder runs on the new top tier
+assert_eq "fable"  "$(HARNESS_FABLE=1 bash "$BIN/model.sh" generator)" "generator -> fable when available"
+assert_eq "fable"  "$(HARNESS_FABLE=1 bash "$BIN/model.sh" builder)"   "builder alias -> fable when available"
+# the upgrade is builder-only: other roles never change, even with fable available
+assert_eq "opus"   "$(HARNESS_FABLE=1 bash "$BIN/model.sh" evaluator)" "evaluator stays opus even when fable available"
+# pin off, and explicit override both win
+assert_eq "sonnet" "$(HARNESS_FABLE=0 bash "$BIN/model.sh" generator)" "HARNESS_FABLE=0 pins the builder off fable"
+assert_eq "opus"   "$(HARNESS_MODEL_BUILDER=opus HARNESS_FABLE=1 bash "$BIN/model.sh" generator)" "HARNESS_MODEL_BUILDER overrides detection"
+# usage contract: --help is 0, no role is a usage error (64)
+code=0; out=$(bash "$BIN/model.sh" --help) || code=$?
+assert_exit 0 "$code" "model.sh --help exits 0"
+assert_contains "$out" "model.sh" "model.sh --help prints usage"
+code=0; bash "$BIN/model.sh" >/dev/null 2>&1 || code=$?
+assert_exit 64 "$code" "model.sh with no role is a usage error (64)"
+
+# =============================================================================
 echo "trace.sh — best-effort runtime JSONL append"
 TMPT="$(mktemp -d)"
 HARNESS_TRACE_DIR="$TMPT" HARNESS_RUN="r-test" \

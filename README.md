@@ -119,6 +119,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
 | `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`report`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
+| `bin/model.sh` | resolve a role's model alias (builder → Fable 5 when available) |
 | `bin/ctx-hook.sh` | opt-in Claude Code PostToolUse hook (auto ctx_pct + 40% nudge) |
 | `harness/harness.lock` | installed version + managed-file checksums |
 | `skills/<name>/SKILL.md` → `.claude/skills/` | 16 skills (one folder each) |
@@ -143,15 +144,21 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | Agent | Role | Model |
 |-------|------|-------|
 | planner | goal → exec-plan + issues | sonnet |
-| generator | build one slice via TDD | sonnet |
+| generator | build one slice via TDD | sonnet · **fable** when available |
 | evaluator | grade vs criteria (separate window) | opus |
 | explorer | disposable read/search → distillate | haiku |
 | gardener | entropy GC / doc-gardening | haiku |
 
+Model is a capability **tier**, not a pinned version. The **builder** (generator)
+auto-upgrades to **Claude Fable 5** — the top tier above Opus — when Fable 5 is
+available to the account, falling back to sonnet otherwise; every other role keeps
+its static tier. Availability is plan- and time-gated, so it's detected at spawn
+time via `bin/model.sh builder` (best-effort, offline-safe) rather than hardcoded.
+
 ## Develop
 
 ```bash
-bash tests/run.sh   # 95 assertions, zero dependencies
+bash tests/run.sh   # 148 assertions, zero dependencies
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
