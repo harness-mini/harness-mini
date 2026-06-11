@@ -150,10 +150,13 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | gardener | entropy GC / doc-gardening | haiku |
 
 Model is a capability **tier**, not a pinned version. The **builder** (generator)
-auto-upgrades to **Claude Fable 5** — the top tier above Opus — when Fable 5 is
-available to the account, falling back to sonnet otherwise; every other role keeps
-its static tier. Availability is plan- and time-gated, so it's detected at spawn
-time via `bin/model.sh builder` (best-effort, offline-safe) rather than hardcoded.
+auto-upgrades to **Claude Fable 5** — the top tier above Opus — when Fable 5 **and
+a shell-visible credential** are both present, falling back to sonnet otherwise;
+every other role keeps its static tier. Availability is plan- and time-gated, so
+it's detected at spawn time via `bin/model.sh builder` (best-effort, offline-safe)
+rather than hardcoded. The probe needs a credential it can read
+(`ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`, or `ant`); in a Claude-Code-OAuth-only
+shell none is exposed, so set `HARNESS_FABLE=1` to force the upgrade.
 
 ## Develop
 

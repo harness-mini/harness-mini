@@ -118,11 +118,14 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | gardener | entropy GC, demote stale context | garden, refactor, clean-code | haiku |
 
 Model = capability **tier** (CLI maps it), not a pinned version. *The builder
-(generator) auto-upgrades to **Fable 5** — the top tier above Opus — when it is
-available to this account; else it stays sonnet.* The spawning agent resolves it
-with `bin/model.sh builder` and passes the result as the worker's model override.
-Fable 5 availability is plan- and time-gated, so it is **detected, never pinned**
-(see `bin/model.sh`). Every other role keeps its static tier.
+(generator) auto-upgrades to **Fable 5** — the top tier above Opus — when Fable 5
+**and a shell-visible credential** are both present; else it stays sonnet.* The
+spawning agent resolves it with `bin/model.sh builder` and passes the result as
+the worker's model override. Fable 5 availability is plan- and time-gated, so it
+is **detected, never pinned** (see `bin/model.sh`) — the probe needs a credential
+it can read (`ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`, or `ant`); a
+Claude-Code-OAuth-only shell won't expose one, so set `HARNESS_FABLE=1` to force
+the upgrade there. Every other role keeps its static tier.
 
 ## Tracing (best-effort, never blocks work)
 
