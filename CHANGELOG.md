@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-06-12
+
 ### Added
 - **Claude Fable 5 support — the builder runs on it when available.** New
   `bin/model.sh <role>` resolves a sub-agent's model **tier**. Static tiers are
