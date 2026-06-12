@@ -79,6 +79,38 @@ single step. (See the `five-step` skill for the operational checklist.)
    backlog crossing its threshold), surfaced by `harness.sh status`.
 8. **Correct, maintainable, readable beats stylistically human.** Agent-written
    code need not match human style; it must be right and clear for the next run.
+9. **Spend emphasis from a budget.** Emphasis is signal only when rare. Reserve
+   **ALL-CAPS** for a small set of load-bearing imperatives — `MUST` / `NEVER` /
+   `ALWAYS` — on safety- or invariant-critical lines; default to bold + structure
+   (headers, ordered priority) for everything else. If every line shouts, nothing
+   does. (Whether the model needs caps at all is itself a stale-able assumption —
+   see below; it's registered in `docs/assumptions.md`.)
+
+## Question stale assumptions (the harness is not the model)
+
+> From Anthropic's *Scaling managed agents* (`docs/references/anthropic-managed-agents-llms.txt`):
+> a harness encodes assumptions about what the model **can't do on its own**, and
+> those assumptions **go stale as models improve**. The post's own example —
+> context-anxiety workarounds needed in Sonnet 4.5 became unnecessary in Opus 4.5.
+
+Almost every mechanism in harness-mini is a **patch for a presumed model gap**:
+the 40% smart/dumb line, the anti-self-praise eval firewall, the explorer
+fan-out, progressive disclosure, even caps-for-emphasis (#9). Each was true when
+written. Each may quietly stop being true.
+
+So we hold them as **hypotheses, not law**:
+
+1. **Register the assumption.** Every load-bearing constraint is logged in
+   `docs/assumptions.md` with the model-gap it patches and *how to test if it's
+   stale* — a concrete experiment, ideally read off `harness.sh report`.
+2. **Re-test on a trigger, don't trust forever.** The `garden` sweep audits the
+   register (cadence: **pre-release**, when the model tier moves). A constraint
+   that no longer earns its keep gets **deleted** — that is Five-Step step 2
+   applied to the harness's own beliefs, not just its features.
+3. **Decoupling validated, not copied.** The post's brain/hands/session split is
+   already ours (main agent / sub-agent firewalls / `.trace/`); we *interrogate*
+   the session (`status`/`report`/checkpoints) instead of reloading it. The infra
+   half — sandboxes, vaults, TTFT, provisioning — stays out (the Mini constraint).
 
 ## Clean Code & Refactoring (the quality spine)
 
