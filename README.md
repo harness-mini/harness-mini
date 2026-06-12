@@ -127,7 +127,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `docs/principles.md` | golden principles + Musk's Five-Step core-mind |
 | `docs/smart-dumb.md` | the 40% contract |
 | `docs/exec-plans/{active,completed}/` | plans + decision logs (committed) |
-| `docs/references/*-llms.txt` | the 4 source distillates |
+| `docs/references/*-llms.txt` | the 5 source distillates |
 | `.trace/checkpoints/` | committed handoffs (institutional memory) |
 | `.trace/evals/` | committed evaluation verdicts (the `done`-gate `doctor` enforces) |
 | `.trace/runtime/` | gitignored ephemeral JSONL traces (`harness.sh report` reads these) |
@@ -171,6 +171,7 @@ and safe to call from `zsh`. See the compatibility notes in
 ## References distilled in `docs/references/`
 - Anthropic — Effective harnesses for long-running agents
 - Anthropic — Harness design for long-running apps
+- Anthropic — Scaling managed agents (decoupling brain/hands/session; stale assumptions)
 - OpenAI — Harness engineering (leveraging Codex)
 - Anthropic — The Founder's Playbook
 

@@ -65,6 +65,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Need | Go to |
 |------|-------|
 | Core beliefs + Musk's Five-Step core-mind | `docs/principles.md` |
+| Load-bearing assumptions + staleness tests | `docs/assumptions.md` |
 | The smart/dumb (40%) contract | `docs/smart-dumb.md` |
 | Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
 | Active work + decision logs | `docs/exec-plans/active/` |

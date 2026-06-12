@@ -1,0 +1,39 @@
+# Anthropic — Scaling managed agents (distillate)
+
+Source: anthropic.com/engineering/managed-agents
+
+## The core lesson: harnesses encode stale assumptions
+- A harness encodes assumptions about what the model **can't do on its own**.
+- Those assumptions go **stale as models improve** — and must be re-questioned.
+- The post's own example: context-anxiety workarounds needed in Sonnet 4.5
+  became **unnecessary** in Opus 4.5. The workaround outlived the problem.
+- Takeaway for us: every load-bearing constraint (the 40% line, the eval
+  firewall, the explorer fan-out, progressive disclosure, caps-for-emphasis) is
+  a patch for a model gap. Register the gap; re-test whether it still exists.
+  See `docs/assumptions.md` + the `garden` assumption-audit.
+
+## Decoupling the brain from the hands (the architecture)
+- **Brain** = the model + harness (decision-making).
+- **Hands** = tools / sandboxes (execution), behind a generic
+  `execute(name, input) -> string` interface.
+- **Session** = a durable event log that lives **outside** the context window.
+- Each part is independently replaceable through a stable interface (OS-style
+  virtualization: the interface outlasts any implementation).
+
+## Session as an interrogable log (not a context dump)
+- The session log is queried (`getEvents()`) — select a slice, rewind, reread —
+  rather than dumped wholesale into context. Avoids irreversible context
+  decisions; the harness is **stateless** and resumes via `wake(sessionId)`.
+
+## What maps onto harness-mini (a CLI-agnostic doc harness)
+- **Brain/hands/session is already our split:** brain = main agent + skills;
+  hands = the explorer/generator sub-agent firewalls; session = `.trace/`
+  (committed `checkpoints/` + ephemeral `runtime/`).
+- **Interrogate, don't reload:** cold resume reads the checkpoint/`status`
+  artifact — it does not replay the whole history. (`harness.sh status/report`.)
+- **Stateless + resumable:** checkpoint-at-40% then reset *is* `wake(sessionId)`.
+
+## What does NOT transfer (out of scope under the Mini constraint)
+- Sandbox provisioning, OAuth vaults, credential proxies, pet→cattle containers,
+  TTFT metrics, horizontal brain/hand scaling. That is hosted-platform
+  engineering; a droppable, zero-install doc harness must not grow it.

@@ -21,6 +21,9 @@ threshold). See the `garden` skill for the trigger policy.
 - Flag/fix stale docs that no longer match code behavior.
 - Open small, green, one-move `refactor` fixes for catalog smells.
 - Reconcile convention drift to `docs/principles.md`.
+- **Audit `docs/assumptions.md`** (pre-release, or when the builder model tier
+  moves): re-test each load-bearing assumption against the current model and
+  **delete** any patch the model has outgrown. Stamp `audited`.
 - Prune `.trace/runtime/` freely; **never** touch `.trace/checkpoints/`.
 - **Close the sweep:** stamp `gardened-at:` in the backlog to the current total
   checkpoint count — this resets the cadence counter so `status` reads `ok`.

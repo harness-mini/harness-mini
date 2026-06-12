@@ -52,6 +52,11 @@ to the current total checkpoint count (resetting the cadence counter).
    reconcile to `docs/principles.md`.
 5. **Trace hygiene:** `.trace/runtime/` is ephemeral — it may be pruned freely.
    Never prune `.trace/checkpoints/` (committed memory).
+6. **Assumption audit (pre-release, or when the builder model tier moves):** walk
+   `docs/assumptions.md`. For each entry, run (or judge) its "test if stale" using
+   `harness.sh report` signal. A constraint that no longer earns its keep gets
+   **deleted** — Five-Step step 2 on the harness's own beliefs. Stamp `audited`.
+   A harness that patches gaps the model has already closed is dead weight.
 
 ## Discipline
 - Each fix is **small and independently reviewable** — most should be reviewable

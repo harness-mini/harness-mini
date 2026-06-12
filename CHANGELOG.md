@@ -19,6 +19,25 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   API, offline-safe like the version check) — never hardcoded; overridable via
   `HARNESS_FABLE` / `HARNESS_MODEL_BUILDER`, skipped under `HARNESS_NO_NET`.
   Closes #13.
+- **Assumption register + audit — question stale assumptions.** New
+  `docs/assumptions.md` logs each load-bearing mechanism (the 40% line, the eval
+  firewall, the explorer fan-out, progressive disclosure, caps-for-emphasis) with
+  the model-gap it patches and a concrete *test if stale*. A "Question stale
+  assumptions" meta-principle (`docs/principles.md`) frames every constraint as a
+  hypothesis, and the `garden` sweep + gardener now **audit the register
+  pre-release** (and when the builder model tier moves), deleting patches the
+  model has outgrown. Distilled from Anthropic's *Scaling managed agents*
+  (`docs/references/anthropic-managed-agents-llms.txt`). Closes #17.
+
+### Changed
+- **`ralph-loop` reframed as a contract, not a tool.** Adds the loop invariants
+  (bounded · externally checked · checkpointed), a decision rule (loop only when
+  the work is objectively checkable *and* may exceed one session — else a one-shot
+  prompt is leaner), and an adapter table mapping the abstraction to each CLI's
+  native mechanism (`bin/ralph.sh` fallback · Claude Code `/loop`/`ScheduleWakeup`/
+  `schedule`). One contract + one fallback + thin adapters — no per-CLI forks.
+- **Emphasis budget (principle #9).** Reserve ALL-CAPS for `MUST`/`NEVER`/`ALWAYS`
+  on safety- or invariant-critical lines; default to bold + structure elsewhere.
 
 ## [0.7.1] - 2026-06-09
 
