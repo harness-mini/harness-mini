@@ -6,11 +6,14 @@ and `.claude/agents/`; Cursor doesn't, but it can use the same harness by readin
 the files. No adapter, no extension, no dependency.
 
 > **Heads up — this is a secondary path.** harness-mini is Claude Code-first.
-> On Cursor you load skills by hand (Cursor's agent doesn't auto-discover them)
-> and reproduce sub-agents with separate chats; there's no equivalent of the
-> 40%-line hook. It works, but it's not yet at parity. Genuine Cursor support
-> (skills as native `.cursor/rules/`, with proof) is tracked in
-> [#23](https://github.com/harness-mini/harness-mini/issues/23).
+> `init.sh` now mirrors each skill into `.cursor/rules/` as an **agent-requested**
+> rule (`alwaysApply: false` + the skill's `description`), so Cursor's agent can
+> surface a skill on demand — but you still reproduce sub-agents with separate
+> chats, and there's no equivalent of the 40%-line hook. The file-level mechanism
+> is in place and tested; whether Cursor reliably pulls the rules is **not yet
+> validated with recordings**
+> ([#23](https://github.com/harness-mini/harness-mini/issues/23)). Treat full
+> parity as pending until that proof lands.
 
 ## 1. Install
 
@@ -21,15 +24,21 @@ bash harness-mini/init.sh /path/to/your/project
 
 ## 2. Make the harness visible to Cursor
 
-`init.sh` already does this for you: it seeds an **always-applied** Cursor rule at
-`.cursor/rules/harness-mini.mdc` (`alwaysApply: true`). That rule is the routing
-gate — it tells Cursor to prefer the harness lifecycle and skills over ad-hoc
-tools, and points at `AGENTS.md`. Nothing to add by hand. (Re-running `init.sh`
-won't clobber it — it's created only if absent.)
+`init.sh` does this for you, two ways:
 
-Beyond that, **open files on demand**: when a task starts, open
-`.claude/skills/<name>/SKILL.md` whose `description` matches — e.g.
-`tdd`, `slice-coding`, `to-issues`. (Identical to `skills/<name>/SKILL.md`.)
+- **The routing gate** — an **always-applied** rule at
+  `.cursor/rules/harness-mini.mdc` (`alwaysApply: true`) that tells Cursor to
+  prefer the harness lifecycle and skills over ad-hoc tools, and points at
+  `AGENTS.md`.
+- **One rule per skill** — `.cursor/rules/<name>.mdc` (`alwaysApply: false` + the
+  skill's `description`), an **agent-requested** rule Cursor can pull on demand by
+  matching the description. Each points at the canonical
+  `.claude/skills/<name>/SKILL.md` (single source of truth — the rule is a thin
+  pointer, not a copy of the body).
+
+Both are harness-owned and created only if absent, so re-running `init.sh` won't
+clobber your edits. You can still open `.claude/skills/<name>/SKILL.md` directly
+any time (identical to `skills/<name>/SKILL.md`).
 
 ## 3. Prompt recipes
 
@@ -63,8 +72,8 @@ bash bin/ctx.sh 80000 200000      # 40% → checkpoint now
 bash bin/trace.sh cursor implement test result=green   # log a runtime event
 ```
 
-Read the docs, open the skill files, run the shell — that's the entire
-integration. It genuinely works, but it's a **manual, secondary path**: you load
-skills yourself rather than having Cursor auto-discover them. Making Cursor
-first-class (a `.cursor/rules/` skill mirror, demonstrated with recordings) is
-tracked in [#23](https://github.com/harness-mini/harness-mini/issues/23).
+Read the docs, let Cursor pull the skill rules (or open the files directly), run
+the shell — that's the integration. The file-level mechanism is in place and
+tested; making it **proven** first-class (recordings of Cursor actually routing a
+task through the harness) is tracked in
+[#23](https://github.com/harness-mini/harness-mini/issues/23).

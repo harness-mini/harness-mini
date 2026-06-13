@@ -196,6 +196,30 @@ assert_eq "1" "$n" "re-run appends the gate at most once"
 rm -rf "$GSRC" "$GNEW" "$GEX"
 
 # =============================================================================
+echo "init.sh — mirrors each skill into .cursor/rules/ (#23; agent-requestable, additive/idempotent)"
+CSRC="$(mktemp -d)"
+mkdir -p "$CSRC/skills/tdd" "$CSRC/skills/no-fm" "$CSRC/agents" "$CSRC/bin" "$CSRC/docs"
+printf -- '---\nname: tdd\ndescription: Test-first red-green-refactor loop.\n---\nbody\n' > "$CSRC/skills/tdd/SKILL.md"
+printf 'no frontmatter here\n' > "$CSRC/skills/no-fm/SKILL.md"   # skill without a description
+printf 'map\n' > "$CSRC/AGENTS.md"
+CNEW="$(mktemp -d)"
+HARNESS_SRC="$CSRC" bash "$ROOT/init.sh" "$CNEW" >/dev/null 2>&1
+rule="$CNEW/.cursor/rules/tdd.mdc"
+assert_eq "true" "$([ -f "$rule" ] && echo true || echo false)" "init emits .cursor/rules/<skill>.mdc per skill"
+assert_contains "$(cat "$rule")" "alwaysApply: false" "skill rule is agent-requestable (alwaysApply:false)"
+assert_contains "$(cat "$rule")" "Test-first red-green-refactor loop." "skill rule carries the skill's description"
+assert_contains "$(cat "$rule")" ".claude/skills/tdd/SKILL.md" "skill rule points at the canonical SKILL.md"
+# a skill without a description still gets a rule (falls back to its name)
+assert_contains "$(cat "$CNEW/.cursor/rules/no-fm.mdc")" "harness-mini skill: no-fm" "description-less skill falls back to its name"
+# the always-applied routing gate rule is distinct from the per-skill rules
+assert_contains "$(cat "$CNEW/.cursor/rules/harness-mini.mdc")" "alwaysApply: true" "the routing gate rule stays always-applied"
+# additive: a user edit to a generated skill rule survives a re-run
+printf 'MY EDIT\n' > "$rule"
+HARNESS_SRC="$CSRC" bash "$ROOT/init.sh" "$CNEW" >/dev/null 2>&1
+assert_eq "MY EDIT" "$(cat "$rule")" "re-run never overwrites a user-edited skill rule"
+rm -rf "$CSRC" "$CNEW"
+
+# =============================================================================
 echo "repo assets — parallel-slices skill exists and is mirrored to .claude/"
 assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill source exists"
 assert_eq "true" "$([ -f "$ROOT/.claude/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill is mirrored to .claude/skills/"
