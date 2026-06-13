@@ -7,6 +7,17 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Cursor skill mirror — skills are now agent-requestable in Cursor (#23).**
+  `init.sh` emits one `.cursor/rules/<name>.mdc` per skill (`alwaysApply: false` +
+  the skill's `description`), so Cursor's agent can pull a skill on demand by its
+  description instead of being told to open files by hand. Each rule is a thin
+  pointer at the canonical `.claude/skills/<name>/SKILL.md` (single source of
+  truth, no duplicated body); generation is additive + idempotent + harness-owned
+  (created only if absent, never in the checksum-managed set). The file-level
+  mechanism is covered by `tests/run.sh`; validating it in real Cursor (with
+  recordings) remains open in #23. First concrete step toward Cursor parity.
+
 ### Changed
 - **Honest CLI positioning — "Claude Code-first", not blanket "CLI-agnostic".**
   README, `docs/cursor-getting-started.md`, `docs/codex-getting-started.md`, and

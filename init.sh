@@ -81,6 +81,17 @@ Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
 EOF
 }
 
+# skill_description — print the `description:` value from a SKILL.md's frontmatter
+# (the YAML block between the first two `---`). Empty if absent. Used to label the
+# generated Cursor rules so Cursor's agent can decide when to pull each skill.
+skill_description() { # <skill_md>
+  awk '
+    NR==1 && $0=="---" { fm=1; next }
+    fm && $0=="---"    { exit }
+    fm && /^description:/ { sub(/^description:[ \t]*/, ""); print; exit }
+  ' "$1"
+}
+
 # --- detect project type -----------------------------------------------------
 detect_mode() {
   for marker in package.json go.mod Cargo.toml pyproject.toml requirements.txt \
@@ -169,6 +180,34 @@ if [ ! -f "$DEST/.cursor/rules/harness-mini.mdc" ]; then
   say "add   .cursor/rules/harness-mini.mdc"
 else
   say "skip  .cursor/rules/harness-mini.mdc (exists)"
+fi
+
+# --- Cursor skill mirror: one agent-requestable rule per skill (#23) ---------
+# Cursor doesn't auto-discover .claude/skills/ the way Claude Code does. Emit a
+# thin .cursor/rules/<name>.mdc per skill — `alwaysApply: false` + the skill's
+# `description:` — so Cursor's agent can pull a skill on demand by its description
+# (progressive-disclosure parity). Each rule points at the canonical SKILL.md
+# rather than copying its body: single source of truth, no drift. Additive +
+# idempotent + harness-owned like the gate: created only if absent, never in the
+# checksum-managed set, so a user's edits and `update` are both safe.
+if [ -d "$DEST/.claude/skills" ]; then
+  mkdir -p "$DEST/.cursor/rules"
+  for skdir in "$DEST/.claude/skills"/*/; do
+    [ -f "${skdir}SKILL.md" ] || continue
+    name="$(basename "$skdir")"
+    rule="$DEST/.cursor/rules/$name.mdc"
+    if [ -e "$rule" ]; then say "skip  .cursor/rules/$name.mdc (exists)"; continue; fi
+    desc="$(skill_description "${skdir}SKILL.md")"
+    [ -n "$desc" ] || desc="harness-mini skill: $name"
+    {
+      printf -- '---\n'
+      printf 'description: %s\n' "$desc"
+      printf 'alwaysApply: false\n'
+      printf -- '---\n\n'
+      printf 'harness-mini skill **%s**. Read `.claude/skills/%s/SKILL.md` and follow it for this task.\n' "$name" "$name"
+    } > "$rule"
+    say "add   .cursor/rules/$name.mdc"
+  done
 fi
 
 # --- version lockfile (additive: only on first install) ----------------------
