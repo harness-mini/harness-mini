@@ -7,9 +7,12 @@ transcripts crowd out working memory until the agent goes dumb. Close the window
 and **session amnesia** wipes every hard-won decision, constraint, and in-flight
 plan you had built up.
 
-harness-mini is a minimal, CLI-agnostic agent harness — convention, skills,
+harness-mini is a minimal, **Claude Code-first** agent harness — skills,
 sub-agents, and distilled best-practice docs over thin shell glue — that keeps a
-long-running agent on-task, context-light, and resumable across sessions.
+long-running agent on-task, context-light, and resumable across sessions. Skills
+and sub-agents are auto-discovered by Claude Code; any other CLI that reads
+Markdown and runs shell can drive the same files, though that path is secondary
+(see [CLI support](#cli-support)).
 
 ## Quick Demo
 
@@ -51,10 +54,25 @@ the top of `AGENTS.md` (Codex). The gate says: route non-trivial work through
 harness skill wins*. Seeding is additive + idempotent — an existing `CLAUDE.md`
 keeps its content (the gate is appended once, marker-guarded).
 
-**Other agents (Codex, Cursor, …):** the harness is plain Markdown + shell, so any
-agent can use it by reading the files — see
-[`docs/codex-getting-started.md`](docs/codex-getting-started.md) and
-[`docs/cursor-getting-started.md`](docs/cursor-getting-started.md).
+### CLI support
+
+harness-mini is **first-class on Claude Code** and **portable, but secondary, on
+other CLIs** — it does not yet claim parity:
+
+| | Claude Code | Cursor / Codex |
+|---|---|---|
+| Skills (16) | **auto-discovered** from `.claude/skills/` | read on demand — you point the agent at the files yourself |
+| Sub-agents (5) | spawned as separate context windows | reproduced manually (separate chats / sessions) |
+| Routing gate | seeded into `CLAUDE.md` | seeded into `.cursor/rules/harness-mini.mdc` / `AGENTS.md` |
+| 40%-line teeth | `bin/ctx-hook.sh` (PostToolUse) | no hook equivalent — manual discipline |
+
+The harness is plain Markdown + shell, so any agent can use it by reading the
+files — `init.sh` seeds the routing gate for each CLI, and the getting-started
+guides show the prompt recipes:
+[`docs/cursor-getting-started.md`](docs/cursor-getting-started.md) and
+[`docs/codex-getting-started.md`](docs/codex-getting-started.md). Genuine Cursor
+parity (skills as native `.cursor/rules/`, with proof) is tracked in
+[#23](https://github.com/harness-mini/harness-mini/issues/23).
 
 ## Your first task: quick or full?
 

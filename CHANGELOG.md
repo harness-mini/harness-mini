@@ -8,6 +8,14 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Changed
+- **Honest CLI positioning — "Claude Code-first", not blanket "CLI-agnostic".**
+  README, `docs/cursor-getting-started.md`, `docs/codex-getting-started.md`, and
+  `docs/principles.md` now state plainly what's first-class on Claude Code
+  (auto-discovered skills/agents, the 40%-line hook) versus the secondary,
+  not-yet-at-parity path on Cursor/Codex (you load skills by hand). Dropped the
+  unproven "the CLI-agnostic promise holds" / "stays honest" claims. Real Cursor
+  parity (skills as native `.cursor/rules/`, demonstrated with recordings) is
+  tracked in #23.
 - **Model upgrade is now model-agnostic.** The builder (generator) upgrades to
   **the highest-available frontier model tier** (`opus`, the top tier the harness
   names) when `HARNESS_TOP_MODEL` is set, replacing the Fable-5-specific behavior.
