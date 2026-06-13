@@ -8,7 +8,9 @@
 
 **This is the first gate on every change to harness-mini itself.** The harness
 *is the environment, not a program* — it must stay droppable into any project,
-runnable by any agent CLI, with nothing to install.
+runnable by any agent CLI that can read Markdown and run shell, with nothing to
+install. (First-class on Claude Code; portable but secondary elsewhere — see the
+README's CLI-support note.)
 
 1. **Shell-or-doc first.** A capability is a Markdown skill/agent/doc by default.
    Only when it genuinely needs to *execute* does it become a small POSIX

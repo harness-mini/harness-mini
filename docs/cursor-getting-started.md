@@ -5,6 +5,13 @@ distilled docs + thin POSIX shell. Claude Code auto-discovers `.claude/skills/`
 and `.claude/agents/`; Cursor doesn't, but it can use the same harness by reading
 the files. No adapter, no extension, no dependency.
 
+> **Heads up — this is a secondary path.** harness-mini is Claude Code-first.
+> On Cursor you load skills by hand (Cursor's agent doesn't auto-discover them)
+> and reproduce sub-agents with separate chats; there's no equivalent of the
+> 40%-line hook. It works, but it's not yet at parity. Genuine Cursor support
+> (skills as native `.cursor/rules/`, with proof) is tracked in
+> [#23](https://github.com/harness-mini/harness-mini/issues/23).
+
 ## 1. Install
 
 ```bash
@@ -57,4 +64,7 @@ bash bin/trace.sh cursor implement test result=green   # log a runtime event
 ```
 
 Read the docs, open the skill files, run the shell — that's the entire
-integration. The CLI-agnostic promise holds for Cursor too.
+integration. It genuinely works, but it's a **manual, secondary path**: you load
+skills yourself rather than having Cursor auto-discover them. Making Cursor
+first-class (a `.cursor/rules/` skill mirror, demonstrated with recordings) is
+tracked in [#23](https://github.com/harness-mini/harness-mini/issues/23).
