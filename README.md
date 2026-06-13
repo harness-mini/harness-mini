@@ -1,13 +1,26 @@
 # harness-mini
 
-A **minimal, CLI-agnostic agent harness** — convention + skills + sub-agents +
-distilled best-practice docs, with only thin shell glue as code. It encodes the
-patterns from Anthropic's long-running-agent engineering, OpenAI's harness
-engineering, and Anthropic's Founder's Playbook into a structure you can drop
-into any project.
+Run an agent like Claude Code on a long task and it **drifts** — wandering off
+the goal, re-deciding settled questions, and polishing the wrong thing. Push the
+session further and its **context explodes**, as heavy reads and dead-end
+transcripts crowd out working memory until the agent goes dumb. Close the window
+and **session amnesia** wipes every hard-won decision, constraint, and in-flight
+plan you had built up.
 
-The harness *is the environment*, not a program. Any agent that can run shell
-(`claude`, `codex`, `cursor`, …) can use it.
+harness-mini is a minimal, CLI-agnostic agent harness — convention, skills,
+sub-agents, and distilled best-practice docs over thin shell glue — that keeps a
+long-running agent on-task, context-light, and resumable across sessions.
+
+## Quick Demo
+
+<!-- TODO: replace with asciicast recording -->
+
+> _Placeholder for an asciicast recording._ The clip should show, end-to-end:
+> `init.sh` grafting the harness into a project, the agent routing a real task
+> through `stage-viewer` (intake → prd → issues → implement), a disposable
+> `explorer` absorbing a heavy read so the main context stays under the 40% line,
+> an `evaluator` grading the slice in a separate window, and a committed
+> checkpoint that a brand-new session resumes from with zero context loss.
 
 ## Install
 
@@ -119,7 +132,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
 | `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`report`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
-| `bin/model.sh` | resolve a role's model alias (builder → Fable 5 when available) |
+| `bin/model.sh` | resolve a role's model alias (builder → the highest-available frontier model tier when enabled) |
 | `bin/ctx-hook.sh` | opt-in Claude Code PostToolUse hook (auto ctx_pct + 40% nudge) |
 | `harness/harness.lock` | installed version + managed-file checksums |
 | `skills/<name>/SKILL.md` → `.claude/skills/` | 16 skills (one folder each) |
@@ -144,19 +157,18 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | Agent | Role | Model |
 |-------|------|-------|
 | planner | goal → exec-plan + issues | sonnet |
-| generator | build one slice via TDD | sonnet · **fable** when available |
+| generator | build one slice via TDD | sonnet · **opus** when enabled |
 | evaluator | grade vs criteria (separate window) | opus |
 | explorer | disposable read/search → distillate | haiku |
 | gardener | entropy GC / doc-gardening | haiku |
 
 Model is a capability **tier**, not a pinned version. The **builder** (generator)
-auto-upgrades to **Claude Fable 5** — the top tier above Opus — when Fable 5 **and
-a shell-visible credential** are both present, falling back to sonnet otherwise;
-every other role keeps its static tier. Availability is plan- and time-gated, so
-it's detected at spawn time via `bin/model.sh builder` (best-effort, offline-safe)
-rather than hardcoded. The probe needs a credential it can read
-(`ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`, or `ant`); in a Claude-Code-OAuth-only
-shell none is exposed, so set `HARNESS_FABLE=1` to force the upgrade.
+auto-upgrades to **the highest-available frontier model tier** (`opus`, the top
+tier the harness names) when `HARNESS_TOP_MODEL` is set, falling back to sonnet
+otherwise; every other role keeps its static tier. The spawning agent resolves it
+at spawn time via `bin/model.sh builder` and passes the result as the worker's
+model override. Set `HARNESS_TOP_MODEL=1` to force the upgrade;
+`HARNESS_MODEL_BUILDER=<alias>` pins the builder to an exact model.
 
 ## Develop
 
@@ -180,6 +192,11 @@ and safe to call from `zsh`. See the compatibility notes in
 Issues and PRs welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). It's a small,
 opinionated harness: most contributions are Markdown (skills, agents, docs) plus
 the occasional ~30 lines of test-first shell. Ship thin, keep it smart.
+
+## Community
+
+[GitHub Discussions](https://github.com/harness-mini/harness-mini/discussions) —
+questions, show-and-tell, and feedback welcome.
 
 ## License
 
