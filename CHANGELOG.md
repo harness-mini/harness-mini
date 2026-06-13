@@ -7,6 +7,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Model upgrade is now model-agnostic.** The builder (generator) upgrades to
+  **the highest-available frontier model tier** (`opus`, the top tier the harness
+  names) when `HARNESS_TOP_MODEL` is set, replacing the Fable-5-specific behavior.
+  `bin/model.sh` drops the now-dead Models-API probe (it grepped for a specific
+  model id) in favor of an explicit opt-in flag; the `HARNESS_FABLE` env var is
+  **renamed to `HARNESS_TOP_MODEL`**. `README.md` / `AGENTS.md` reworded to
+  model-agnostic language.
+
 ## [0.8.0] - 2026-06-12
 
 ### Added

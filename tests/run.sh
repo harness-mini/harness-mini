@@ -56,22 +56,22 @@ code=0; HARNESS_CTX_THRESHOLD=60 bash "$BIN/ctx.sh" 100000 200000 >/dev/null || 
 assert_exit 0 "$code" "ctx 50% is smart when threshold raised to 60"
 
 # =============================================================================
-echo "model.sh — resolve a role's model alias (builder auto-upgrades to fable)"
-# static tiers are the unchanged "current use" — never fable
+echo "model.sh — resolve a role's model alias (builder upgrades to the top tier when enabled)"
+# static tiers are the unchanged "current use" — never upgraded
 assert_eq "sonnet" "$(bash "$BIN/model.sh" planner)"   "planner -> sonnet (static tier)"
 assert_eq "opus"   "$(bash "$BIN/model.sh" evaluator)" "evaluator -> opus (static tier)"
 assert_eq "haiku"  "$(bash "$BIN/model.sh" explorer)"  "explorer -> haiku (static tier)"
 assert_eq "haiku"  "$(bash "$BIN/model.sh" gardener)"  "gardener -> haiku (static tier)"
-# auto + offline (HARNESS_NO_NET=1 is exported) -> not available -> builder falls back
-assert_eq "sonnet" "$(bash "$BIN/model.sh" generator)" "generator falls back to sonnet when fable not available"
-# explicit availability flag -> builder runs on the new top tier
-assert_eq "fable"  "$(HARNESS_FABLE=1 bash "$BIN/model.sh" generator)" "generator -> fable when available"
-assert_eq "fable"  "$(HARNESS_FABLE=1 bash "$BIN/model.sh" builder)"   "builder alias -> fable when available"
-# the upgrade is builder-only: other roles never change, even with fable available
-assert_eq "opus"   "$(HARNESS_FABLE=1 bash "$BIN/model.sh" evaluator)" "evaluator stays opus even when fable available"
-# pin off, and explicit override both win
-assert_eq "sonnet" "$(HARNESS_FABLE=0 bash "$BIN/model.sh" generator)" "HARNESS_FABLE=0 pins the builder off fable"
-assert_eq "opus"   "$(HARNESS_MODEL_BUILDER=opus HARNESS_FABLE=1 bash "$BIN/model.sh" generator)" "HARNESS_MODEL_BUILDER overrides detection"
+# default (no flag) -> builder keeps its static tier
+assert_eq "sonnet" "$(bash "$BIN/model.sh" generator)" "generator stays sonnet when the top tier is not enabled"
+# top-model flag -> builder runs on the highest frontier tier (opus)
+assert_eq "opus"   "$(HARNESS_TOP_MODEL=1 bash "$BIN/model.sh" generator)" "generator -> top tier (opus) when enabled"
+assert_eq "opus"   "$(HARNESS_TOP_MODEL=1 bash "$BIN/model.sh" builder)"   "builder alias -> top tier (opus) when enabled"
+# the upgrade is builder-only: other roles never change, even with the flag set
+assert_eq "haiku"  "$(HARNESS_TOP_MODEL=1 bash "$BIN/model.sh" explorer)" "explorer stays haiku (upgrade is builder-only)"
+# off, and explicit override both win
+assert_eq "sonnet" "$(HARNESS_TOP_MODEL=0 bash "$BIN/model.sh" generator)" "HARNESS_TOP_MODEL=0 keeps the builder on sonnet"
+assert_eq "haiku"  "$(HARNESS_MODEL_BUILDER=haiku HARNESS_TOP_MODEL=1 bash "$BIN/model.sh" generator)" "HARNESS_MODEL_BUILDER overrides the top-tier upgrade"
 # usage contract: --help is 0, no role is a usage error (64)
 code=0; out=$(bash "$BIN/model.sh" --help) || code=$?
 assert_exit 0 "$code" "model.sh --help exits 0"
