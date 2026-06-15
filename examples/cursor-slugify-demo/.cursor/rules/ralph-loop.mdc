@@ -1,0 +1,6 @@
+---
+description: Drive a long-running "work → check → repeat" loop until an exit condition is met, max iterations hit, or a human-judgment flag is raised. Use for autonomous long tasks where an agent does work and an evaluator decides whether it passes (e.g. "keep fixing until all reviewers pass"). Backed by bin/ralph.sh.
+alwaysApply: false
+---
+
+harness-mini skill **ralph-loop**. Read `.claude/skills/ralph-loop/SKILL.md` and follow it for this task.

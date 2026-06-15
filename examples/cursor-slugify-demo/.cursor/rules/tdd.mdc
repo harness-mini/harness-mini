@@ -1,0 +1,6 @@
+---
+description: Implement code test-first via the red→green→refactor loop. Use in the implement stage for every issue. Never write implementation before a failing test; never refactor on red. The generator's core working rhythm.
+alwaysApply: false
+---
+
+harness-mini skill **tdd**. Read `.claude/skills/tdd/SKILL.md` and follow it for this task.

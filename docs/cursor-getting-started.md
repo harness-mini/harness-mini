@@ -74,6 +74,11 @@ bash bin/trace.sh cursor implement test result=green   # log a runtime event
 
 Read the docs, let Cursor pull the skill rules (or open the files directly), run
 the shell — that's the integration. The file-level mechanism is in place and
-tested; making it **proven** first-class (recordings of Cursor actually routing a
-task through the harness) is tracked in
+tested; making it **proven** first-class (Cursor actually routing a task through
+the harness) is tracked in
 [#23](https://github.com/harness-mini/harness-mini/issues/23).
+
+**Try it yourself:** [`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/)
+is a runnable storyboard — open this repo in Cursor, follow the four beats (gate →
+skill-on-demand → 40% line → evaluator in a separate chat), and record Cursor's
+responses in its `TRANSCRIPT.md`. That filled-in transcript is the proof #23 needs.

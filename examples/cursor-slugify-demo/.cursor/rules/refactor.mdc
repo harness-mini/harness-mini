@@ -1,0 +1,6 @@
+---
+description: The recovery code-quality constraint (Refactoring). Use to improve code structure without changing behavior — smell → named refactoring, always under green tests, one move at a time. Used by the generator (in the tdd refactor step) and the gardener (entropy cleanup).
+alwaysApply: false
+---
+
+harness-mini skill **refactor**. Read `.claude/skills/refactor/SKILL.md` and follow it for this task.

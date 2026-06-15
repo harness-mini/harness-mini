@@ -1,0 +1,6 @@
+---
+description: View and advance the lifecycle stage of every requirement. Main-agent only — the single authority that moves a plan through intake→prd→issues→implement⇄evaluate→checkpoint→done. Use to see what stage work is in, route simple vs complex requests, and promote a plan (no sub-agent may self-promote).
+alwaysApply: false
+---
+
+harness-mini skill **stage-viewer**. Read `.claude/skills/stage-viewer/SKILL.md` and follow it for this task.

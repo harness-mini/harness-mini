@@ -1,0 +1,6 @@
+---
+description: Cut a versioned release of harness-mini — bump VERSION, roll the CHANGELOG, tag, and publish a GitHub release. Use when shipping a new version. Wraps `bin/harness.sh release`; covers the human-judgment steps (semver choice, changelog curation) the script can't make.
+alwaysApply: false
+---
+
+harness-mini skill **release**. Read `.claude/skills/release/SKILL.md` and follow it for this task.

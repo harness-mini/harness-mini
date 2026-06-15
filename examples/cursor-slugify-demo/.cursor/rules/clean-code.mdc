@@ -1,0 +1,6 @@
+---
+description: The forward code-quality constraint (Clean Code). Use while writing code in the implement stage and as a review lens in evaluate. Intention-revealing names, small single-responsibility functions, no duplication, comments that explain why not what.
+alwaysApply: false
+---
+
+harness-mini skill **clean-code**. Read `.claude/skills/clean-code/SKILL.md` and follow it for this task.

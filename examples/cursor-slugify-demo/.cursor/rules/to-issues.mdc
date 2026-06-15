@@ -1,0 +1,6 @@
+---
+description: Decompose a PRD into atomic, testable issues — the executable work units the generator implements one at a time. Use in the issues stage. Each issue is independently verifiable and maps to one vertical slice or a step within one.
+alwaysApply: false
+---
+
+harness-mini skill **to-issues**. Read `.claude/skills/to-issues/SKILL.md` and follow it for this task.
