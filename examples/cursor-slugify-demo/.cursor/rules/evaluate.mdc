@@ -1,0 +1,6 @@
+---
+description: Grade work against the plan's acceptance criteria from a SEPARATE context — tiered by risk (L0 self-check, L1 lightweight reviewer [default], L2 full evaluator). Use in the evaluate stage. The anti-self-praise firewall — the agent that built the work must never be the one that grades it. Returns pass/fail per criterion with evidence.
+alwaysApply: false
+---
+
+harness-mini skill **evaluate**. Read `.claude/skills/evaluate/SKILL.md` and follow it for this task.

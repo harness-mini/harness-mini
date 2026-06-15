@@ -1,0 +1,6 @@
+---
+description: Fan out the horizontal expansion of the implement stage to parallel generators. Use AFTER the vertical walking skeleton passes evaluate, to build independent features concurrently. The main agent dispatches one generator per issue; parallelism is gated on disjoint file footprints. Vertically related, horizontally independent.
+alwaysApply: false
+---
+
+harness-mini skill **parallel-slices**. Read `.claude/skills/parallel-slices/SKILL.md` and follow it for this task.

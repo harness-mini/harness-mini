@@ -1,0 +1,6 @@
+---
+description: Turn a raw idea or requirement into an executable PRD document — a versioned artifact the harness treats as a first-class source of truth. Use in the prd stage after founder-check/five-step. Output is agent-readable, testable, and committed.
+alwaysApply: false
+---
+
+harness-mini skill **to-prd**. Read `.claude/skills/to-prd/SKILL.md` and follow it for this task.

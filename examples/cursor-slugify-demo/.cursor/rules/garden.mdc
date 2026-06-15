@@ -1,0 +1,6 @@
+---
+description: Entropy garbage-collection. Periodically scan for drift — stale docs, dead "always-loaded" context, smells, mismatched conventions — and open small targeted fixes. Use to keep the smart zone smart and the repo coherent for future agent runs. Runs orthogonally to the main lifecycle.
+alwaysApply: false
+---
+
+harness-mini skill **garden**. Read `.claude/skills/garden/SKILL.md` and follow it for this task.

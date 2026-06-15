@@ -1,0 +1,6 @@
+---
+description: Apply Elon Musk's Five-Step Algorithm to any requirement or plan before building. Use in the intake/plan stages to question, delete, simplify, accelerate, and automate — in that order. Prevents the expensive mistake of optimizing or automating something that should have been deleted.
+alwaysApply: false
+---
+
+harness-mini skill **five-step**. Read `.claude/skills/five-step/SKILL.md` and follow it for this task.

@@ -1,0 +1,6 @@
+---
+description: The horizontal+vertical coding constraint. Use in the implement stage to decide build order and enforce layering. Vertical = one feature end-to-end as a thin walking skeleton first; Horizontal = forward-only dependencies through a fixed layer stack. Read before writing code.
+alwaysApply: false
+---
+
+harness-mini skill **slice-coding**. Read `.claude/skills/slice-coding/SKILL.md` and follow it for this task.

@@ -1,0 +1,15 @@
+---
+description: harness-mini routing gate — prefer the harness lifecycle and skills
+alwaysApply: true
+---
+
+This project runs on **harness-mini**. For non-trivial work — a feature, a
+multi-step or ambiguous change, anything cross-cutting — route it through the
+`stage-viewer` skill first and prefer harness-mini's lifecycle, skills, and
+sub-agents (read `.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other
+installed plugins. When a harness skill and another tool both fit, the harness
+skill wins. Trivial one-line fixes may skip the ceremony (quick mode). On a fresh
+session, first run `bin/harness.sh version` — if a newer harness-mini exists, tell
+the user and offer `bin/harness.sh update`.
+
+Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md

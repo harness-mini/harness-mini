@@ -1,0 +1,6 @@
+---
+description: Write a committed handoff checkpoint so a fresh session can resume with zero loss. Use when crossing the 40% context line, on every stage transition, and at session end. Writes .trace/checkpoints/<plan>-<seq>.md while the agent is still sharp.
+alwaysApply: false
+---
+
+harness-mini skill **checkpoint**. Read `.claude/skills/checkpoint/SKILL.md` and follow it for this task.
