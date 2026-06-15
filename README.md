@@ -71,9 +71,13 @@ files — `init.sh` seeds the routing gate for each CLI (and, for Cursor, one
 agent-requested rule per skill), and the getting-started guides show the prompt
 recipes: [`docs/cursor-getting-started.md`](docs/cursor-getting-started.md) and
 [`docs/codex-getting-started.md`](docs/codex-getting-started.md). The Cursor
-skill mirror is implemented and tested at the file level; **validating** that
-Cursor reliably pulls the rules in practice (with recordings) is tracked in
-[#23](https://github.com/harness-mini/harness-mini/issues/23).
+skill mirror is file-level tested **and now demonstrated end-to-end**: a worked
+run ([`examples/cursor-slugify-demo/`](examples/cursor-slugify-demo/),
+[#23](https://github.com/harness-mini/harness-mini/issues/23)) shows Cursor
+observably loading the gate and **pulling skill rules on demand by description**,
+with a separate-chat evaluator reproducing the firewall. That's one model
+session, not a cross-version guarantee — and Cursor still has no 40%-line hook —
+so it stays **portable/secondary**, not claimed parity.
 
 ## Your first task: quick or full?
 

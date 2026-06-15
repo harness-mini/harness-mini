@@ -10,10 +10,12 @@ the files. No adapter, no extension, no dependency.
 > rule (`alwaysApply: false` + the skill's `description`), so Cursor's agent can
 > surface a skill on demand — but you still reproduce sub-agents with separate
 > chats, and there's no equivalent of the 40%-line hook. The file-level mechanism
-> is in place and tested; whether Cursor reliably pulls the rules is **not yet
-> validated with recordings**
-> ([#23](https://github.com/harness-mini/harness-mini/issues/23)). Treat full
-> parity as pending until that proof lands.
+> is tested **and now demonstrated once end-to-end**: a worked run
+> ([`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/),
+> [#23](https://github.com/harness-mini/harness-mini/issues/23)) shows Cursor
+> observably loading the gate and pulling skill rules on demand. That's one model
+> session, not a cross-version guarantee — so this stays a **secondary path**, not
+> claimed parity.
 
 ## 1. Install
 
@@ -73,12 +75,11 @@ bash bin/trace.sh cursor implement test result=green   # log a runtime event
 ```
 
 Read the docs, let Cursor pull the skill rules (or open the files directly), run
-the shell — that's the integration. The file-level mechanism is in place and
-tested; making it **proven** first-class (Cursor actually routing a task through
-the harness) is tracked in
-[#23](https://github.com/harness-mini/harness-mini/issues/23).
+the shell — that's the integration. The file-level mechanism is tested, and one
+end-to-end run ([#23](https://github.com/harness-mini/harness-mini/issues/23)) has
+shown Cursor actually routing a task through the harness.
 
-**Try it yourself:** [`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/)
-is a runnable storyboard — open this repo in Cursor, follow the four beats (gate →
-skill-on-demand → 40% line → evaluator in a separate chat), and record Cursor's
-responses in its `TRANSCRIPT.md`. That filled-in transcript is the proof #23 needs.
+**See / repeat it:** [`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/)
+is a runnable storyboard with a **completed transcript** ([`TRANSCRIPT.md`](../examples/cursor-slugify-demo/TRANSCRIPT.md))
+from a real Cursor session — gate → skill-on-demand → 40% line → evaluator in a
+separate chat. Open this repo in Cursor and re-run the four beats to reproduce it.
