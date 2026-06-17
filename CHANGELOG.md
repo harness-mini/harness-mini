@@ -15,8 +15,10 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   pointer at the canonical `.claude/skills/<name>/SKILL.md` (single source of
   truth, no duplicated body); generation is additive + idempotent + harness-owned
   (created only if absent, never in the checksum-managed set). The file-level
-  mechanism is covered by `tests/run.sh`; validating it in real Cursor (with
-  recordings) remains open in #23. First concrete step toward Cursor parity.
+  mechanism is covered by `tests/run.sh`, and a worked Cursor run later
+  demonstrated it end-to-end — Cursor observably pulls the rule on demand
+  (#23, closed; transcript in `examples/cursor-slugify-demo/`). First concrete
+  step toward Cursor support.
 
 ### Changed
 - **Honest CLI positioning — "Claude Code-first", not blanket "CLI-agnostic".**
@@ -24,9 +26,10 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   `docs/principles.md` now state plainly what's first-class on Claude Code
   (auto-discovered skills/agents, the 40%-line hook) versus the secondary,
   not-yet-at-parity path on Cursor/Codex (you load skills by hand). Dropped the
-  unproven "the CLI-agnostic promise holds" / "stays honest" claims. Real Cursor
-  parity (skills as native `.cursor/rules/`, demonstrated with recordings) is
-  tracked in #23.
+  unproven "the CLI-agnostic promise holds" / "stays honest" claims. A first
+  end-to-end run later demonstrated Cursor loading the gate and pulling skill
+  rules on demand (#23, closed) — but it stays portable/secondary, not parity
+  (one model session; no 40%-line hook in Cursor).
 - **Model upgrade is now model-agnostic.** The builder (generator) upgrades to
   **the highest-available frontier model tier** (`opus`, the top tier the harness
   names) when `HARNESS_TOP_MODEL` is set, replacing the Fable-5-specific behavior.
