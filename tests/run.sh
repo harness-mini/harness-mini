@@ -225,6 +225,11 @@ assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true 
 assert_eq "true" "$([ -f "$ROOT/.claude/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill is mirrored to .claude/skills/"
 
 # =============================================================================
+echo "tdd skill — one red→green cycle per acceptance criterion (#29)"
+assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd source requires a failing test per acceptance criterion"
+assert_contains "$(cat "$ROOT/.claude/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd mirror carries the per-criterion rule"
+
+# =============================================================================
 echo "harness.sh version — report the installed harness version"
 HARN="$BIN/harness.sh"
 # from the source repo (no lock), version falls back to the root VERSION file

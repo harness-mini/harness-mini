@@ -17,7 +17,9 @@ eval: L0        # L0 self-check (tiny) or L1 lightweight reviewer; see evaluate 
 <One or two sentences: what's broken or missing, and why it matters now.>
 
 ## Acceptance criteria
-<!-- Keep these machine-checkable so L0 (tests-as-firewall) is honest. -->
+<!-- Keep these machine-checkable so L0 (tests-as-firewall) is honest. Each
+     criterion gets its OWN test, gone red→green (see the tdd skill): behavior
+     that "happens to pass" without a test of its own is not done. -->
 - [ ] <e.g. `bash tests/run.sh` green with a new test for X>
 - [ ] <observable behaviour: command/output that proves it>
 
