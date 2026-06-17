@@ -35,6 +35,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   **renamed to `HARNESS_TOP_MODEL`**. `README.md` / `AGENTS.md` reworded to
   model-agnostic language.
 
+### Fixed
+- **`tdd` now requires one red→green cycle per acceptance criterion (#29).**
+  The first real Cursor dogfood (slugify) exposed test-first silently degrading to
+  "one test, then code that happens to generalize" — five criteria, one test, four
+  untested behaviors passing by luck. The `tdd` skill now states each enumerated
+  criterion gets its **own** failing test (with an "it generalized" anti-pattern),
+  and `docs/templates/quick-plan.md` echoes it where quick-mode specs are written.
+  Locked in by `tests/run.sh`.
+
 ## [0.8.0] - 2026-06-12
 
 ### Added
