@@ -13,11 +13,9 @@ sub-agents over ad-hoc tools or other installed plugins. When a harness skill an
 another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
 the ceremony (quick mode). On entering a fresh session, `stage-viewer` first
 checks for a newer harness-mini (`bin/harness.sh version`) and prompts you to
-update. The rest of this file is the map.
-
-You are operating inside the **harness-mini** framework. The repository is the
-system of record: anything not in a version-controlled file does not exist to
-you. Read the pointer you need, when you need it — never preload everything.
+update. The rest of this file is the map. The repository is the **system of
+record** — anything not in a version-controlled file does not exist to you; read
+the pointer you need, when you need it, never preload everything.
 
 ## The one rule that governs everything: the 40% line
 
@@ -76,28 +74,16 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Committed evaluation verdicts (the `done`-gate) | `.trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
 
-## Versioning (the `harness.sh` CLI)
+## Versioning — `bin/harness.sh` (the front door)
 
-`bin/harness.sh` is the front door. Installed version + checksums live in
-`harness/harness.lock` (canonical source version: `VERSION`).
-
-- `harness.sh version` — installed version (+ best-effort latest). When a newer
-  release exists, `version`/`status`/`doctor` all surface an **update reminder**
-  (best-effort, silent offline). `stage-viewer` runs this on session entry.
-- `harness.sh update [--src DIR]` — pull a newer harness in, checksum-guarded:
-  untouched files are refreshed, **your edits are kept** (upstream lands as
-  `<file>.new`), new files are added; `docs/exec-plans/` and `.trace/` are never
-  touched.
-- `harness.sh doctor` — install health (ok/warn/fail; exit 1 on a fail), incl.
-  source↔`.claude` mirror divergence and unresolved `.new` files.
-- `harness.sh status` — current work state for cold resume: active plans + stages,
-  latest checkpoint per plan, `.new` conflicts, last `ctx_pct`, resumability.
-- `harness.sh report [run]` — aggregate `.trace/` metrics (stage advances, context
-  trend vs the 40% line, eval pass/fail + rework loops, checkpoints) so thresholds
-  are tuned by data. `doctor` also enforces the **eval-gate**: a plan can't be
-  `done` without a `verdict: pass` record in `.trace/evals/`.
-- `harness.sh release <x.y.z>` — source-repo only; bump + tag + GitHub release
-  (gated on semver + green tests + clean tree). See the `release` skill.
+`bin/harness.sh help` lists the commands (`version` · `update` · `doctor` ·
+`status` · `report` · `release`); installed version + checksums live in
+`harness/harness.lock` (canonical source: `VERSION`). Two semantics that aren't
+obvious from `--help`: `update` is **checksum-guarded** — your edits are kept,
+upstream lands as `<file>.new`, and `docs/exec-plans/` + `.trace/` are never
+touched; `doctor` enforces the **eval-gate** — a plan can't be `done` without a
+`verdict: pass` record in `.trace/evals/`. `release` is source-repo only (see the
+`release` skill).
 
 ## Skills by stage
 
@@ -118,13 +104,11 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | explorer | disposable read/search → distillate | (none) | haiku |
 | gardener | entropy GC, demote stale context | garden, refactor, clean-code | haiku |
 
-Model = capability **tier** (CLI maps it), not a pinned version. *The builder
-(generator) auto-upgrades to **the highest-available frontier model tier**
-(`opus`, the top tier the harness names) when `HARNESS_TOP_MODEL` is set; else it
-stays sonnet.* The spawning agent resolves it with `bin/model.sh builder` and
-passes the result as the worker's model override. Set `HARNESS_TOP_MODEL=1` to
-force the upgrade; `HARNESS_MODEL_BUILDER=<alias>` pins the builder to an exact
-model. Every other role keeps its static tier.
+Model = capability **tier** (CLI maps it), not a pinned version. The builder
+(generator) auto-upgrades to the top tier (`opus`) when `HARNESS_TOP_MODEL` is
+set, else stays sonnet; every other role keeps its static tier. The spawning
+agent resolves it with `bin/model.sh builder` and passes it as the worker's model
+override (`HARNESS_MODEL_BUILDER=<alias>` pins an exact model).
 
 ## Tracing (best-effort, never blocks work)
 
