@@ -13,6 +13,13 @@ Each entry: the assumption · the model-gap it patches · the experiment that wo
 show it's gone stale · status. `registered` = first logged; `audited` = last
 re-tested against the current model.
 
+> **Audit 2026-06-16** (triggered: builder tier moved to model-agnostic `opus`).
+> **Judgment-only — nothing retired.** `harness.sh report` has no experimental
+> signal yet (0 eval pass/fail; context never crossed 40%, max 33%), so no patch
+> can be honestly deleted on this pass — that would need the A/B each entry names.
+> Each `Status` below now carries a current-model judgment + what would settle it.
+> The Cursor dogfood gave **A2** its one piece of real-world reconfirmation.
+
 ---
 
 ## A1 — The 40% smart/dumb line
@@ -24,7 +31,10 @@ re-tested against the current model.
   eval pass-rate + handoff quality via `harness.sh report` (ctx trend vs the line).
   If quality holds at a higher line on the current model, **raise the default**.
   (The post reports exactly this getting better Sonnet 4.5 → Opus 4.5.)
-- **Status:** registered 2026-06-12 · audited never.
+- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep, likely
+  conservative.** On current frontier models (large windows) the line is
+  plausibly raisable, but `report` shows we've never even reached it (max 33%).
+  No data → no change. Run the 40/60/70 experiment before moving the default.
 
 ## A2 — Anti-self-praise eval firewall
 - **Assumption:** a model confidently praises its own output, so grading must run
@@ -33,7 +43,10 @@ re-tested against the current model.
 - **Test if stale:** have a generator self-grade N slices, and a separate evaluator
   grade the same N; measure the false-pass gap. If it collapses, the firewall is
   cheap insurance, not a necessity — relax to L0/L1 sooner.
-- **Status:** registered 2026-06-12 · audited never. *(Expected durable.)*
+- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep (durable).**
+  Reconfirmed in the wild: the Cursor slugify dogfood's separate-chat evaluator
+  caught a real gap (only 1 of 5 criteria tested) that the building chat had
+  reported as "slice done" — the false-pass gap did **not** collapse. No change.
 
 ## A3 — Explorer fan-out firewall
 - **Assumption:** pulling a big read/search into the main window degrades it, so
@@ -42,7 +55,9 @@ re-tested against the current model.
 - **Test if stale:** compare main-agent quality on a task with vs without
   delegating a >2k-token read, on the current model + window. If equal, raise the
   delegate-it threshold.
-- **Status:** registered 2026-06-12 · audited never.
+- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep.** Partly a
+  context-budget win independent of model quality, so it survives regardless; no
+  signal to justify raising the >2k-token threshold. Revisit with the explorer A/B.
 
 ## A4 — Progressive disclosure (the ~100-line map)
 - **Assumption:** large always-on instructions get partially dropped / dilute, so
@@ -50,8 +65,10 @@ re-tested against the current model.
 - **Patches:** weak instruction-following under a fat always-loaded prompt.
 - **Test if stale:** A/B instruction-following with a fat always-on file vs the map
   on the current model. If the fat file is followed faithfully, the map can grow.
-- **Status:** registered 2026-06-12 · audited never. *(Also a context-budget win,
-  so partly survives even if the following-gap closes.)*
+- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep.** Also a
+  context-budget win, so it survives even as instruction-following improves; this
+  same garden sweep trimmed the map 133→117 (#32), consistent with keeping it
+  small. No A/B run, so the map approach stands.
 
 ## A5 — Caps / heavy emphasis for important instructions
 - **Assumption:** the model under-weights non-emphasized constraints, so critical
@@ -59,5 +76,8 @@ re-tested against the current model.
 - **Patches:** flat attention across instructions of unequal importance.
 - **Test if stale:** A/B a constraint with vs without caps; does compliance change
   on the current model? If not, drop the caps convention (less noise).
-- **Status:** registered 2026-06-12 · audited never. *(Most likely to be stale on
-  a strong model — audit this one first.)*
+- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep for now;
+  strongest relax-candidate.** Current models follow un-emphasized instructions
+  well, so heavy caps may be noise — but the convention is woven through every doc
+  (principle #9) and there's no A/B signal, so don't rip it out blind. Highest-
+  priority experiment: A/B a constraint with vs without caps on the current model.
