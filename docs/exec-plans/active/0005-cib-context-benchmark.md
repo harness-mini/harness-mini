@@ -75,7 +75,7 @@ says the line is "plausibly raisable" but won't move it without data.
 - **Files:** `bench/cib/build.py`, `bench/cib/tests/test_build.py`, `bench/cib/fixtures/filler_sample.txt`.
 - **depends-on:** none. **done =** occupancy within tolerance across ≥3 buckets + metadata recorded.
 
-### #2 — Probe battery D1 (needle/`verify_token`) + D3 (pure-JSON) + scorers
+### #2 — Probe battery D1 (needle/`verify_token`) + D3 (pure-JSON) + scorers · ✅ DONE (11/11)
 - **Outcome:** byte-identical probe suffix (D1: instruction to call `verify_token` with
   the planted token; D3: pure-JSON constraint) + machine scorers for both.
 - **Failing test:** (a) `probe_suffix()` byte-identical across calls/buckets (hash
@@ -96,7 +96,7 @@ says the line is "plausibly raisable" but won't move it without data.
 - **Files:** `bench/cib/runner_api.py`, `bench/cib/run.py`, `bench/cib/tests/test_runner.py`.
 - **depends-on:** #1, #2. **done =** mock run yields a scored trajectory; real run gated behind creds.
 
-### #4 — Changepoint analysis  (independent — parallel with #1→#3)
+### #4 — Changepoint analysis  (independent — parallel with #1→#3) · ✅ DONE (3/3, zero-dep)
 - **Outcome:** `analyze(points)` → `{location, bootstrap_CI, cliff_vs_linear_support}`,
   penalty-selected changepoints (ruptures), **not** forced to 3 segments.
 - **Failing test:** synthetic cliff at 0.45 → location within ±0.05 and CI brackets it,
@@ -152,10 +152,11 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   "tests pass."
 
 ## Now (resume here)
-- **#1 DONE** (`bench/cib/build.py`, 6/6 green) — occupancy lands on target within ±2%
-  via the declared char/4 proxy; riskiest assumption holds. Core suite 157/157.
-- **Next:** lane A → **#2** (probe D1+D3 + scorers); lane B → **#4** (changepoint,
-  independent) can start in parallel. Real-tokenizer trim loop deferred to #3.
+- **DONE: #1, #2, #4** — `bench/cib/{build,probe,score,analyze}.py`. 20/20 bench tests;
+  core suite 157/157. Both lanes have met: build→probe/score (A) and changepoint (B).
+- **Next:** **#3** (API runner, Arm A) — closes the E2E skeleton and is where the real
+  model tokenizer + occupancy trim loop land (deferred from #1). Then **#5** (chart,
+  needs #4) → **#6** (orchestrator). Draft PR: #35.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -184,3 +185,12 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   metadata; real tokenizer + trim loop deferred to #3). 6/6 unit tests; core
   `tests/run.sh` 157/157. L0 self-check only — the L2 separate-context evaluate runs
   when the skeleton (#1–#6) is complete (A2 firewall). Stage → implement.
+- 2026-06-22: #2 built TDD — byte-identical `PROBE_SUFFIX` (D1 verify_token + D3
+  pure-JSON task) + pure scorers (`score_d1`/`score_d3`); covers the spec's failure
+  modes (missing/wrong/phantom call; preamble/fence/invalid JSON). 11/11.
+- 2026-06-22: #4 built TDD — **deviation:** zero-dep changepoint backend (brute-force
+  two-means split + BIC vs linear null + bootstrap CI) instead of `ruptures`, to keep
+  skeleton tests hermetic and the island install-free. Same output contract; `ruptures`
+  stays a planned *optional* higher-fidelity backend (requirements.txt, later slice).
+  Recovers a synthetic cliff at 0.45 (±0.05, CI brackets it) and rejects a linear
+  decline. 3/3. Branch pushed; draft PR #35 against #34.
