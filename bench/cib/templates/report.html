@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Intelligence Benchmark — {{MODEL}}</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.5rem; background: #0d1117; color: #e6edf3;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.55rem; margin: 0 0 .25rem; }
+  .sub { color: #8b949e; margin: 0 0 1.75rem; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.75rem; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: .9rem 1rem; }
+  .card .k { color: #8b949e; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+  .card .v { font-size: 1.5rem; font-weight: 650; margin-top: .25rem; }
+  .accent { color: #f0883e; }
+  figure { margin: 0; background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1rem; }
+  figcaption { color: #8b949e; font-size: .82rem; margin-top: .5rem; }
+  details { margin-top: 1.5rem; color: #8b949e; }
+  summary { cursor: pointer; }
+  pre { overflow: auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: .75rem; font-size: .8rem; }
+  .legend span { display: inline-block; margin-right: 1rem; font-size: .8rem; }
+  .sw { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; vertical-align: middle; margin-right: .3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Context Intelligence Benchmark</h1>
+  <p class="sub">{{MODEL}} · window {{WINDOW}} tokens · {{N}} trials · Arm A (fixed probe, varied fill)</p>
+
+  <div class="cards">
+    <div class="card"><div class="k">Recommended cut-off</div><div class="v accent">{{CUTOFF}}</div></div>
+    <div class="card"><div class="k">95% CI</div><div class="v">{{CI}}</div></div>
+    <div class="card"><div class="k">Degradation (mean drop)</div><div class="v">{{DROP}}</div></div>
+    <div class="card"><div class="k">Trials</div><div class="v">{{N}}</div></div>
+  </div>
+
+  <figure>
+    {{SVG}}
+    <div class="legend">
+      <span><i class="sw" style="background:#2ea04326"></i>smart zone</span>
+      <span><i class="sw" style="background:#f8514926"></i>dumb zone</span>
+      <span><i class="sw" style="background:#f0883e"></i>changepoint + CI</span>
+    </div>
+    <figcaption>Agent score vs context occupancy. Zones split at the detected changepoint; the band is its bootstrap CI.</figcaption>
+  </figure>
+
+  <details>
+    <summary>Raw data (inline — this report is fully self-contained)</summary>
+    <pre id="cib-data">{{DATA_JSON}}</pre>
+  </details>
+</div>
+</body>
+</html>
