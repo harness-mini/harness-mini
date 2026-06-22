@@ -61,21 +61,74 @@ says the line is "plausibly raisable" but won't move it without data.
 - [ ] (J) click a point → trajectory replay with drift/loop annotations.
 - [ ] (M) core `tests/run.sh` green; `harness.sh doctor` clean; all CIB deps under `bench/cib/`, not imported by core.
 
-## Issues (run `to-issues`)
-<!-- outcome · failing test · layer footprint · FILE footprint · depends-on -->
-1. **Prompt construction + occupancy measurement** — build a message to a target token
-   budget from the filler corpus; record actual occupancy. — files: `bench/cib/build.py`, `bench/cib/tests/test_build.py` — depends-on: none
-2. **Probe battery D1 (needle/`verify_token`) + D3 (pure-JSON)** — byte-identical
-   suffix + machine scorers. — files: `bench/cib/probe.py`, `bench/cib/score.py`, `bench/cib/tests/test_score.py` — depends-on: #1
-3. **Agent runner (API/SDK), Arm A** — run constructed prompt, capture trajectory. — files: `bench/cib/run.py`, `bench/cib/runner_api.py` — depends-on: #1,#2
-4. **Changepoint analysis** — penalty-selected; location + bootstrap CI + cliff-vs-linear. — files: `bench/cib/analyze.py`, `bench/cib/tests/test_analyze.py` — depends-on: none
-5. **Minimal self-contained chart** — occupancy vs score, CI ribbon, detected zones. — files: `bench/cib/report.py`, `bench/cib/templates/report.html` — depends-on: #4
-6. **Orchestrator `run.sh`** — buckets × trials → jsonl → analyze → report. — files: `bench/cib/run.sh`, `bench/cib/requirements.txt` — depends-on: #1–#5
-7. *(horizontal)* **D2 multi-hop + infinite-loop detector** — files: `bench/cib/probe.py`, `bench/cib/loopdetect.py` — depends-on: #2
-8. *(horizontal)* **D4 tool-use (hallucination + param drift)** — files: `bench/cib/probe.py`, `bench/cib/score.py` — depends-on: #2
-9. *(horizontal)* **Drill-down trajectory replay UI** — files: `bench/cib/templates/report.html`, `bench/cib/report.py` — depends-on: #5,#7
-10. *(horizontal)* **Arm B naturalistic + Logger middleware** — files: `bench/cib/logger.py`, `bench/cib/run.py` — depends-on: #3
-11. *(horizontal)* **gzip density covariate overlay** — files: `bench/cib/analyze.py`, `bench/cib/report.py` — depends-on: #4,#5
+## Issues — walking skeleton (decomposed via `to-issues`, TDD-ready)
+<!-- each: outcome · failing test (write first) · layers · FILE footprint · depends-on · done -->
+
+### #1 — Prompt construction + occupancy measurement  ⟵ riskiest assumption
+- **Outcome:** `build_prompt(target_pct, window, corpus, needle)` → one message whose
+  measured `tokens/window` hits `target_pct` within ±2%, plus metadata (`token_count`,
+  `occupancy_pct`, `filler_hash`, needle position).
+- **Failing test:** for buckets {0.10, 0.40, 0.70}, assert measured occupancy within
+  ±0.02 of target and that metadata `occupancy_pct` equals the re-measured count; assert
+  the model's tokenizer is used (or a declared proxy is recorded in metadata).
+- **Layers:** Types (`BuiltPrompt`) · Service (assembly).
+- **Files:** `bench/cib/build.py`, `bench/cib/tests/test_build.py`, `bench/cib/fixtures/filler_sample.txt`.
+- **depends-on:** none. **done =** occupancy within tolerance across ≥3 buckets + metadata recorded.
+
+### #2 — Probe battery D1 (needle/`verify_token`) + D3 (pure-JSON) + scorers
+- **Outcome:** byte-identical probe suffix (D1: instruction to call `verify_token` with
+  the planted token; D3: pure-JSON constraint) + machine scorers for both.
+- **Failing test:** (a) `probe_suffix()` byte-identical across calls/buckets (hash
+  equality); (b) D1 scorer → 100 for `verify_token("9527")`, 0 for missing/wrong/phantom;
+  (c) D3 scorer → 100 pure JSON, 50 with preamble ("Here is the JSON:"), 0 invalid
+  (`json.loads` + regex).
+- **Layers:** Types (`Probe`, `Score`) · Service (scorers).
+- **Files:** `bench/cib/probe.py`, `bench/cib/score.py`, `bench/cib/tests/test_score.py`.
+- **depends-on:** #1 (needle planted via build). **done =** suffix hash-stable + both scorers match the rubric.
+
+### #3 — Agent runner (API/SDK), Arm A  ⟵ end-to-end skeleton closes here
+- **Outcome:** run a constructed prompt + tool schemas against the model, return a
+  normalized trajectory (messages, tool calls, final text) for scoring.
+- **Failing test:** against a **mock transport**, `run(prompt, tools)` returns a
+  trajectory in which a `verify_token` tool call is captured and routed to the D1 scorer;
+  the real-API path is gated behind a credential env var (skipped in unit tests).
+- **Layers:** Config (model id/window/creds) · Runtime (runner).
+- **Files:** `bench/cib/runner_api.py`, `bench/cib/run.py`, `bench/cib/tests/test_runner.py`.
+- **depends-on:** #1, #2. **done =** mock run yields a scored trajectory; real run gated behind creds.
+
+### #4 — Changepoint analysis  (independent — parallel with #1→#3)
+- **Outcome:** `analyze(points)` → `{location, bootstrap_CI, cliff_vs_linear_support}`,
+  penalty-selected changepoints (ruptures), **not** forced to 3 segments.
+- **Failing test:** synthetic cliff at 0.45 → location within ±0.05 and CI brackets it,
+  `cliff_vs_linear_support` True; synthetic linear decline → support False / 0 changepoints.
+- **Layers:** Service (pure, no IO).
+- **Files:** `bench/cib/analyze.py`, `bench/cib/tests/test_analyze.py`.
+- **depends-on:** none. **done =** known cliff recovered + linear null handled.
+
+### #5 — Minimal self-contained chart
+- **Outcome:** render `cib_report.html` — occupancy-vs-score scatter, mean+CI ribbon per
+  bucket, zones from the detected changepoint; everything inline.
+- **Failing test:** generated HTML embeds the data + changepoint/CI inline and
+  `grep -i 'src="http\|cdn'` finds nothing (regex assert on the rendered string).
+- **Layers:** UI (template + render).
+- **Files:** `bench/cib/report.py`, `bench/cib/templates/report.html`, `bench/cib/tests/test_report.py`.
+- **depends-on:** #4. **done =** self-contained assert passes; renders with skeleton data.
+
+### #6 — Orchestrator `run.sh`
+- **Outcome:** `bench/cib/run.sh --model M --buckets … --trials K [--mock]` runs
+  buckets × trials → `results.jsonl` → `analyze` → `cib_report.html`.
+- **Failing test:** `run.sh --mock --buckets 10,40,70 --trials 2` writes a 6-line
+  `results.jsonl` and a `cib_report.html` (shell smoke test, `tests/run.sh` style).
+- **Layers:** Runtime (orchestration) · Config (`requirements.txt`).
+- **Files:** `bench/cib/run.sh`, `bench/cib/requirements.txt`, `bench/cib/tests/test_run_smoke.sh`.
+- **depends-on:** #1–#5. **done =** mock end-to-end produces jsonl + html.
+
+### Horizontal backlog (coarse; expand via `to-issues` when promoted, after skeleton passes evaluate)
+7. **D2 multi-hop + infinite-loop detector** — `bench/cib/probe.py`, `bench/cib/loopdetect.py` — dep #2
+8. **D4 tool-use (hallucination + param drift)** — `bench/cib/probe.py`, `bench/cib/score.py` — dep #2
+9. **Drill-down trajectory replay UI** — `bench/cib/templates/report.html`, `bench/cib/report.py` — dep #5,#7
+10. **Arm B naturalistic + Logger middleware** — `bench/cib/logger.py`, `bench/cib/run.py` — dep #3
+11. **gzip density covariate overlay** — `bench/cib/analyze.py`, `bench/cib/report.py` — dep #4,#5
 
 ## Vertical slices (build order)
 1. **Walking skeleton (Arm A, end-to-end):** #1 → #2 (D1+D3) → #3 → #4 → #5 → #6.
@@ -83,11 +136,14 @@ says the line is "plausibly raisable" but won't move it without data.
    and the riskiest assumption (occupancy controllable via API). Passes evaluate first.
 2. Then expand horizontally: #7, #8, #9, #10, #11.
 
-## Parallel groups (after the skeleton passes evaluate)
-- #4 (changepoint) is independent of #1–#3 — can build alongside the runner.
-- Group A (parallel, disjoint-ish footprints): #7, #8, #10 — but #7/#8 both touch
-  `probe.py`/`score.py`, so **sequential within that file**; #10 is truly disjoint.
-- #9 depends on #5 + #7 → after the replay's loop detector exists.
+## Parallel groups
+**Skeleton (two lanes):** the chain **#1 → #2 → #3** is sequential (shared `build`/`probe`
+lineage); **#4** is independent (disjoint files, no dep) → build it in parallel with that
+chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
+
+**Horizontal (after skeleton passes evaluate):** #7 and #8 both touch `probe.py`/`score.py`
+→ sequential to each other; **#10** is disjoint → parallel with #7/#8; **#9** waits on
+#5 + #7 (needs the loop detector); **#11** waits on #4 + #5.
 
 ## Evaluation
 - Tier **L2**: cross-slice, a new public artifact, and the method underwrites A1.
@@ -96,9 +152,9 @@ says the line is "plausibly raisable" but won't move it without data.
   "tests pass."
 
 ## Now (resume here)
-- Run `to-issues` to split the skeleton (#1–#6) into the repo's issue tracker, then
-  start the walking skeleton at **#1** (prompt construction + occupancy measurement),
-  TDD. First prove occupancy is controllable via the API runner before building #4–#6.
+- Skeleton decomposed (#1–#6, TDD-ready) via `to-issues`. **Next:** hand **#1** to the
+  `generator` and advance to `implement` (`stage-viewer`). #1 front-loads the riskiest
+  assumption (precise occupancy control) — prove it green before #4–#6.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -117,3 +173,8 @@ says the line is "plausibly raisable" but won't move it without data.
   `requirements.txt`; core harness stays zero-dep POSIX shell; `doctor`/`tests/run.sh`
   unaffected. (Open: confirm `bench/` vs `examples/` placement at first PR.)
 - 2026-06-22: Issue **#34** opened; this plan tracks it. Stage = issues.
+- 2026-06-22: `to-issues` — skeleton (#1–#6) decomposed into TDD-ready atomic units
+  (outcome · failing test · layers · files · depends-on · done); #7–#11 left coarse.
+  Two parallel lanes (#1→#2→#3 alongside #4) converging at #5→#6. Issues tracked in
+  this plan (repo convention; GitHub #34 is the umbrella). Stage stays `issues` until
+  #1 is handed to the generator.
