@@ -86,7 +86,7 @@ says the line is "plausibly raisable" but won't move it without data.
 - **Files:** `bench/cib/probe.py`, `bench/cib/score.py`, `bench/cib/tests/test_score.py`.
 - **depends-on:** #1 (needle planted via build). **done =** suffix hash-stable + both scorers match the rubric.
 
-### #3 — Agent runner (API/SDK), Arm A  ⟵ end-to-end skeleton closes here
+### #3 — Agent runner (API/SDK), Arm A  ⟵ end-to-end skeleton closes here · ✅ DONE (4/4)
 - **Outcome:** run a constructed prompt + tool schemas against the model, return a
   normalized trajectory (messages, tool calls, final text) for scoring.
 - **Failing test:** against a **mock transport**, `run(prompt, tools)` returns a
@@ -105,7 +105,7 @@ says the line is "plausibly raisable" but won't move it without data.
 - **Files:** `bench/cib/analyze.py`, `bench/cib/tests/test_analyze.py`.
 - **depends-on:** none. **done =** known cliff recovered + linear null handled.
 
-### #5 — Minimal self-contained chart
+### #5 — Minimal self-contained chart · ✅ DONE (5/5, inline SVG)
 - **Outcome:** render `cib_report.html` — occupancy-vs-score scatter, mean+CI ribbon per
   bucket, zones from the detected changepoint; everything inline.
 - **Failing test:** generated HTML embeds the data + changepoint/CI inline and
@@ -114,7 +114,7 @@ says the line is "plausibly raisable" but won't move it without data.
 - **Files:** `bench/cib/report.py`, `bench/cib/templates/report.html`, `bench/cib/tests/test_report.py`.
 - **depends-on:** #4. **done =** self-contained assert passes; renders with skeleton data.
 
-### #6 — Orchestrator `run.sh`
+### #6 — Orchestrator `run.sh` · ✅ DONE (smoke green)
 - **Outcome:** `bench/cib/run.sh --model M --buckets … --trials K [--mock]` runs
   buckets × trials → `results.jsonl` → `analyze` → `cib_report.html`.
 - **Failing test:** `run.sh --mock --buckets 10,40,70 --trials 2` writes a 6-line
@@ -152,11 +152,12 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   "tests pass."
 
 ## Now (resume here)
-- **DONE: #1, #2, #4** — `bench/cib/{build,probe,score,analyze}.py`. 20/20 bench tests;
-  core suite 157/157. Both lanes have met: build→probe/score (A) and changepoint (B).
-- **Next:** **#3** (API runner, Arm A) — closes the E2E skeleton and is where the real
-  model tokenizer + occupancy trim loop land (deferred from #1). Then **#5** (chart,
-  needs #4) → **#6** (orchestrator). Draft PR: #35.
+- **SKELETON COMPLETE: #1–#6 all green.** 29 bench tests + smoke; core suite 157/157.
+  `run.sh --mock` does build→probe→run→score→analyze→report end-to-end and detects the
+  mock cliff at 45.0%. Still zero third-party deps installed (mock path is stdlib-only).
+- **Next:** **L2 separate-context evaluate** (A2 firewall) — grade #1–#6 against the
+  acceptance criteria from a fresh context (method-soundness is itself a criterion).
+  Then mark PR #35 ready, or proceed to horizontal expansion (#7–#11). Draft PR: #35.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -194,3 +195,16 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   stays a planned *optional* higher-fidelity backend (requirements.txt, later slice).
   Recovers a synthetic cliff at 0.45 (±0.05, CI brackets it) and rejects a linear
   decline. 3/3. Branch pushed; draft PR #35 against #34.
+- 2026-06-22: #3 built TDD — agentic loop in `runner_api.run` (injectable transport;
+  `ScriptedTransport` for hermetic tests/mock, lazy credential-gated `AnthropicTransport`
+  for real runs) + `run_trial` wiring (build→probe→run→score D1/D3, composite normalized
+  over present battery weights) + a max_steps loop guard. 4/4.
+- 2026-06-22: #5 built TDD — **deviation:** the self-contained chart is **inline SVG**
+  generated in Python, not Plotly-via-CDN — the honest way to satisfy "no external
+  resource" and keep the test hermetic. Inlined Plotly + click-to-replay drill-down is
+  the later slice #9. Report embeds zones/CI/data inline. 5/5.
+- 2026-06-22: #6 built — `run.sh` (thin wrapper over `run.py` argparse CLI) +
+  `requirements.txt` (mock = stdlib-only; `anthropic` for real runs; `ruptures`
+  optional) + offline smoke test. **Skeleton #1–#6 complete**, 29 bench tests + smoke,
+  core 157/157; `--mock` default sweep detects the cliff at 45.0%. Lazy `analyze`/`report`
+  imports keep the trial layer testable without the analysis/report layers.

@@ -1,0 +1,12 @@
+# CIB dependency island — isolated from the zero-dep core harness (nothing here
+# is imported by bin/ or the core test suite).
+#
+# Offline demo (`run.sh --mock`) needs NOTHING beyond the Python stdlib.
+#
+# Real runs against a live model need:
+anthropic>=0.40
+#
+# Optional, higher-fidelity changepoint backend. The zero-dep brute-force backend
+# in analyze.py is the default and is sufficient for the skeleton; install this
+# only to swap in penalty-based detection:
+# ruptures>=1.1
