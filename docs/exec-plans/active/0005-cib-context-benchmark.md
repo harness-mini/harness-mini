@@ -152,12 +152,17 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   "tests pass."
 
 ## Now (resume here)
-- **SKELETON COMPLETE: #1–#6 all green.** 29 bench tests + smoke; core suite 157/157.
-  `run.sh --mock` does build→probe→run→score→analyze→report end-to-end and detects the
-  mock cliff at 45.0%. Still zero third-party deps installed (mock path is stdlib-only).
-- **Next:** **L2 separate-context evaluate** (A2 firewall) — grade #1–#6 against the
-  acceptance criteria from a fresh context (method-soundness is itself a criterion).
-  Then mark PR #35 ready, or proceed to horizontal expansion (#7–#11). Draft PR: #35.
+- **L2 evaluate ran (separate context) → FAIL, then fixed.** The grader caught a real
+  defect (report card hard-labeled "95% CI" while `analyze` computed a 90% interval) +
+  flagged criterion-4 (per-bucket mean+CI was only a single changepoint CI) + nits.
+- **Fixed & re-verified:** CI level now flows from `analyze` (default 0.95) into a
+  dynamic `{{CI_LABEL}}` (no label/value drift); per-bucket mean ± CI rendered as error
+  bars (`analyze.aggregate`); `__pycache__`/`*.pyc` gitignored; probe-suffix digest test.
+  **35 bench tests + smoke green; core 157/157.** Evidence is builder-run — the grader's
+  sandbox blocked `python3`, so it code-reviewed criteria 1/3/5/6 rather than running them.
+- **Next:** close the L2 loop in a Python-capable separate context (re-launch grader,
+  ideally after allowing `python3` for subagents), then mark PR #35 ready — or proceed to
+  horizontal expansion (#7–#11). Draft PR: #35.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -208,3 +213,11 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   optional) + offline smoke test. **Skeleton #1–#6 complete**, 29 bench tests + smoke,
   core 157/157; `--mock` default sweep detects the cliff at 45.0%. Lazy `analyze`/`report`
   imports keep the trial layer testable without the analysis/report layers.
+- 2026-06-22: **L2 evaluate (separate-context `evaluator`) → FAIL**, looped back. Caught
+  (blocking) report "95% CI" vs `analyze`'s 90% interval; (partial) criterion-4 per-bucket
+  mean+CI absent (only a changepoint CI); nits (uningored `*.pyc`, near-tautological suffix
+  test). Fixes: `ChangepointResult.ci_level` + default ci 0.90→0.95 + dynamic `{{CI_LABEL}}`
+  (drift-proof); `analyze.aggregate` + per-bucket error bars in the SVG; `.gitignore`
+  `__pycache__`/`*.pyc`; probe-suffix digest test. Re-verified 35 bench + smoke + core
+  157/157 — **builder-run**: the grader's sandbox denied `python3`, so its check of criteria
+  1/3/5/6 was read-only. A clean L2 PASS still needs the grader re-run where `python3` executes.

@@ -28,6 +28,37 @@ class ChangepointResult:
     cliff_vs_linear_support: bool
     bic_piecewise: float
     bic_linear: float
+    ci_level: float          # the confidence level the CI was computed at
+
+
+@dataclass(frozen=True)
+class BucketStat:
+    occupancy_pct: float
+    mean: float
+    lo: float
+    hi: float
+    n: int
+
+
+# z multipliers for common two-sided confidence levels (dep-free; avoids scipy).
+_Z = {0.80: 1.2816, 0.90: 1.6449, 0.95: 1.9600, 0.99: 2.5758}
+
+
+def aggregate(points: list[tuple[float, float]], *, ci: float = 0.95) -> list[BucketStat]:
+    """Per-occupancy-bucket mean score with a normal-approx CI (mean ± z·SEM)."""
+    groups: dict[float, list[float]] = {}
+    for occ, score in points:
+        groups.setdefault(round(occ, 4), []).append(score)
+    z = _Z.get(round(ci, 2), 1.96)
+    stats = []
+    for occ in sorted(groups):
+        ys = groups[occ]
+        n = len(ys)
+        mean = sum(ys) / n
+        sem = (sum((y - mean) ** 2 for y in ys) / (n - 1)) ** 0.5 / n ** 0.5 if n > 1 else 0.0
+        half = z * sem
+        stats.append(BucketStat(occ, mean, max(0.0, mean - half), min(100.0, mean + half), n))
+    return stats
 
 
 def _linear_sse(xs: list[float], ys: list[float]) -> float:
@@ -77,7 +108,7 @@ def analyze(
     points: list[tuple[float, float]],
     *,
     n_boot: int = 400,
-    ci: float = 0.90,
+    ci: float = 0.95,
     seed: int = 0,
 ) -> ChangepointResult:
     if len(points) < 4:
@@ -92,7 +123,7 @@ def analyze(
     support = bic_piecewise < bic_linear
 
     if not support:
-        return ChangepointResult(None, None, False, bic_piecewise, bic_linear)
+        return ChangepointResult(None, None, False, bic_piecewise, bic_linear, ci)
 
     rng = random.Random(seed)
     locs = []
@@ -105,4 +136,4 @@ def analyze(
     lo = locs[int(tail * (len(locs) - 1))]
     hi = locs[int((1 - tail) * (len(locs) - 1))]
 
-    return ChangepointResult(location, (lo, hi), True, bic_piecewise, bic_linear)
+    return ChangepointResult(location, (lo, hi), True, bic_piecewise, bic_linear, ci)

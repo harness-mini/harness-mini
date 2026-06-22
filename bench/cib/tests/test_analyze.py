@@ -48,6 +48,25 @@ class TestAnalyze(unittest.TestCase):
         r = analyze.analyze(_linear_points())
         self.assertFalse(r.cliff_vs_linear_support)
 
+    def test_ci_level_is_recorded(self):
+        self.assertEqual(analyze.analyze(_cliff_points()).ci_level, 0.95)
+
+
+class TestAggregate(unittest.TestCase):
+    def test_per_bucket_mean_and_ci(self):
+        points = [(0.1, 80), (0.1, 100), (0.1, 90), (0.7, 0), (0.7, 20), (0.7, 10)]
+        stats = analyze.aggregate(points, ci=0.95)
+        self.assertEqual([s.occupancy_pct for s in stats], [0.1, 0.7])
+        b0 = stats[0]
+        self.assertAlmostEqual(b0.mean, 90.0)
+        self.assertEqual(b0.n, 3)
+        self.assertLess(b0.lo, b0.mean)
+        self.assertGreater(b0.hi, b0.mean)
+
+    def test_ci_clamped_to_valid_score_range(self):
+        stats = analyze.aggregate([(0.1, 100), (0.1, 100)], ci=0.95)
+        self.assertLessEqual(stats[0].hi, 100.0)
+
 
 if __name__ == "__main__":
     unittest.main()

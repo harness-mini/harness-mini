@@ -4,6 +4,7 @@ Hermetic: no network, no deps. The probe suffix must be byte-identical across
 buckets (it's what makes Arm A a clean controlled experiment), and the scorers
 are pure machine checks.
 """
+import hashlib
 import os
 import sys
 import unittest
@@ -18,6 +19,10 @@ class TestProbeSuffix(unittest.TestCase):
     def test_suffix_is_byte_identical_across_calls(self):
         self.assertEqual(probe.probe_suffix(), probe.probe_suffix())
         self.assertEqual(probe.probe_suffix(), probe.PROBE_SUFFIX)
+
+    def test_suffix_digest_is_stable(self):
+        digest = hashlib.sha256(probe.probe_suffix().encode("utf-8")).hexdigest()
+        self.assertEqual(digest, hashlib.sha256(probe.PROBE_SUFFIX.encode("utf-8")).hexdigest())
 
     def test_suffix_mentions_both_dimensions(self):
         s = probe.probe_suffix()

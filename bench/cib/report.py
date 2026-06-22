@@ -11,6 +11,8 @@ import html
 import json
 import os
 
+import analyze
+
 _TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates", "report.html")
 
 # SVG plot geometry.
@@ -63,10 +65,20 @@ def _svg(rows: list[dict], cp) -> str:
         parts.append(f'<text x="{_ML - 8}" y="{y + 4:.1f}" fill="#8b949e" font-size="11" text-anchor="end">{sc}</text>')
     parts.append(f'<text x="{_ML + _PW / 2:.1f}" y="{_H - 4}" fill="#8b949e" font-size="11" text-anchor="middle">context occupancy</text>')
 
-    # points
+    # raw trial points (light)
     for r in rows:
         cx, cy = _x(r["occupancy_pct"]), _y(r["score"])
-        parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="3.5" fill="#58a6ff" fill-opacity="0.85"/>')
+        parts.append(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="2.5" fill="#58a6ff" fill-opacity="0.30"/>')
+
+    # per-bucket mean ± CI: connecting line, error bars, mean markers
+    buckets = analyze.aggregate([(r["occupancy_pct"], r["score"]) for r in rows], ci=cp.ci_level)
+    if buckets:
+        line = " ".join(f"{_x(b.occupancy_pct):.1f},{_y(b.mean):.1f}" for b in buckets)
+        parts.append(f'<polyline points="{line}" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-opacity="0.6"/>')
+        for b in buckets:
+            bx = _x(b.occupancy_pct)
+            parts.append(f'<line class="errbar" x1="{bx:.1f}" y1="{_y(b.hi):.1f}" x2="{bx:.1f}" y2="{_y(b.lo):.1f}" stroke="#58a6ff" stroke-width="1.5"/>')
+            parts.append(f'<circle cx="{bx:.1f}" cy="{_y(b.mean):.1f}" r="3.5" fill="#58a6ff"/>')
 
     parts.append("</svg>")
     return "".join(parts)
@@ -95,6 +107,7 @@ def render(results, cp, *, model: str, window: int) -> str:
         "{{WINDOW}}": f"{window:,}",
         "{{N}}": str(len(rows)),
         "{{CUTOFF}}": cutoff,
+        "{{CI_LABEL}}": f"{cp.ci_level * 100:.0f}% CI",
         "{{CI}}": ci,
         "{{DROP}}": drop,
         "{{SVG}}": _svg(rows, cp),

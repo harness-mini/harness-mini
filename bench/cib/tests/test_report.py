@@ -52,6 +52,12 @@ class TestReport(unittest.TestCase):
         self.assertTrue(self.cp.cliff_vs_linear_support)
         self.assertIn(f"{self.cp.location * 100:.1f}", self.html)
 
+    def test_renders_per_bucket_error_bars(self):
+        self.assertIn('class="errbar"', self.html)
+
+    def test_ci_label_matches_computed_level(self):
+        self.assertIn(f"{self.cp.ci_level * 100:.0f}% CI", self.html)
+
     def test_write_report_creates_file(self):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "cib_report.html")
