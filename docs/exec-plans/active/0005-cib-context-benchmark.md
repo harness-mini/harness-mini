@@ -1,7 +1,7 @@
 ---
 plan: cib-context-benchmark
 seq: 0005
-stage: issues
+stage: implement
 owner: main
 mode: full
 eval: L2        # new code + public artifact; A1's credibility rests on the method
@@ -64,7 +64,7 @@ says the line is "plausibly raisable" but won't move it without data.
 ## Issues — walking skeleton (decomposed via `to-issues`, TDD-ready)
 <!-- each: outcome · failing test (write first) · layers · FILE footprint · depends-on · done -->
 
-### #1 — Prompt construction + occupancy measurement  ⟵ riskiest assumption
+### #1 — Prompt construction + occupancy measurement  ⟵ riskiest assumption · ✅ DONE (6/6)
 - **Outcome:** `build_prompt(target_pct, window, corpus, needle)` → one message whose
   measured `tokens/window` hits `target_pct` within ±2%, plus metadata (`token_count`,
   `occupancy_pct`, `filler_hash`, needle position).
@@ -152,9 +152,10 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   "tests pass."
 
 ## Now (resume here)
-- Skeleton decomposed (#1–#6, TDD-ready) via `to-issues`. **Next:** hand **#1** to the
-  `generator` and advance to `implement` (`stage-viewer`). #1 front-loads the riskiest
-  assumption (precise occupancy control) — prove it green before #4–#6.
+- **#1 DONE** (`bench/cib/build.py`, 6/6 green) — occupancy lands on target within ±2%
+  via the declared char/4 proxy; riskiest assumption holds. Core suite 157/157.
+- **Next:** lane A → **#2** (probe D1+D3 + scorers); lane B → **#4** (changepoint,
+  independent) can start in parallel. Real-tokenizer trim loop deferred to #3.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -178,3 +179,8 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   Two parallel lanes (#1→#2→#3 alongside #4) converging at #5→#6. Issues tracked in
   this plan (repo convention; GitHub #34 is the umbrella). Stage stays `issues` until
   #1 is handed to the generator.
+- 2026-06-22: #1 built TDD (red→green) in the main session (bounded slice, no generator
+  spawn). `build_prompt` hits target occupancy within ±2% (char/4 proxy, recorded in
+  metadata; real tokenizer + trim loop deferred to #3). 6/6 unit tests; core
+  `tests/run.sh` 157/157. L0 self-check only — the L2 separate-context evaluate runs
+  when the skeleton (#1–#6) is complete (A2 firewall). Stage → implement.

@@ -1,0 +1,23 @@
+[session 0001] user: set up the project skeleton and a health check command.
+assistant: Reading AGENTS.md and the existing bin/ layout before touching anything.
+tool(read): AGENTS.md → a ~100-line map of pointers; pulled docs/principles.md on demand.
+assistant: Plan — add bin/doctor.sh with a 3-severity soft exit; wire it into tests/run.sh.
+tool(write): bin/doctor.sh created; checks AGENTS.md present, skill folder-shape, manifest.
+tool(bash): bash tests/run.sh → 84/84 green.
+assistant: Committed on a branch, opened a PR per the issue-first flow.
+[session 0002] user: the explorer keeps pulling whole files into the main window.
+assistant: That defeats the fan-out firewall — heavy reads should return a distillate.
+tool(grep): "explorer" across agents/ → agents/explorer.md owns the recon schema.
+assistant: Fix — explorer fills its own window to ~90%, returns a few hundred tokens, dies.
+tool(edit): agents/explorer.md → added the >2k-token delegate-it rule of thumb.
+[session 0003] user: tune the context threshold for a long architecture task.
+assistant: Lower the line when the cost of a bad handoff is high; 30% buys headroom.
+tool(bash): HARNESS_CTX_THRESHOLD=30 bash bin/ctx.sh 60000 200000 → 30% → exit 2.
+assistant: Checkpoint now, while still sharp; reset to a fresh session from the artifact.
+[session 0004] user: the model dropped a constraint halfway through a long run.
+assistant: Classic context-anxiety — quality slid well before the nominal window limit.
+tool(read): docs/smart-dumb.md → smart below 40% occupancy, dumb at or above.
+assistant: This is exactly assumption A1; we have no experimental signal behind it yet.
+[notes] progressive disclosure keeps the baseline low; append-rarely, prune-aggressively.
+[notes] the gardener demotes stale always-loaded facts back into on-demand docs.
+[notes] anti-self-praise: grading runs in a separate context from the work that built it.
