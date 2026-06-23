@@ -50,17 +50,21 @@ class TestRunnerLoop(unittest.TestCase):
 
 
 class TestRealishThreading(unittest.TestCase):
-    def test_tool_handler_invoked_and_final_text_after_result(self):
+    def test_tool_handler_invoked_and_usage_captured(self):
         seen = []
         transport = runner_api.ScriptedTransport([
             {"tool_calls": [{"name": "verify_token", "args": {"token": "9527"}, "id": "tu_1"}],
-             "raw": [{"type": "tool_use", "id": "tu_1", "name": "verify_token", "input": {"token": "9527"}}],
-             "text": None},
+             "raw": {"role": "assistant", "content": None, "tool_calls": [
+                 {"id": "tu_1", "type": "function",
+                  "function": {"name": "verify_token", "arguments": '{"token": "9527"}'}}]},
+             "text": None, "usage": {"prompt_tokens": 1234}},
             {"tool_calls": [], "text": "done"},
         ])
-        traj = runner_api.run("p", [], transport, tool_handler=lambda n, a: seen.append((n, a)) or "ok")
+        meta = {"prompt_tokens": None}
+        traj = runner_api.run("p", [], transport, tool_handler=lambda n, a: seen.append((n, a)) or "ok", meta=meta)
         self.assertEqual(seen, [("verify_token", {"token": "9527"})])
         self.assertEqual(runner_api.final_text(traj), "done")
+        self.assertEqual(meta["prompt_tokens"], 1234)  # measured occupancy, first turn
 
 
 class TestRunTrial(unittest.TestCase):
@@ -76,6 +80,19 @@ class TestRunTrial(unittest.TestCase):
         self.assertEqual(r.scores["D1"], 0)
         self.assertEqual(r.scores["D3"], 0)
         self.assertEqual(r.score, 0)
+
+    def test_occupancy_from_measured_prompt_tokens(self):
+        transport = runner_api.ScriptedTransport([
+            {"tool_calls": [{"name": "verify_token", "args": {"token": "9527"}, "id": "c1"}],
+             "raw": {"role": "assistant", "content": None, "tool_calls": [
+                 {"id": "c1", "type": "function",
+                  "function": {"name": "verify_token", "arguments": '{"token": "9527"}'}}]},
+             "text": None, "usage": {"prompt_tokens": 50000}},
+            {"tool_calls": [], "text": '{"sessions": 5}'},
+        ])
+        r = run.run_trial(0.20, WINDOW, "filler corpus ", NEEDLE, transport)
+        self.assertEqual(r.token_count, 50000)              # from usage, not the build estimate
+        self.assertAlmostEqual(r.occupancy_pct, 50000 / WINDOW)
 
 
 if __name__ == "__main__":

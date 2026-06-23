@@ -129,11 +129,14 @@ says the line is "plausibly raisable" but won't move it without data.
 9. **Drill-down trajectory replay UI** — `bench/cib/templates/report.html`, `bench/cib/report.py` — dep #5,#7
 10. **Arm B naturalistic + Logger middleware** — `bench/cib/logger.py`, `bench/cib/run.py` — dep #3
 11. **gzip density covariate overlay** — `bench/cib/analyze.py`, `bench/cib/report.py` — dep #4,#5
-12. **Real-model run path** — `bench/cib/{build,runner_api,run}.py` — dep #3 — ⚙️ code DONE:
-    injected per-model `token_counter` + occupancy trim loop, live `AnthropicTransport` with
-    tool threading, clean no-key exit. **Live run pending:** needs `ANTHROPIC_API_KEY` +
-    `pip install -r requirements.txt`; the live message/tool threading is NOT in the hermetic
-    suite — validate one live run before trusting numbers.
+12. **Real-model run path** — `bench/cib/{build,run}.py` — dep #3 — ✅ build side kept:
+    injected `token_counter` + occupancy trim loop. (Its Anthropic-direct transport was
+    superseded by #13 — every model runs through OpenRouter.)
+13. **OpenRouter transport (the real backend)** — `bench/cib/openrouter.py`, `runner_api.py`,
+    `run.py` — ✅ code DONE: OpenAI-compatible chat/completions over stdlib urllib (no SDK);
+    tool-schema conversion; occupancy read from `usage.prompt_tokens` (exact per-model);
+    `--max-steps`/`--max-tokens` cost caps; clean no-key exit (2). 41 bench tests + smoke
+    green. **Live run pending an `OPENROUTER_API_KEY`.**
 
 ## Vertical slices (build order)
 1. **Walking skeleton (Arm A, end-to-end):** #1 → #2 (D1+D3) → #3 → #4 → #5 → #6.
@@ -162,13 +165,15 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   the python tests) and independently confirmed both prior-FAIL fixes (CI label derives from
   `ci_level`; per-bucket error bars). Skeleton #1–#6 is evaluate-clean: 157/157 core,
   35 bench + smoke, self-contained report, cliff@45.0% (mock). Builder-run caveat closed.
-- **PR #35 marked ready.** Real-model-run path (#12) built TDD & hermetic: per-model
-  `token_counter` + occupancy trim loop, live `AnthropicTransport` with tool threading,
-  clean no-key exit (2). 37 bench tests + smoke green. **Live execution can't run in this
-  env** (no `ANTHROPIC_API_KEY`, SDK not installed).
-- **Next:** to get real A1 numbers — `pip install -r bench/cib/requirements.txt`, then
-  `ANTHROPIC_API_KEY=… bash bench/cib/run.sh --model claude-opus-4-8 --buckets 10,20,30,40,50,60,70,80 --trials 8`.
-  The live tool-threading needs validating on that first run. Otherwise: horizontal #7–#11.
+- **PR #35 marked ready.** Backend pivoted to **OpenRouter** (#13) — the user runs every
+  model through it. OpenAI-compatible over stdlib urllib (no SDK to install); occupancy now
+  read from `usage.prompt_tokens` (exact per-model); `--max-steps`/`--max-tokens` cost caps.
+  41 bench tests + smoke green. **Live run pending `OPENROUTER_API_KEY`** (not set here yet).
+- **Budget: $10 cap → staged, one model at a time, check balance between each.** Opus-4.7
+  ($63) is out. Order: validate gpt-4o-mini (cents) → then haiku / qwen / gemini as budget
+  allows. Occupancy capped at 10–60% for the 1M-window models (opus/gemini/qwen) to save spend.
+- **Next:** user exports `OPENROUTER_API_KEY`; then a tiny gpt-4o-mini smoke + an OpenRouter
+  balance check, then proceed model-by-model.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -245,3 +250,10 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   `--mock`, with a clean no-key exit (2). 37 bench tests + smoke green. **Not runnable here**
   (no key, SDK absent); the live threading is outside the hermetic suite — flagged in
   `make_transport` to validate one live run before trusting numbers.
+- 2026-06-23: **Backend pivot to OpenRouter (#13)** — user's key is OpenRouter (works for every
+  model). OpenRouter is OpenAI-compatible, so #12's Anthropic transport is replaced by
+  `openrouter.py` (chat/completions over stdlib urllib — no SDK); `run()` rethreads tool calls in
+  OpenAI format; occupancy is now the exact `usage.prompt_tokens` per response (no count_tokens
+  endpoint exists); added `--max-steps`(=4)/`--max-tokens` cost caps. requirements.txt is now
+  stdlib-only even for live runs. 41 bench tests + smoke green. **Budget $10** → staged one model
+  at a time; opus-4.7 ($63) excluded; 1M-window models capped at 10–60% occupancy.

@@ -50,14 +50,19 @@ def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8,
     bp = build.build_prompt(target_pct, window, corpus, needle,
                             tokenizer=tokenizer, token_counter=token_counter)
     full_prompt = bp.text + probe.probe_suffix()
-    trajectory = runner_api.run(full_prompt, [probe.VERIFY_TOKEN_TOOL], transport, max_steps=max_steps)
+    meta: dict = {"prompt_tokens": None}
+    trajectory = runner_api.run(full_prompt, [probe.VERIFY_TOKEN_TOOL], transport,
+                                max_steps=max_steps, meta=meta)
+    # Prefer the model-measured prompt tokens (live, from usage); fall back to the
+    # char/4 build estimate (mock). This makes occupancy the real per-model count.
+    token_count = meta["prompt_tokens"] or bp.token_count
     scores = {
         "D1": score.score_d1(trajectory, _expected_token(needle)),
         "D3": score.score_d3(runner_api.final_text(trajectory)),
     }
     return TrialResult(
-        occupancy_pct=bp.occupancy_pct,
-        token_count=bp.token_count,
+        occupancy_pct=token_count / window,
+        token_count=token_count,
         window=window,
         filler_hash=bp.filler_hash,
         scores=scores,
@@ -92,6 +97,8 @@ def main(argv=None) -> int:
     p.add_argument("--trials", type=int, default=5)
     p.add_argument("--needle", default="test_token: 9527")
     p.add_argument("--mock", action="store_true", help="offline scripted run (no API)")
+    p.add_argument("--max-tokens", type=int, default=512, help="max completion tokens per call")
+    p.add_argument("--max-steps", type=int, default=4, help="agentic loop cap (live cost guard)")
     p.add_argument("--out", default=".")
     here = os.path.dirname(os.path.abspath(__file__))
     p.add_argument("--corpus", default=os.path.join(here, "fixtures", "filler_sample.txt"))
@@ -106,24 +113,24 @@ def main(argv=None) -> int:
     jsonl_path = os.path.join(args.out, "results.jsonl")
 
     if args.mock:
-        client, token_counter, tokenizer_label = None, None, "char4"
+        live_transport, tokenizer_label, max_steps = None, "char4", 8
     else:
-        try:
-            client = runner_api.anthropic_client()
-        except RuntimeError as exc:
-            print(f"error: {exc}", file=sys.stderr)
+        import openrouter
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            print("error: OPENROUTER_API_KEY not set (use --mock for offline).", file=sys.stderr)
             return 2
-        token_counter = runner_api.anthropic_token_counter(args.model, client)
-        tokenizer_label = f"anthropic:{args.model}"
+        live_transport = openrouter.make_transport(args.model, api_key, max_tokens=args.max_tokens)
+        tokenizer_label = "char4-build/usage-measured"
+        max_steps = args.max_steps
 
     results = []
     with open(jsonl_path, "w", encoding="utf-8") as fh:
         for target in buckets:
             for _ in range(args.trials):
-                transport = (_mock_transport(target) if args.mock
-                             else runner_api.make_transport(args.model, client))
+                transport = _mock_transport(target) if args.mock else live_transport
                 r = run_trial(target, args.window, corpus, args.needle, transport,
-                              tokenizer=tokenizer_label, token_counter=token_counter)
+                              max_steps=max_steps, tokenizer=tokenizer_label)
                 results.append(r)
                 fh.write(json.dumps(asdict(r)) + "\n")
 
