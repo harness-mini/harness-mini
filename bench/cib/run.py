@@ -121,7 +121,7 @@ def main(argv=None) -> int:
             print("error: OPENROUTER_API_KEY not set (use --mock for offline).", file=sys.stderr)
             return 2
         live_transport = openrouter.make_transport(args.model, api_key, max_tokens=args.max_tokens)
-        tokenizer_label = "char4-build/usage-measured"
+        tokenizer_label = "char4"  # build with the proxy; occupancy is overridden by measured usage
         max_steps = args.max_steps
 
     results = []
