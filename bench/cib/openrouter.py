@@ -9,9 +9,30 @@ target bucket with the char/4 proxy, then bin each trial by its measured count.
 from __future__ import annotations
 
 import json
+import time
+import urllib.error
 import urllib.request
 
 BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+_RETRY_CODES = {429, 500, 502, 503, 529}
+
+
+def _with_retry(call, *, max_retries: int, sleep, base: float = 2.0, cap: float = 30.0):
+    """Retry a call on transient HTTP errors (429/5xx) with exponential backoff.
+
+    Honors a numeric Retry-After header when present. Cheap providers rate-limit
+    hard, so this is required for any real sweep, not a nicety.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            return call()
+        except urllib.error.HTTPError as exc:
+            if exc.code not in _RETRY_CODES or attempt == max_retries:
+                raise
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            delay = float(retry_after) if (retry_after and str(retry_after).isdigit()) else base ** attempt
+            sleep(min(delay, cap))
+    raise RuntimeError("unreachable")  # pragma: no cover
 
 
 def to_openai_tool(tool: dict) -> dict:
@@ -53,8 +74,9 @@ def _http_post(url: str, payload: dict, headers: dict) -> dict:
         return json.loads(resp.read().decode("utf-8"))
 
 
-def make_transport(model: str, api_key: str, *, http=None, max_tokens: int = 512):
-    """A single-turn transport bound to OpenRouter. `http` is injectable for tests."""
+def make_transport(model: str, api_key: str, *, http=None, max_tokens: int = 512,
+                   max_retries: int = 6, sleep=time.sleep):
+    """A single-turn transport bound to OpenRouter. `http`/`sleep` injectable for tests."""
     poster = http or _http_post
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -67,6 +89,8 @@ def make_transport(model: str, api_key: str, *, http=None, max_tokens: int = 512
         payload = {"model": model, "messages": messages, "max_tokens": max_tokens}
         if tools:
             payload["tools"] = [to_openai_tool(t) for t in tools]
-        return parse_response(poster(BASE_URL, payload, headers))
+        data = _with_retry(lambda: poster(BASE_URL, payload, headers),
+                           max_retries=max_retries, sleep=sleep)
+        return parse_response(data)
 
     return transport
