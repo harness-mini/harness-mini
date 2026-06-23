@@ -165,15 +165,18 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   the python tests) and independently confirmed both prior-FAIL fixes (CI label derives from
   `ci_level`; per-bucket error bars). Skeleton #1–#6 is evaluate-clean: 157/157 core,
   35 bench + smoke, self-contained report, cliff@45.0% (mock). Builder-run caveat closed.
-- **PR #35 marked ready.** Backend pivoted to **OpenRouter** (#13) — the user runs every
-  model through it. OpenAI-compatible over stdlib urllib (no SDK to install); occupancy now
-  read from `usage.prompt_tokens` (exact per-model); `--max-steps`/`--max-tokens` cost caps.
-  41 bench tests + smoke green. **Live run pending `OPENROUTER_API_KEY`** (not set here yet).
-- **Budget: $10 cap → staged, one model at a time, check balance between each.** Opus-4.7
-  ($63) is out. Order: validate gpt-4o-mini (cents) → then haiku / qwen / gemini as budget
-  allows. Occupancy capped at 10–60% for the 1M-window models (opus/gemini/qwen) to save spend.
-- **Next:** user exports `OPENROUTER_API_KEY`; then a tiny gpt-4o-mini smoke + an OpenRouter
-  balance check, then proceed model-by-model.
+- **PR #35 marked ready.** Backend pivoted to **OpenRouter** (#13, stdlib urllib, no SDK);
+  occupancy read from `usage.prompt_tokens`; 429/5xx backoff added after the free Qwen tier
+  rate-limited. 43 bench tests + smoke green.
+- **Live runs DONE for 3 models** (Arm A): gpt-4o-mini, haiku-4.5, Qwen2.5-7B. Results +
+  self-contained reports under `bench/cib/results/`; summary in `results/FINDINGS.md`.
+- **Key finding:** no model shows the paper's 40–50% cliff — incl. the paper's own Qwen2.5-7B
+  on our probe → the gap is **method, not models** (D1 retrieval ceiling'd, D3 JSON a
+  capability/style floor, Arm A removed the natural-length confound → no graded headroom).
+  A1's *reasoning*-degradation claim is therefore still untested.
+- **Spend:** ~$8.5 this session (haiku ~$8). Balance ~$7.
+- **Next:** build **D2 multi-hop reasoning** (#7) — a graded probe with headroom — and re-run on
+  gpt-4o-mini + Qwen2.5-7B (cheap) to actually look for a reasoning cliff (~$7 left fits this).
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -257,3 +260,11 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   endpoint exists); added `--max-steps`(=4)/`--max-tokens` cost caps. requirements.txt is now
   stdlib-only even for live runs. 41 bench tests + smoke green. **Budget $10** → staged one model
   at a time; opus-4.7 ($63) excluded; 1M-window models capped at 10–60% occupancy.
+- 2026-06-24: **First live cross-model run (Arm A, OpenRouter)** — gpt-4o-mini / haiku-4.5 /
+  Qwen2.5-7B; results + reports in `bench/cib/results/` (+ FINDINGS.md). **No 40–50% cliff in any
+  model**, crucially incl. the paper's own Qwen2.5-7B on our probe → isolates the cause as
+  **method, not model**: D1 (exact-match retrieval) ceiling'd, D3 (JSON) a capability/style floor,
+  and Arm A removes the paper's natural-length confound — no graded headroom to show a cliff.
+  Need **D2 multi-hop reasoning** (#7, graded/F1-like) to reproduce/refute the paper and to test
+  A1's reasoning claim. Transport hardened with 429/5xx backoff after the free Qwen tier 429'd.
+  Session spend ~$8.5; balance ~$7.
