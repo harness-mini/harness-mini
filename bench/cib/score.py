@@ -57,3 +57,32 @@ def score_d3(text: str) -> int:
     if extracted is not None and _parses(extracted):
         return 50
     return 0
+
+
+def score_d2(text: str, expected: dict) -> int:
+    """Graded multi-hop reasoning: percent of vaults whose access code is correct.
+
+    Lenient about format so it measures *reasoning*, not JSON style: parse a JSON
+    object if present, else fall back to the right code appearing next to the vault.
+    """
+    if not expected:
+        return 0
+    answers = {}
+    extracted = _extract_json(text)
+    if extracted is not None:
+        try:
+            parsed = json.loads(extracted)
+            if isinstance(parsed, dict):
+                answers = parsed
+        except (ValueError, TypeError):
+            answers = {}
+    correct = 0
+    for vault, code in expected.items():
+        got = answers.get(vault)
+        if got is not None and str(got).strip() == str(code):
+            correct += 1
+            continue
+        match = re.search(rf"{re.escape(vault)}\D{{0,24}}(\d{{3,7}})", text)
+        if match and match.group(1) == str(code):
+            correct += 1
+    return round(100 * correct / len(expected))

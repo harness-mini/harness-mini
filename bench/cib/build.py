@@ -56,12 +56,27 @@ def _tile_to_length(corpus: str, length: int) -> str:
     return (corpus * reps)[:length]
 
 
+def _scatter(filler: str, items: list[str]) -> str:
+    """Place items in order at evenly spread positions through the filler."""
+    if not items:
+        return filler
+    step = max(1, len(filler) // (len(items) + 1))
+    parts, pos = [], 0
+    for item in items:
+        parts.append(filler[pos:pos + step])
+        parts.append(item)
+        pos += step
+    parts.append(filler[pos:])
+    return "".join(parts)
+
+
 def build_prompt(
     target_pct: float,
     window: int,
     corpus: str,
-    needle: str,
+    needle: str | None = None,
     *,
+    inserts: list[str] = (),
     tokenizer: str = DEFAULT_TOKENIZER,
     token_counter: Callable[[str], int] | None = None,
     needle_frac: float = 0.5,
@@ -70,37 +85,40 @@ def build_prompt(
 ) -> BuiltPrompt:
     """Construct a prompt whose occupancy lands on `target_pct` of `window`.
 
-    `tokenizer` is the label recorded in metadata. By default tokens are counted
-    with the matching local proxy in TOKENIZERS (char/4). For a real per-model
-    count, pass `token_counter` (e.g. the Anthropic count_tokens API) plus a
-    descriptive `tokenizer` label like "anthropic:claude-opus-4-8".
-
-    Real tokenizers are lumpier than the char/4 proxy, so the filler length is
-    trimmed iteratively until occupancy is within `tolerance` of target rather
-    than assuming a fixed chars-per-token ratio.
+    `needle` (D1) is planted as a single block at `needle_frac`. `inserts` (D2's
+    scattered RECORD/REFERENCE lines) are spread evenly through the filler. Tokens
+    are counted with the local char/4 proxy by default; pass `token_counter` for a
+    real per-model count, with a descriptive `tokenizer` label. Real tokenizers are
+    lumpier than char/4, so filler length is trimmed iteratively to within `tolerance`.
     """
     if not 0 < target_pct < 1:
         raise ValueError("target_pct must be in (0, 1)")
 
     counter = token_counter if token_counter is not None else (lambda t: count_tokens(t, tokenizer))
     target_tokens = round(target_pct * window)
-    needle_block = NEEDLE_TEMPLATE.format(needle=needle)
-    if counter(needle_block) >= target_tokens:
-        raise ValueError("target occupancy too small to hold the needle")
+    needle_block = NEEDLE_TEMPLATE.format(needle=needle) if needle else ""
+    insert_blocks = [f"\n{s}\n" for s in inserts]
+    extras = needle_block + "".join(insert_blocks)
+    if counter(extras) >= target_tokens:
+        raise ValueError("target occupancy too small to hold the probe content")
 
     chars = 4 * target_tokens
-    filler = _tile_to_length(corpus, max(len(needle_block) + 1, chars))
+    filler = _tile_to_length(corpus, max(len(extras) + 1, chars))
     for _ in range(max_iter):
-        measured = counter(filler + needle_block)
+        measured = counter(filler + extras)
         if abs(measured - target_tokens) <= tolerance * window:
             break
-        chars = max(len(needle_block) + 1, round(chars * target_tokens / max(1, measured)))
+        chars = max(len(extras) + 1, round(chars * target_tokens / max(1, measured)))
         filler = _tile_to_length(corpus, chars)
 
     filler_hash = hashlib.sha256(filler.encode("utf-8")).hexdigest()
-    cut = int(needle_frac * len(filler))
-    text = filler[:cut] + needle_block + filler[cut:]
-    needle_pos = text.index(needle)
+    if insert_blocks:
+        items = list(insert_blocks) + ([needle_block] if needle_block else [])
+        text = _scatter(filler, items)
+    else:
+        cut = int(needle_frac * len(filler))
+        text = filler[:cut] + needle_block + filler[cut:]
+    needle_pos = text.index(needle) if needle else -1
 
     token_count = counter(text)
     return BuiltPrompt(
@@ -109,7 +127,7 @@ def build_prompt(
         occupancy_pct=token_count / window,
         window=window,
         filler_hash=filler_hash,
-        needle=needle,
+        needle=needle or "",
         needle_pos=needle_pos,
         tokenizer=tokenizer,
     )

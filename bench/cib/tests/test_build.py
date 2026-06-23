@@ -68,6 +68,19 @@ def _lumpy(text):
     return max(1, round(len(text) / 3.6))
 
 
+class TestInserts(unittest.TestCase):
+    def test_scatters_inserts_across_the_filler(self):
+        inserts = ["AAA-MARKER", "BBB-MARKER", "CCC-MARKER"]
+        bp = build.build_prompt(0.40, WINDOW, _corpus(), inserts=inserts)
+        for s in inserts:
+            self.assertIn(s, bp.text)
+        ps = [bp.text.index(s) for s in inserts]
+        self.assertEqual(ps, sorted(ps))                       # placed in order
+        self.assertLess(ps[0], len(bp.text) * 0.5)             # first lands early
+        self.assertGreater(ps[-1], len(bp.text) * 0.5)         # last lands late
+        self.assertLessEqual(abs(bp.occupancy_pct - 0.40), 0.02)
+
+
 class TestInjectedTokenizer(unittest.TestCase):
     def test_trim_loop_hits_target_with_injected_counter(self):
         bp = build.build_prompt(0.40, WINDOW, _corpus(), NEEDLE,
