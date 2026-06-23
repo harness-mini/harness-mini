@@ -63,31 +63,46 @@ def build_prompt(
     needle: str,
     *,
     tokenizer: str = DEFAULT_TOKENIZER,
+    token_counter: Callable[[str], int] | None = None,
     needle_frac: float = 0.5,
+    tolerance: float = 0.02,
+    max_iter: int = 16,
 ) -> BuiltPrompt:
     """Construct a prompt whose occupancy lands on `target_pct` of `window`.
 
-    With the char/4 proxy, building the text to exactly 4 * target_tokens chars
-    pins the measured occupancy on target. Real tokenizers are lumpier; issue #3
-    adds a trim loop when the proxy is swapped for the model's counter.
+    `tokenizer` is the label recorded in metadata. By default tokens are counted
+    with the matching local proxy in TOKENIZERS (char/4). For a real per-model
+    count, pass `token_counter` (e.g. the Anthropic count_tokens API) plus a
+    descriptive `tokenizer` label like "anthropic:claude-opus-4-8".
+
+    Real tokenizers are lumpier than the char/4 proxy, so the filler length is
+    trimmed iteratively until occupancy is within `tolerance` of target rather
+    than assuming a fixed chars-per-token ratio.
     """
     if not 0 < target_pct < 1:
         raise ValueError("target_pct must be in (0, 1)")
 
+    counter = token_counter if token_counter is not None else (lambda t: count_tokens(t, tokenizer))
     target_tokens = round(target_pct * window)
     needle_block = NEEDLE_TEMPLATE.format(needle=needle)
-    filler_chars = 4 * target_tokens - len(needle_block)
-    if filler_chars < 0:
+    if counter(needle_block) >= target_tokens:
         raise ValueError("target occupancy too small to hold the needle")
 
-    filler = _tile_to_length(corpus, filler_chars)
-    filler_hash = hashlib.sha256(filler.encode("utf-8")).hexdigest()
+    chars = 4 * target_tokens
+    filler = _tile_to_length(corpus, max(len(needle_block) + 1, chars))
+    for _ in range(max_iter):
+        measured = counter(filler + needle_block)
+        if abs(measured - target_tokens) <= tolerance * window:
+            break
+        chars = max(len(needle_block) + 1, round(chars * target_tokens / max(1, measured)))
+        filler = _tile_to_length(corpus, chars)
 
+    filler_hash = hashlib.sha256(filler.encode("utf-8")).hexdigest()
     cut = int(needle_frac * len(filler))
     text = filler[:cut] + needle_block + filler[cut:]
     needle_pos = text.index(needle)
 
-    token_count = count_tokens(text, tokenizer)
+    token_count = counter(text)
     return BuiltPrompt(
         text=text,
         token_count=token_count,

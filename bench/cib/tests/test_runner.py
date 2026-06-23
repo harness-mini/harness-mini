@@ -49,6 +49,20 @@ class TestRunnerLoop(unittest.TestCase):
         self.assertLessEqual(sum(s["type"] == "tool_call" for s in traj), 4)
 
 
+class TestRealishThreading(unittest.TestCase):
+    def test_tool_handler_invoked_and_final_text_after_result(self):
+        seen = []
+        transport = runner_api.ScriptedTransport([
+            {"tool_calls": [{"name": "verify_token", "args": {"token": "9527"}, "id": "tu_1"}],
+             "raw": [{"type": "tool_use", "id": "tu_1", "name": "verify_token", "input": {"token": "9527"}}],
+             "text": None},
+            {"tool_calls": [], "text": "done"},
+        ])
+        traj = runner_api.run("p", [], transport, tool_handler=lambda n, a: seen.append((n, a)) or "ok")
+        self.assertEqual(seen, [("verify_token", {"token": "9527"})])
+        self.assertEqual(runner_api.final_text(traj), "done")
+
+
 class TestRunTrial(unittest.TestCase):
     def test_smart_trial_scores_perfect(self):
         r = run.run_trial(0.20, WINDOW, "filler corpus ", NEEDLE, _smart())

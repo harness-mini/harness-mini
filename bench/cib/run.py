@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from dataclasses import asdict, dataclass, field
 
 import build
@@ -44,8 +45,10 @@ def _expected_token(needle: str) -> str:
     return needle.split(":")[-1].strip()
 
 
-def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8) -> TrialResult:
-    bp = build.build_prompt(target_pct, window, corpus, needle)
+def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8,
+              tokenizer="char4", token_counter=None) -> TrialResult:
+    bp = build.build_prompt(target_pct, window, corpus, needle,
+                            tokenizer=tokenizer, token_counter=token_counter)
     full_prompt = bp.text + probe.probe_suffix()
     trajectory = runner_api.run(full_prompt, [probe.VERIFY_TOKEN_TOOL], transport, max_steps=max_steps)
     scores = {
@@ -102,13 +105,25 @@ def main(argv=None) -> int:
     os.makedirs(args.out, exist_ok=True)
     jsonl_path = os.path.join(args.out, "results.jsonl")
 
+    if args.mock:
+        client, token_counter, tokenizer_label = None, None, "char4"
+    else:
+        try:
+            client = runner_api.anthropic_client()
+        except RuntimeError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        token_counter = runner_api.anthropic_token_counter(args.model, client)
+        tokenizer_label = f"anthropic:{args.model}"
+
     results = []
     with open(jsonl_path, "w", encoding="utf-8") as fh:
         for target in buckets:
             for _ in range(args.trials):
                 transport = (_mock_transport(target) if args.mock
-                             else runner_api.default_transport(args.model))
-                r = run_trial(target, args.window, corpus, args.needle, transport)
+                             else runner_api.make_transport(args.model, client))
+                r = run_trial(target, args.window, corpus, args.needle, transport,
+                              tokenizer=tokenizer_label, token_counter=token_counter)
                 results.append(r)
                 fh.write(json.dumps(asdict(r)) + "\n")
 

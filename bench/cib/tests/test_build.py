@@ -63,5 +63,19 @@ class TestBuildPrompt(unittest.TestCase):
         self.assertGreater(high.token_count, low.token_count)
 
 
+def _lumpy(text):
+    """A non-4-chars/token counter, standing in for a real model tokenizer."""
+    return max(1, round(len(text) / 3.6))
+
+
+class TestInjectedTokenizer(unittest.TestCase):
+    def test_trim_loop_hits_target_with_injected_counter(self):
+        bp = build.build_prompt(0.40, WINDOW, _corpus(), NEEDLE,
+                                tokenizer="anthropic:test", token_counter=_lumpy)
+        self.assertEqual(bp.tokenizer, "anthropic:test")  # label recorded
+        self.assertLessEqual(abs(bp.occupancy_pct - 0.40), 0.02)
+        self.assertEqual(bp.token_count, _lumpy(bp.text))  # measured by the injected counter
+
+
 if __name__ == "__main__":
     unittest.main()

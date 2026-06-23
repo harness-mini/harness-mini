@@ -129,6 +129,11 @@ says the line is "plausibly raisable" but won't move it without data.
 9. **Drill-down trajectory replay UI** — `bench/cib/templates/report.html`, `bench/cib/report.py` — dep #5,#7
 10. **Arm B naturalistic + Logger middleware** — `bench/cib/logger.py`, `bench/cib/run.py` — dep #3
 11. **gzip density covariate overlay** — `bench/cib/analyze.py`, `bench/cib/report.py` — dep #4,#5
+12. **Real-model run path** — `bench/cib/{build,runner_api,run}.py` — dep #3 — ⚙️ code DONE:
+    injected per-model `token_counter` + occupancy trim loop, live `AnthropicTransport` with
+    tool threading, clean no-key exit. **Live run pending:** needs `ANTHROPIC_API_KEY` +
+    `pip install -r requirements.txt`; the live message/tool threading is NOT in the hermetic
+    suite — validate one live run before trusting numbers.
 
 ## Vertical slices (build order)
 1. **Walking skeleton (Arm A, end-to-end):** #1 → #2 (D1+D3) → #3 → #4 → #5 → #6.
@@ -157,9 +162,13 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   the python tests) and independently confirmed both prior-FAIL fixes (CI label derives from
   `ci_level`; per-bucket error bars). Skeleton #1–#6 is evaluate-clean: 157/157 core,
   35 bench + smoke, self-contained report, cliff@45.0% (mock). Builder-run caveat closed.
-- **Next (your call):** mark PR #35 ready · or horizontal expansion #7–#11 (D2/D4, Plotly
-  click-to-replay drill-down, Arm B + Logger, gzip overlay) · the real-model run (needs
-  `ANTHROPIC_API_KEY` + the deferred tokenizer/trim loop) is what finally moves A1's line.
+- **PR #35 marked ready.** Real-model-run path (#12) built TDD & hermetic: per-model
+  `token_counter` + occupancy trim loop, live `AnthropicTransport` with tool threading,
+  clean no-key exit (2). 37 bench tests + smoke green. **Live execution can't run in this
+  env** (no `ANTHROPIC_API_KEY`, SDK not installed).
+- **Next:** to get real A1 numbers — `pip install -r bench/cib/requirements.txt`, then
+  `ANTHROPIC_API_KEY=… bash bench/cib/run.sh --model claude-opus-4-8 --buckets 10,20,30,40,50,60,70,80 --trials 8`.
+  The live tool-threading needs validating on that first run. Otherwise: horizontal #7–#11.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
@@ -228,3 +237,11 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   identical probe, BIC-vs-linear changepoint with bootstrap CI; not curve-fit to 40%).
   Skeleton #1–#6 evaluate-clean. Recorded an `eval_pass` runtime trace — the first real eval
   signal for **A1** per the assumption register.
+- 2026-06-23: PR #35 marked **ready for review**. Built the **real-model-run path** (#12)
+  TDD/hermetic: `build_prompt` takes an injected `token_counter` + a trim loop (real tokenizers
+  are lumpier than char/4); `runner_api` adds `make_transport`/`anthropic_client`/
+  `anthropic_token_counter`, and `run()` now threads tool_use/tool_result properly (tool-first
+  turn semantics) via a `tool_handler`; `run.py` uses the API counter + live transport when not
+  `--mock`, with a clean no-key exit (2). 37 bench tests + smoke green. **Not runnable here**
+  (no key, SDK absent); the live threading is outside the hermetic suite — flagged in
+  `make_transport` to validate one live run before trusting numbers.
