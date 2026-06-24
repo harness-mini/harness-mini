@@ -32,6 +32,12 @@ def _with_retry(call, *, max_retries: int, sleep, base: float = 2.0, cap: float 
             retry_after = exc.headers.get("Retry-After") if exc.headers else None
             delay = float(retry_after) if (retry_after and str(retry_after).isdigit()) else base ** attempt
             sleep(min(delay, cap))
+        except (urllib.error.URLError, TimeoutError) as exc:
+            # transient connection/SSL/timeout drop (not an HTTP status) — retry too.
+            # HTTPError subclasses URLError, so it is handled above and won't reach here.
+            if attempt == max_retries:
+                raise
+            sleep(min(base ** attempt, cap))
     raise RuntimeError("unreachable")  # pragma: no cover
 
 

@@ -70,6 +70,24 @@ class TestRetry(unittest.TestCase):
         self.assertEqual(state["n"], 2)      # one retry
         self.assertEqual(len(slept), 1)      # backed off once
 
+    def test_retries_on_connection_error_then_succeeds(self):
+        import urllib.error
+        resp = {"choices": [{"message": {"role": "assistant", "content": "ok"}}], "usage": {}}
+        state = {"n": 0}
+
+        def http(url, payload, headers):
+            state["n"] += 1
+            if state["n"] == 1:
+                raise urllib.error.URLError("SSL: UNEXPECTED_EOF_WHILE_READING")
+            return resp
+
+        slept = []
+        transport = openrouter.make_transport("m", "k", http=http, sleep=slept.append)
+        turn = transport([{"role": "user", "content": "hi"}], [])
+        self.assertEqual(turn["text"], "ok")
+        self.assertEqual(state["n"], 2)
+        self.assertEqual(len(slept), 1)
+
     def test_non_retryable_error_raises(self):
         import urllib.error
 
