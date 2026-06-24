@@ -3,21 +3,33 @@
 > Requirement #1 of harness-mini. This is the intellectual core: keep every
 > agent's context in the **smart zone** at all times.
 
-## Definition — occupancy, not content
+## Definition — a clean-context budget, with occupancy as the cheap proxy
 
-"Smart" and "dumb" describe **how full the context window is**, not which
-content is in it.
+"Smart" and "dumb" name a **budget for keeping context clean.** 40% occupancy is
+the *operating trigger* we measure — but our own benchmark (`bench/cib/`, see
+`results/FINDINGS.md`) found that **what fills the window matters more than how full
+it is.** Treat 40% as a conservative checkpoint default, not a law.
 
-- **Smart zone — below 40% occupancy.** The model reasons sharply, follows
-  instructions, holds the whole task in view.
-- **Dumb zone — at or above 40% occupancy.** The model degrades: it drops
-  instructions, optimizes the wrong constraint, exhibits "context anxiety,"
-  and writes worse handoffs. Empirically, quality falls long before the nominal
-  context limit — so we draw the line early, at **40%**.
+- **Smart zone — below 40% occupancy (default trigger).** Comfortable headroom to
+  reason, follow instructions, and write a clean handoff.
+- **Dumb zone — at or above 40%.** Not a measured cliff — a *checkpoint-now* line
+  drawn early so quality never gets the chance to slide.
 
-The threshold is configurable (`HARNESS_CTX_THRESHOLD`, default 40) but 40 is
-the deliberate default. Every agent — main and sub — is responsible for keeping
-**itself** smart.
+**What the CIB benchmark actually showed (2026-06, Qwen2.5-7B + gpt-4o-mini +
+haiku-4.5):**
+- Under a controlled design (fixed task, only fill varied), **raw occupancy alone
+  showed no 40–50% intelligence cliff** — not even on Qwen2.5-7B, the model from the
+  paper that motivated the line. Frontier models held smart on retrieval to ~78–80%.
+- The one thing that *did* degrade quality was **interference**: filling the window
+  with *irrelevant* text was tolerated, but filling it with *competing, related*
+  content dropped real QA-F1. **Signal-to-noise, not token count, is the driver.**
+
+So the line's real job is to bound **interference**, and the load-bearing mechanisms
+below — fan-out distillation and progressive disclosure — are what keep the smart
+zone smart by keeping competing content *out*. Occupancy is just the proxy we can
+cheaply measure. The threshold is configurable (`HARNESS_CTX_THRESHOLD`, default 40);
+every agent — main and sub — is responsible for keeping **itself** smart. See
+assumption **A1** in `docs/assumptions.md` for the test record.
 
 ## Tuning the threshold — a default operating line, not a universal law
 
