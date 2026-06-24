@@ -132,6 +132,16 @@ agent keeps itself smart by (1) delegating heavy reads to a disposable `explorer
 (context firewall), (2) checkpointing + resetting at 40%, (3) progressive
 disclosure. See `docs/smart-dumb.md`. Estimate with `bin/ctx.sh <used> [window]`.
 
+> **What we measured** ([`bench/cib/results/FINDINGS.md`](bench/cib/results/FINDINGS.md)).
+> We built a benchmark (`bench/cib/`) and ran it live on gpt-4o-mini, haiku-4.5, and
+> Qwen2.5-7B. Under a controlled design (fixed task, only context fill varied), **raw
+> occupancy showed no 40% "intelligence cliff"** — even on the small model from the paper
+> that motivated the line. What degraded real QA-F1 was **interference** (competing,
+> related content), not how *full* the window was. So **40% is a conservative checkpoint
+> default, not a law** — and the firewall + progressive-disclosure mechanisms earn their
+> keep by holding *competing content out*, which is the effect that actually matters.
+> (Caveat: gradual/modest effect, frontier-model contrast still pending.)
+
 ## Lifecycle
 
 ```
@@ -168,6 +178,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `.trace/evals/` | committed evaluation verdicts (the `done`-gate `doctor` enforces) |
 | `.trace/runtime/` | gitignored ephemeral JSONL traces (`harness.sh report` reads these) |
 | `tests/run.sh` | zero-dep TDD suite |
+| `bench/cib/` | context-intelligence benchmark + live results ([`FINDINGS.md`](bench/cib/results/FINDINGS.md)) |
 
 > **Editing skills?** `skills/<name>/SKILL.md` (and `agents/<name>.md`) are the
 > **canonical source** — edit there. `.claude/skills/` and `.claude/agents/` are a
