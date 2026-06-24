@@ -175,8 +175,14 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   capability/style floor, Arm A removed the natural-length confound → no graded headroom).
   A1's *reasoning*-degradation claim is therefore still untested.
 - **Spend:** ~$8.5 this session (haiku ~$8). Balance ~$7.
-- **Next:** build **D2 multi-hop reasoning** (#7) — a graded probe with headroom — and re-run on
-  gpt-4o-mini + Qwen2.5-7B (cheap) to actually look for a reasoning cliff (~$7 left fits this).
+- **D2 reasoning DONE on Qwen2.5-7B** (#7, 4 passes: D1 ceiling → k=5 floor → k=2 lowN noisy →
+  k=2 **n=25 decisive**). Data in `bench/cib/results/qwen2.5-7b-reasoning/`. **No 40–50% cliff
+  under control, even on the paper's own model** (flat ~30 ±15 across 11–82%). Conclusion +
+  limits in `results/FINDINGS.md`; **A1 updated** (empirical "paper proved 40%" support withdrawn;
+  40% kept as conservative default only). Transport hardened (URLError/SSL backoff, #13).
+- **Next (optional):** replicate the paper's natural-doc QA-F1 task with/without truncation-control
+  to test the difficulty-confound hypothesis directly; or D2 k=2 high-N on gpt-4o-mini for contrast.
+  Balance ~$6.2.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →

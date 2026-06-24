@@ -31,10 +31,19 @@ re-tested against the current model.
   eval pass-rate + handoff quality via `harness.sh report` (ctx trend vs the line).
   If quality holds at a higher line on the current model, **raise the default**.
   (The post reports exactly this getting better Sonnet 4.5 → Opus 4.5.)
-- **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep, likely
-  conservative.** On current frontier models (large windows) the line is
-  plausibly raisable, but `report` shows we've never even reached it (max 33%).
-  No data → no change. Run the 40/60/70 experiment before moving the default.
+- **Status:** registered 2026-06-12 · audited 2026-06-16 · **tested 2026-06-24** —
+  **keep as a conservative heuristic; demote the empirical claim.** The CIB benchmark
+  (`bench/cib/`, see `results/FINDINGS.md`) ran the first controlled experiment: probe
+  held fixed, only context fill varied (Arm A). Across 3 models (gpt-4o-mini, haiku-4.5,
+  Qwen2.5-7B) and 4 probe regimes, **no 40–50% cliff appeared** — including on
+  **Qwen2.5-7B, the exact model of the cited paper (arXiv:2601.15300)**, even at n=25.
+  Retrieval held smart to ~78–80% on frontier models. Likely cause: the paper's
+  natural-length sampling confounds context length with document difficulty, which our
+  Arm A removes. **So: the "a paper proved 40%" support is withdrawn**; 40% stands only
+  as cheap-insurance default (checkpoint early), not an empirically-pinned constant.
+  Caveat: CIB's filler is synthetic and reasoning scoring is coarse, so a pure-occupancy
+  effect on dense *natural* content isn't ruled out. Next: replicate the paper's QA-F1
+  task with vs without truncation-control to test the confound directly.
 
 ## A2 — Anti-self-praise eval firewall
 - **Assumption:** a model confidently praises its own output, so grading must run
