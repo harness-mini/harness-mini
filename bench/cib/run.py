@@ -1,0 +1,200 @@
+"""CIB issue #3 (+ #6 CLI) — single-trial wiring and the benchmark orchestrator.
+
+run_trial() composes the pieces of Arm A: build a prompt at a target occupancy
+(#1), append the byte-identical probe (#2), run the agent (#3), and score the
+dimensions the skeleton activates (D1, D3). main() sweeps buckets × trials, writes
+results.jsonl, runs changepoint analysis (#4), and renders the report (#5).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from dataclasses import asdict, dataclass, field
+
+import build
+import probe
+import qa as qa_mod
+import reasoning
+import runner_api
+import score
+# analyze (#4) and report (#5) are imported lazily in main() so the trial layer
+# stays importable and testable without the analysis/report layers present.
+
+# Weights of the full AIDB battery; the skeleton activates D1 + D3 and normalizes
+# the composite over whatever dimensions are present.
+BATTERY_WEIGHTS = {"D1": 0.20, "D2": 0.30, "D3": 0.20, "D4": 0.30}
+
+
+@dataclass(frozen=True)
+class TrialResult:
+    occupancy_pct: float
+    token_count: int
+    window: int
+    filler_hash: str
+    scores: dict
+    score: float
+    trajectory: list = field(default_factory=list)
+
+
+def _composite(scores: dict) -> float:
+    weight = sum(BATTERY_WEIGHTS[d] for d in scores)
+    return sum(BATTERY_WEIGHTS[d] * s for d, s in scores.items()) / weight
+
+
+def _expected_token(needle: str) -> str:
+    return needle.split(":")[-1].strip()
+
+
+def run_qa_trial(item, target_pct, window, corpus, transport, *, fill_mode, pool,
+                 max_steps=4, token_counter=None) -> TrialResult:
+    counter = token_counter or (lambda t: build.count_tokens(t, "char4"))
+    text, occ_est = qa_mod.build_qa_prompt(item, target_pct, window, fill_mode, pool, corpus, counter)
+    meta: dict = {"prompt_tokens": None}
+    trajectory = runner_api.run(text, [], transport, max_steps=max_steps, meta=meta)
+    answer = runner_api.final_text(trajectory)
+    f1 = qa_mod.token_f1(answer, item.answer)
+    token_count = meta["prompt_tokens"] or round(occ_est * window)
+    return TrialResult(
+        occupancy_pct=token_count / window,
+        token_count=token_count,
+        window=window,
+        filler_hash="",
+        scores={"F1": round(f1 * 100)},
+        score=f1 * 100,
+        trajectory=trajectory,
+    )
+
+
+def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8,
+              tokenizer="char4", token_counter=None, probe_mode="d1d3", seed=0,
+              d2_chains=5) -> TrialResult:
+    meta: dict = {"prompt_tokens": None}
+    if probe_mode == "d2":
+        d2 = reasoning.make_d2(k=d2_chains, seed=seed)
+        bp = build.build_prompt(target_pct, window, corpus, inserts=d2.facts,
+                                tokenizer=tokenizer, token_counter=token_counter)
+        trajectory = runner_api.run(bp.text + d2.suffix, [], transport, max_steps=max_steps, meta=meta)
+        scores = {"D2": score.score_d2(runner_api.final_text(trajectory), d2.expected)}
+    else:
+        bp = build.build_prompt(target_pct, window, corpus, needle,
+                                tokenizer=tokenizer, token_counter=token_counter)
+        trajectory = runner_api.run(bp.text + probe.probe_suffix(), [probe.VERIFY_TOKEN_TOOL],
+                                    transport, max_steps=max_steps, meta=meta)
+        scores = {
+            "D1": score.score_d1(trajectory, _expected_token(needle)),
+            "D3": score.score_d3(runner_api.final_text(trajectory)),
+        }
+    # Prefer the model-measured prompt tokens (live, from usage); fall back to the
+    # char/4 build estimate (mock). This makes occupancy the real per-model count.
+    token_count = meta["prompt_tokens"] or bp.token_count
+    return TrialResult(
+        occupancy_pct=token_count / window,
+        token_count=token_count,
+        window=window,
+        filler_hash=bp.filler_hash,
+        scores=scores,
+        score=_composite(scores),
+        trajectory=trajectory,
+    )
+
+
+def _mock_transport(occupancy_pct: float, cliff: float = 0.45):
+    """Offline demo: smart below the cliff, dumb at/above it — yields a real curve."""
+    if occupancy_pct < cliff:
+        return runner_api.ScriptedTransport([
+            {"tool_calls": [{"name": "verify_token", "args": {"token": "9527"}}], "text": None},
+            {"tool_calls": [], "text": '{"sessions": 5}'},
+        ])
+    return runner_api.ScriptedTransport([
+        {"tool_calls": [], "text": "I'll just start; the answer is around five sessions."},
+    ])
+
+
+def _corpus(path: str) -> str:
+    with open(path, encoding="utf-8") as fh:
+        return fh.read()
+
+
+def main(argv=None) -> int:
+    p = argparse.ArgumentParser(description="Context Intelligence Benchmark (CIB) — Arm A")
+    p.add_argument("--model", default="claude-opus-4-8")
+    p.add_argument("--window", type=int, default=200_000)
+    p.add_argument("--buckets", default="10,20,30,40,50,60,70,80",
+                   help="comma-separated occupancy percentages")
+    p.add_argument("--trials", type=int, default=5)
+    p.add_argument("--needle", default="test_token: 9527")
+    p.add_argument("--mock", action="store_true", help="offline scripted run (no API)")
+    p.add_argument("--probe", choices=["d1d3", "d2", "qa"], default="d1d3", help="probe battery")
+    p.add_argument("--d2-chains", type=int, default=5, help="number of 2-hop chains in D2 (difficulty)")
+    p.add_argument("--qa-fill", choices=["filler", "distractor"], default="filler",
+                   help="QA confound arm: pad with irrelevant filler or related distractor paragraphs")
+    p.add_argument("--qa-n", type=int, default=20, help="number of fixed QA questions (held across buckets)")
+    p.add_argument("--max-tokens", type=int, default=512, help="max completion tokens per call")
+    p.add_argument("--max-steps", type=int, default=4, help="agentic loop cap (live cost guard)")
+    p.add_argument("--out", default=".")
+    here = os.path.dirname(os.path.abspath(__file__))
+    p.add_argument("--corpus", default=os.path.join(here, "fixtures", "filler_sample.txt"))
+    args = p.parse_args(argv)
+
+    import analyze
+    import report
+
+    corpus = _corpus(args.corpus)
+    buckets = [int(b) / 100 for b in args.buckets.split(",")]
+    os.makedirs(args.out, exist_ok=True)
+    jsonl_path = os.path.join(args.out, "results.jsonl")
+
+    if args.mock:
+        live_transport, tokenizer_label, max_steps = None, "char4", 8
+    else:
+        import openrouter
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key:
+            print("error: OPENROUTER_API_KEY not set (use --mock for offline).", file=sys.stderr)
+            return 2
+        live_transport = openrouter.make_transport(args.model, api_key, max_tokens=args.max_tokens)
+        tokenizer_label = "char4"  # build with the proxy; occupancy is overridden by measured usage
+        max_steps = args.max_steps
+
+    results = []
+    seed = 0
+    qa_items, qa_pool = None, None
+    if args.probe == "qa":
+        if args.mock:
+            print("error: --probe qa needs a live model (no --mock).", file=sys.stderr)
+            return 2
+        rows = json.load(open(os.path.join(here, "fixtures", "hotpot_sample.json"), encoding="utf-8"))
+        parsed = [qa_mod.parse_hotpot(r) for r in rows]
+        qa_items = parsed[:args.qa_n]
+        # distractor pool = every non-gold paragraph across the whole sample (real, related text)
+        qa_pool = [d for it in parsed for d in it.distractors]
+
+    with open(jsonl_path, "w", encoding="utf-8") as fh:
+        for target in buckets:
+            if args.probe == "qa":
+                for item in qa_items:                       # same fixed questions every bucket
+                    r = run_qa_trial(item, target, args.window, corpus, live_transport,
+                                     fill_mode=args.qa_fill, pool=qa_pool, max_steps=max_steps)
+                    results.append(r); fh.write(json.dumps(asdict(r)) + "\n")
+                continue
+            for _ in range(args.trials):
+                transport = _mock_transport(target) if args.mock else live_transport
+                r = run_trial(target, args.window, corpus, args.needle, transport,
+                              max_steps=max_steps, tokenizer=tokenizer_label,
+                              probe_mode=args.probe, seed=seed, d2_chains=args.d2_chains)
+                seed += 1
+                results.append(r)
+                fh.write(json.dumps(asdict(r)) + "\n")
+
+    points = [(r.occupancy_pct, r.score) for r in results]
+    cp = analyze.analyze(points)
+    report.write_report(results, cp, os.path.join(args.out, "cib_report.html"),
+                        model=args.model, window=args.window)
+    print(f"wrote {jsonl_path} ({len(results)} trials) and cib_report.html")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

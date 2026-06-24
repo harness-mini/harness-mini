@@ -1,0 +1,12 @@
+# CIB dependency island — isolated from the zero-dep core harness (nothing here
+# is imported by bin/ or the core test suite).
+#
+# Nothing to install. BOTH the offline demo (`run.sh --mock`) AND live runs are
+# stdlib-only: the OpenRouter backend (openrouter.py) speaks the OpenAI-compatible
+# API over urllib, not an SDK. A live run needs only network access + an
+# OPENROUTER_API_KEY in the environment.
+#
+# Optional, higher-fidelity changepoint backend. The zero-dep brute-force backend
+# in analyze.py is the default and is sufficient; install this only to swap in
+# penalty-based detection:
+# ruptures>=1.1
