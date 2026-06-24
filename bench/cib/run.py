@@ -47,10 +47,11 @@ def _expected_token(needle: str) -> str:
 
 
 def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8,
-              tokenizer="char4", token_counter=None, probe_mode="d1d3", seed=0) -> TrialResult:
+              tokenizer="char4", token_counter=None, probe_mode="d1d3", seed=0,
+              d2_chains=5) -> TrialResult:
     meta: dict = {"prompt_tokens": None}
     if probe_mode == "d2":
-        d2 = reasoning.make_d2(seed=seed)
+        d2 = reasoning.make_d2(k=d2_chains, seed=seed)
         bp = build.build_prompt(target_pct, window, corpus, inserts=d2.facts,
                                 tokenizer=tokenizer, token_counter=token_counter)
         trajectory = runner_api.run(bp.text + d2.suffix, [], transport, max_steps=max_steps, meta=meta)
@@ -105,6 +106,7 @@ def main(argv=None) -> int:
     p.add_argument("--needle", default="test_token: 9527")
     p.add_argument("--mock", action="store_true", help="offline scripted run (no API)")
     p.add_argument("--probe", choices=["d1d3", "d2"], default="d1d3", help="probe battery")
+    p.add_argument("--d2-chains", type=int, default=5, help="number of 2-hop chains in D2 (difficulty)")
     p.add_argument("--max-tokens", type=int, default=512, help="max completion tokens per call")
     p.add_argument("--max-steps", type=int, default=4, help="agentic loop cap (live cost guard)")
     p.add_argument("--out", default=".")
@@ -140,7 +142,7 @@ def main(argv=None) -> int:
                 transport = _mock_transport(target) if args.mock else live_transport
                 r = run_trial(target, args.window, corpus, args.needle, transport,
                               max_steps=max_steps, tokenizer=tokenizer_label,
-                              probe_mode=args.probe, seed=seed)
+                              probe_mode=args.probe, seed=seed, d2_chains=args.d2_chains)
                 seed += 1
                 results.append(r)
                 fh.write(json.dumps(asdict(r)) + "\n")
