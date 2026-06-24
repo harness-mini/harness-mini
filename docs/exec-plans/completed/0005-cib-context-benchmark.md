@@ -1,7 +1,7 @@
 ---
 plan: cib-context-benchmark
 seq: 0005
-stage: implement
+stage: done
 owner: main
 mode: full
 eval: L2        # new code + public artifact; A1's credibility rests on the method
