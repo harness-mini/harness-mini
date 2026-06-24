@@ -8,6 +8,17 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Added
+- **CIB — a context-intelligence benchmark, and the first real test of the 40% line (#34, #35).**
+  New `bench/cib/` (stdlib-only; 62 unit tests + an offline smoke test; L2-evaluated):
+  builds a prompt to a target context occupancy, runs an agent probe (D1 retrieval,
+  D2 multi-hop reasoning, and real HotpotQA QA-F1), detects degradation changepoints
+  (zero-dep, vs a linear null, with a bootstrap CI), and renders a **self-contained HTML
+  report**. Live backend over OpenRouter (any model), occupancy measured from real
+  `usage.prompt_tokens`. Ran live on gpt-4o-mini, haiku-4.5, and Qwen2.5-7B: under a
+  controlled design (fixed task, only fill varied) **raw occupancy showed no 40%
+  "intelligence cliff"** — even on the paper's own model — and what degraded real QA-F1
+  was **interference** (competing related content), not how full the window is. Findings,
+  data, and reports: `bench/cib/results/FINDINGS.md`.
 - **Cursor skill mirror — skills are now agent-requestable in Cursor (#23).**
   `init.sh` emits one `.cursor/rules/<name>.mdc` per skill (`alwaysApply: false` +
   the skill's `description`), so Cursor's agent can pull a skill on demand by its
@@ -21,6 +32,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   step toward Cursor support.
 
 ### Changed
+- **The 40% line is now documented as a conservative default, not a law (#34, #36).**
+  Per the CIB results, `docs/smart-dumb.md` and assumption **A1** (`docs/assumptions.md`)
+  are reframed around **interference, not occupancy**: occupancy is the cheap proxy we
+  measure, but the firewall + progressive-disclosure mechanisms earn their keep by holding
+  *competing content* out. A1 went from zero empirical signal to a tested verdict; the
+  README surfaces the result from the front door (#37).
 - **Honest CLI positioning — "Claude Code-first", not blanket "CLI-agnostic".**
   README, `docs/cursor-getting-started.md`, `docs/codex-getting-started.md`, and
   `docs/principles.md` now state plainly what's first-class on Claude Code
