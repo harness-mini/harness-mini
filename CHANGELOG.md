@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-06-24
+
 ### Added
 - **CIB — a context-intelligence benchmark, and the first real test of the 40% line (#34, #35).**
   New `bench/cib/` (stdlib-only; 62 unit tests + an offline smoke test; L2-evaluated):
