@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, field
 
 import build
 import probe
+import qa as qa_mod
 import reasoning
 import runner_api
 import score
@@ -44,6 +45,26 @@ def _composite(scores: dict) -> float:
 
 def _expected_token(needle: str) -> str:
     return needle.split(":")[-1].strip()
+
+
+def run_qa_trial(item, target_pct, window, corpus, transport, *, fill_mode, pool,
+                 max_steps=4, token_counter=None) -> TrialResult:
+    counter = token_counter or (lambda t: build.count_tokens(t, "char4"))
+    text, occ_est = qa_mod.build_qa_prompt(item, target_pct, window, fill_mode, pool, corpus, counter)
+    meta: dict = {"prompt_tokens": None}
+    trajectory = runner_api.run(text, [], transport, max_steps=max_steps, meta=meta)
+    answer = runner_api.final_text(trajectory)
+    f1 = qa_mod.token_f1(answer, item.answer)
+    token_count = meta["prompt_tokens"] or round(occ_est * window)
+    return TrialResult(
+        occupancy_pct=token_count / window,
+        token_count=token_count,
+        window=window,
+        filler_hash="",
+        scores={"F1": round(f1 * 100)},
+        score=f1 * 100,
+        trajectory=trajectory,
+    )
 
 
 def run_trial(target_pct, window, corpus, needle, transport, *, max_steps=8,
@@ -105,8 +126,11 @@ def main(argv=None) -> int:
     p.add_argument("--trials", type=int, default=5)
     p.add_argument("--needle", default="test_token: 9527")
     p.add_argument("--mock", action="store_true", help="offline scripted run (no API)")
-    p.add_argument("--probe", choices=["d1d3", "d2"], default="d1d3", help="probe battery")
+    p.add_argument("--probe", choices=["d1d3", "d2", "qa"], default="d1d3", help="probe battery")
     p.add_argument("--d2-chains", type=int, default=5, help="number of 2-hop chains in D2 (difficulty)")
+    p.add_argument("--qa-fill", choices=["filler", "distractor"], default="filler",
+                   help="QA confound arm: pad with irrelevant filler or related distractor paragraphs")
+    p.add_argument("--qa-n", type=int, default=20, help="number of fixed QA questions (held across buckets)")
     p.add_argument("--max-tokens", type=int, default=512, help="max completion tokens per call")
     p.add_argument("--max-steps", type=int, default=4, help="agentic loop cap (live cost guard)")
     p.add_argument("--out", default=".")
@@ -136,8 +160,25 @@ def main(argv=None) -> int:
 
     results = []
     seed = 0
+    qa_items, qa_pool = None, None
+    if args.probe == "qa":
+        if args.mock:
+            print("error: --probe qa needs a live model (no --mock).", file=sys.stderr)
+            return 2
+        rows = json.load(open(os.path.join(here, "fixtures", "hotpot_sample.json"), encoding="utf-8"))
+        parsed = [qa_mod.parse_hotpot(r) for r in rows]
+        qa_items = parsed[:args.qa_n]
+        # distractor pool = every non-gold paragraph across the whole sample (real, related text)
+        qa_pool = [d for it in parsed for d in it.distractors]
+
     with open(jsonl_path, "w", encoding="utf-8") as fh:
         for target in buckets:
+            if args.probe == "qa":
+                for item in qa_items:                       # same fixed questions every bucket
+                    r = run_qa_trial(item, target, args.window, corpus, live_transport,
+                                     fill_mode=args.qa_fill, pool=qa_pool, max_steps=max_steps)
+                    results.append(r); fh.write(json.dumps(asdict(r)) + "\n")
+                continue
             for _ in range(args.trials):
                 transport = _mock_transport(target) if args.mock else live_transport
                 r = run_trial(target, args.window, corpus, args.needle, transport,
