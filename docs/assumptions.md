@@ -44,6 +44,14 @@ re-tested against the current model.
   Caveat: CIB's filler is synthetic and reasoning scoring is coarse, so a pure-occupancy
   effect on dense *natural* content isn't ruled out. Next: replicate the paper's QA-F1
   task with vs without truncation-control to test the confound directly.
+  · **Confound test done (2026-06-24):** real HotpotQA + token-F1, same 20 questions at
+  every occupancy bucket, padded two ways. **Pure-occupancy (filler) arm: flat** (60.0→61.9
+  F1, 10→70%). **Interference (related-distractor) arm: declines** (49.4→40.7). Arms equal at
+  the 10% baseline, gap widens with fill. ⇒ degradation tracks **interference, not raw
+  occupancy** — the mechanism behind the paper's natural-length confound. The decline is
+  gradual (no sharp 40% step) and modest vs the paper's. **Verdict: 40% is a useful
+  conservative *default*, not a context-occupancy law.** What fills the window matters more
+  than how full it is. (One model so far; frontier-model contrast still open.)
 
 ## A2 — Anti-self-praise eval firewall
 - **Assumption:** a model confidently praises its own output, so grading must run

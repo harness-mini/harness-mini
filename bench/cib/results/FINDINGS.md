@@ -99,9 +99,52 @@ difficulty calibrated so the low-occupancy baseline is mid-range (not ceiling/fl
 it), and (3) a model stable enough to start high. Miss any one → "no cliff." This
 fragility is itself the argument against trusting any single-number "X% rule."
 
-## Next (optional)
+## The QA-F1 confound test — interference, not occupancy (Qwen2.5-7B)
 
-- Replicate the paper's *actual* QA-F1 task on natural documents to directly test the
-  confound hypothesis (would the cliff reappear with natural lengths but vanish when
-  the same docs are truncation-controlled?).
-- Run D2 k=2 high-N on a frontier model (gpt-4o-mini) for a capability contrast.
+The decisive experiment, using the paper's actual task (HotpotQA multi-hop) and metric
+(token-F1). **Same 20 fixed questions** at every occupancy bucket (difficulty held
+constant); context padded to target two ways:
+- **filler arm:** irrelevant repeated text → occupancy ↑, interference flat
+- **distractor arm:** related Wikipedia paragraphs → occupancy ↑, interference ↑
+
+n=20/bucket, 7 buckets, 140 trials/arm.
+
+| arm | F1 @ low occ (≤25%) | F1 @ high occ (≥55%) | change |
+|---|---|---|---|
+| filler (pure occupancy) | 60.0 | 61.9 | **−1.8 (flat)** |
+| distractor (interference) | 49.4 | 40.7 | **+8.7 drop** |
+
+At the matched ~10% baseline the arms are identical (52.8 vs 53.8). As the window fills,
+the **filler arm stays flat** while the **distractor arm declines**, and the gap widens to
+~20 F1 points. The changepoint detector finds **no sharp cliff in either arm** — the
+distractor effect is a *gradual* decline, not a 40% step.
+
+### What this establishes
+1. **Pure context occupancy does not degrade QA-F1** — shown now with the real task + real
+   metric, not just the synthetic probe. Filler to 70% of the window: flat.
+2. **Interference (competing related content) does** — the only thing that moved F1 down was
+   filling the window with *semantically related* paragraphs, holding the question fixed.
+3. ⇒ The "context cliff" is better explained as **interference/distractor density** than raw
+   token count. Longer *natural* documents pack more competing content, so the paper's
+   length-binned cliff conflates occupancy with interference — the confound, now mechanistic.
+
+### Honest limits
+- The distractor decline (~9 F1) is **smaller and noisier** than the paper's (~25 F1,
+  0.55→0.30) and is **gradual, not a sharp 40% cliff** — so this *explains/partly reproduces*
+  the confound direction, it does not reproduce a clean threshold.
+- One model (Qwen2.5-7B), one dataset (HotpotQA), n=20/bucket, wide CIs (±~20). Distractor
+  occupancy binning is lumpy (discrete paragraphs).
+- Not yet run on a frontier model.
+
+## Bottom line for the whole investigation
+
+Across synthetic probes (D1/D2) **and** the paper's real QA-F1 task, on three models incl.
+the paper's own: **raw context occupancy alone shows no 40% intelligence cliff under a
+controlled design.** A degradation effect appears only with **interference** (competing
+content), gradually. The popular "40% rule" is best treated as a **conservative engineering
+default** (checkpoint early — cheap insurance), not an empirically-pinned constant; what
+actually hurts is *what* fills the window, not *how full* it is.
+
+## Next (optional)
+- Re-run the filler-vs-distractor arms on a frontier model (gpt-4o-mini) for a capability contrast.
+- Push distractor occupancy higher / more questions to see if a sharper threshold emerges.

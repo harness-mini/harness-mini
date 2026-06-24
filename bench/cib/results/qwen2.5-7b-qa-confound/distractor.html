@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Intelligence Benchmark — qwen/qwen-2.5-7b-instruct</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 2.5rem 1.5rem; background: #0d1117; color: #e6edf3;
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.55rem; margin: 0 0 .25rem; }
+  .sub { color: #8b949e; margin: 0 0 1.75rem; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.75rem; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: .9rem 1rem; }
+  .card .k { color: #8b949e; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+  .card .v { font-size: 1.5rem; font-weight: 650; margin-top: .25rem; }
+  .accent { color: #f0883e; }
+  figure { margin: 0; background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 1rem; }
+  figcaption { color: #8b949e; font-size: .82rem; margin-top: .5rem; }
+  details { margin-top: 1.5rem; color: #8b949e; }
+  summary { cursor: pointer; }
+  pre { overflow: auto; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: .75rem; font-size: .8rem; }
+  .legend span { display: inline-block; margin-right: 1rem; font-size: .8rem; }
+  .sw { display: inline-block; width: .8rem; height: .8rem; border-radius: 2px; vertical-align: middle; margin-right: .3rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Context Intelligence Benchmark</h1>
+  <p class="sub">qwen/qwen-2.5-7b-instruct · window 32,768 tokens · 140 trials · Arm A (fixed probe, varied fill)</p>
+
+  <div class="cards">
+    <div class="card"><div class="k">Recommended cut-off</div><div class="v accent">none detected</div></div>
+    <div class="card"><div class="k">95% CI</div><div class="v">—</div></div>
+    <div class="card"><div class="k">Degradation (mean drop)</div><div class="v">—</div></div>
+    <div class="card"><div class="k">Trials</div><div class="v">140</div></div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 720 360" width="100%" role="img" aria-label="cliff chart"><line x1="52" y1="320" x2="702" y2="320" stroke="#30363d"/><line x1="52" y1="16" x2="52" y2="320" stroke="#30363d"/><text x="52.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">0%</text><text x="182.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">20%</text><text x="312.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">40%</text><text x="442.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">60%</text><text x="572.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">80%</text><text x="702.0" y="342" fill="#8b949e" font-size="11" text-anchor="middle">100%</text><text x="44" y="324.0" fill="#8b949e" font-size="11" text-anchor="end">0</text><text x="44" y="172.0" fill="#8b949e" font-size="11" text-anchor="end">50</text><text x="44" y="20.0" fill="#8b949e" font-size="11" text-anchor="end">100</text><text x="377.0" y="356" fill="#8b949e" font-size="11" text-anchor="middle">context occupancy</text><circle cx="117.3" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.9" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.5" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.2" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.6" cy="146.3" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.1" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.6" cy="267.1" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.7" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.3" cy="275.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.0" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.4" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.0" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="116.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="116.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="116.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="119.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="117.3" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="118.7" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="186.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.7" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="186.3" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.0" cy="146.3" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="182.4" cy="297.1" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.5" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="186.1" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="181.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="182.4" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="182.9" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="182.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="182.7" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="186.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.5" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="183.6" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="262.4" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.5" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="266.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="262.7" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.2" cy="92.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.6" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.0" cy="267.1" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="264.2" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="265.5" cy="273.2" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="262.1" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="262.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="264.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="264.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="264.5" cy="233.1" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="264.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.0" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="262.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="265.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="263.8" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="300.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="302.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="299.2" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="300.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.2" cy="92.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.6" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="298.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="300.1" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.1" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="302.5" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="302.2" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="302.2" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.7" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.0" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="300.4" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="298.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="301.8" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.1" cy="309.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="359.9" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="355.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.4" cy="92.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.2" cy="275.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="358.7" cy="184.9" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="355.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.0" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.3" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.8" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="355.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="356.0" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.9" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="357.0" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.2" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.4" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="444.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="439.7" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.6" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.1" cy="259.2" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="442.9" cy="275.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="439.5" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.5" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="442.3" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="441.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.0" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="439.8" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="442.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="440.8" cy="264.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.2" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.8" cy="297.5" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.1" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.5" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.5" cy="92.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="471.4" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="469.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.6" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="471.9" cy="282.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="469.9" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.3" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.5" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="471.7" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="471.4" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="471.4" cy="233.1" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.5" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="469.8" cy="218.7" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.6" cy="16.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="472.0" cy="320.0" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><circle cx="470.2" cy="59.4" r="2.5" fill="#58a6ff" fill-opacity="0.30"/><polyline points="116.7,16.0 116.7,168.0 117.0,16.0 117.2,16.0 117.3,275.0 117.3,320.0 117.6,267.1 117.7,16.0 117.9,16.0 118.0,16.0 118.1,16.0 118.4,16.0 118.5,320.0 118.6,146.3 118.8,189.7 118.9,320.0 119.0,320.0 181.8,16.0 182.1,320.0 182.4,297.1 182.5,16.0 182.7,218.7 182.9,59.4 183.0,233.1 183.1,320.0 183.3,16.0 183.4,16.0 183.4,320.0 183.5,320.0 183.6,189.7 183.8,218.7 186.1,16.0 186.3,320.0 186.8,168.0 262.1,16.0 262.4,320.0 262.7,168.0 262.7,16.0 263.0,218.7 263.1,267.1 263.2,92.0 263.5,320.0 263.6,16.0 263.8,59.4 263.8,16.0 264.1,320.0 264.2,320.0 264.6,276.6 264.9,16.0 265.1,320.0 265.5,273.2 266.7,16.0 298.8,16.0 298.9,320.0 299.2,320.0 300.1,16.0 300.3,16.0 300.4,16.0 300.8,320.0 301.0,218.7 301.1,320.0 301.1,16.0 301.3,92.0 301.6,16.0 301.7,320.0 301.8,320.0 301.9,37.7 302.0,320.0 302.2,189.7 302.5,16.0 355.7,16.0 355.7,16.0 355.9,16.0 355.9,16.0 356.0,320.0 356.2,275.0 356.3,16.0 356.3,16.0 356.4,92.0 356.8,320.0 357.0,131.8 357.2,309.7 357.3,320.0 357.6,16.0 357.8,320.0 357.9,320.0 358.7,184.9 359.9,320.0 439.5,16.0 439.7,16.0 439.8,16.0 440.0,218.7 440.1,259.2 440.2,320.0 440.5,16.0 440.6,16.0 440.8,264.7 441.0,320.0 441.1,320.0 441.2,16.0 441.4,320.0 441.5,320.0 441.6,320.0 442.3,320.0 442.6,320.0 442.9,275.0 444.1,320.0 469.8,218.7 469.9,16.0 470.1,320.0 470.2,189.7 470.3,16.0 470.5,92.0 470.5,117.3 470.6,168.0 470.8,297.5 471.4,124.6 471.4,320.0 471.8,320.0 471.9,282.0 472.0,320.0" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-opacity="0.6"/><line class="errbar" x1="116.7" y1="16.0" x2="116.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="116.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="116.7" y1="16.0" x2="116.7" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="116.7" cy="168.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.0" y1="16.0" x2="117.0" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.0" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.2" y1="16.0" x2="117.2" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.2" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.3" y1="275.0" x2="117.3" y2="275.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.3" cy="275.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.3" y1="320.0" x2="117.3" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.3" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.6" y1="267.1" x2="117.6" y2="267.1" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.6" cy="267.1" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.7" y1="16.0" x2="117.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="117.9" y1="16.0" x2="117.9" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="117.9" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.0" y1="16.0" x2="118.0" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.0" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.1" y1="16.0" x2="118.1" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.1" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.4" y1="16.0" x2="118.4" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.4" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.5" y1="320.0" x2="118.5" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.5" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.6" y1="146.3" x2="118.6" y2="146.3" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.6" cy="146.3" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.8" y1="16.0" x2="118.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.8" cy="189.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="118.9" y1="320.0" x2="118.9" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="118.9" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="119.0" y1="320.0" x2="119.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="119.0" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="181.8" y1="16.0" x2="181.8" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="181.8" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="182.1" y1="320.0" x2="182.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="182.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="182.4" y1="297.1" x2="182.4" y2="297.1" stroke="#58a6ff" stroke-width="1.5"/><circle cx="182.4" cy="297.1" r="3.5" fill="#58a6ff"/><line class="errbar" x1="182.5" y1="16.0" x2="182.5" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="182.5" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="182.7" y1="218.7" x2="182.7" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="182.7" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="182.9" y1="59.4" x2="182.9" y2="59.4" stroke="#58a6ff" stroke-width="1.5"/><circle cx="182.9" cy="59.4" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.0" y1="62.9" x2="183.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.0" cy="233.1" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.1" y1="320.0" x2="183.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.3" y1="16.0" x2="183.3" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.3" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.4" y1="16.0" x2="183.4" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.4" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.4" y1="320.0" x2="183.4" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.4" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.5" y1="320.0" x2="183.5" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.5" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.6" y1="16.0" x2="183.6" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.6" cy="189.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="183.8" y1="218.7" x2="183.8" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="183.8" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="186.1" y1="16.0" x2="186.1" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="186.1" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="186.3" y1="320.0" x2="186.3" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="186.3" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="186.8" y1="16.0" x2="186.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="186.8" cy="168.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="262.1" y1="16.0" x2="262.1" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="262.1" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="262.4" y1="320.0" x2="262.4" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="262.4" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="262.7" y1="16.0" x2="262.7" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="262.7" cy="168.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="262.7" y1="16.0" x2="262.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="262.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.0" y1="218.7" x2="263.0" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.0" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.1" y1="267.1" x2="263.1" y2="267.1" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.1" cy="267.1" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.2" y1="92.0" x2="263.2" y2="92.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.2" cy="92.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.5" y1="320.0" x2="263.5" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.5" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.6" y1="16.0" x2="263.6" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.6" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.8" y1="59.4" x2="263.8" y2="59.4" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.8" cy="59.4" r="3.5" fill="#58a6ff"/><line class="errbar" x1="263.8" y1="16.0" x2="263.8" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="263.8" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="264.1" y1="320.0" x2="264.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="264.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="264.2" y1="320.0" x2="264.2" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="264.2" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="264.6" y1="191.5" x2="264.6" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="264.6" cy="276.6" r="3.5" fill="#58a6ff"/><line class="errbar" x1="264.9" y1="16.0" x2="264.9" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="264.9" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="265.1" y1="320.0" x2="265.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="265.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="265.5" y1="273.2" x2="265.5" y2="273.2" stroke="#58a6ff" stroke-width="1.5"/><circle cx="265.5" cy="273.2" r="3.5" fill="#58a6ff"/><line class="errbar" x1="266.7" y1="16.0" x2="266.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="266.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="298.8" y1="16.0" x2="298.8" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="298.8" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="298.9" y1="320.0" x2="298.9" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="298.9" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="299.2" y1="320.0" x2="299.2" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="299.2" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="300.1" y1="16.0" x2="300.1" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="300.1" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="300.3" y1="16.0" x2="300.3" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="300.3" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="300.4" y1="16.0" x2="300.4" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="300.4" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="300.8" y1="320.0" x2="300.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="300.8" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.0" y1="218.7" x2="301.0" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.0" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.1" y1="320.0" x2="301.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.1" y1="16.0" x2="301.1" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.1" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.3" y1="92.0" x2="301.3" y2="92.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.3" cy="92.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.6" y1="16.0" x2="301.6" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.6" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.7" y1="320.0" x2="301.7" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.7" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.8" y1="320.0" x2="301.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.8" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="301.9" y1="16.0" x2="301.9" y2="80.3" stroke="#58a6ff" stroke-width="1.5"/><circle cx="301.9" cy="37.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="302.0" y1="320.0" x2="302.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="302.0" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="302.2" y1="16.0" x2="302.2" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="302.2" cy="189.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="302.5" y1="16.0" x2="302.5" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="302.5" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="355.7" y1="16.0" x2="355.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="355.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="355.7" y1="16.0" x2="355.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="355.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="355.9" y1="16.0" x2="355.9" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="355.9" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="355.9" y1="16.0" x2="355.9" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="355.9" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.0" y1="320.0" x2="356.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.0" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.2" y1="275.0" x2="356.2" y2="275.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.2" cy="275.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.3" y1="16.0" x2="356.3" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.3" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.3" y1="16.0" x2="356.3" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.3" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.4" y1="92.0" x2="356.4" y2="92.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.4" cy="92.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="356.8" y1="320.0" x2="356.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="356.8" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.0" y1="16.0" x2="357.0" y2="317.9" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.0" cy="131.8" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.2" y1="309.7" x2="357.2" y2="309.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.2" cy="309.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.3" y1="320.0" x2="357.3" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.3" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.6" y1="16.0" x2="357.6" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.6" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.8" y1="320.0" x2="357.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.8" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="357.9" y1="320.0" x2="357.9" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="357.9" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="358.7" y1="184.9" x2="358.7" y2="184.9" stroke="#58a6ff" stroke-width="1.5"/><circle cx="358.7" cy="184.9" r="3.5" fill="#58a6ff"/><line class="errbar" x1="359.9" y1="320.0" x2="359.9" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="359.9" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="439.5" y1="16.0" x2="439.5" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="439.5" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="439.7" y1="16.0" x2="439.7" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="439.7" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="439.8" y1="16.0" x2="439.8" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="439.8" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.0" y1="218.7" x2="440.0" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.0" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.1" y1="259.2" x2="440.1" y2="259.2" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.1" cy="259.2" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.2" y1="320.0" x2="440.2" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.2" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.5" y1="16.0" x2="440.5" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.5" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.6" y1="16.0" x2="440.6" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.6" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="440.8" y1="264.7" x2="440.8" y2="264.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="440.8" cy="264.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.0" y1="320.0" x2="441.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.0" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.1" y1="320.0" x2="441.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.2" y1="16.0" x2="441.2" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.2" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.4" y1="320.0" x2="441.4" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.4" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.5" y1="320.0" x2="441.5" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.5" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="441.6" y1="320.0" x2="441.6" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="441.6" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="442.3" y1="320.0" x2="442.3" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="442.3" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="442.6" y1="320.0" x2="442.6" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="442.6" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="442.9" y1="275.0" x2="442.9" y2="275.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="442.9" cy="275.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="444.1" y1="320.0" x2="444.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="444.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="469.8" y1="218.7" x2="469.8" y2="218.7" stroke="#58a6ff" stroke-width="1.5"/><circle cx="469.8" cy="218.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="469.9" y1="16.0" x2="469.9" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="469.9" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.1" y1="320.0" x2="470.1" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.1" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.2" y1="16.0" x2="470.2" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.2" cy="189.7" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.3" y1="16.0" x2="470.3" y2="16.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.3" cy="16.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.5" y1="92.0" x2="470.5" y2="92.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.5" cy="92.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.5" y1="16.0" x2="470.5" y2="315.9" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.5" cy="117.3" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.6" y1="16.0" x2="470.6" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.6" cy="168.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="470.8" y1="297.5" x2="470.8" y2="297.5" stroke="#58a6ff" stroke-width="1.5"/><circle cx="470.8" cy="297.5" r="3.5" fill="#58a6ff"/><line class="errbar" x1="471.4" y1="16.0" x2="471.4" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="471.4" cy="124.6" r="3.5" fill="#58a6ff"/><line class="errbar" x1="471.4" y1="320.0" x2="471.4" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="471.4" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="471.8" y1="320.0" x2="471.8" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="471.8" cy="320.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="471.9" y1="282.0" x2="471.9" y2="282.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="471.9" cy="282.0" r="3.5" fill="#58a6ff"/><line class="errbar" x1="472.0" y1="320.0" x2="472.0" y2="320.0" stroke="#58a6ff" stroke-width="1.5"/><circle cx="472.0" cy="320.0" r="3.5" fill="#58a6ff"/></svg>
+    <div class="legend">
+      <span><i class="sw" style="background:#2ea04326"></i>smart zone</span>
+      <span><i class="sw" style="background:#f8514926"></i>dumb zone</span>
+      <span><i class="sw" style="background:#f0883e"></i>changepoint + CI</span>
+    </div>
+    <figcaption>Agent score vs context occupancy. Zones split at the detected changepoint; the band is its bootstrap CI.</figcaption>
+  </figure>
+
+  <details>
+    <summary>Raw data (inline — this report is fully self-contained)</summary>
+    <pre id="cib-data">[
+  {
+    &quot;occupancy_pct&quot;: 0.10052490234375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.102935791015625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.102264404296875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.100341796875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.1024169921875,
+    &quot;score&quot;: 57.14285714285715
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.1016845703125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.10089111328125,
+    &quot;score&quot;: 17.391304347826082
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.1026611328125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.10040283203125,
+    &quot;score&quot;: 14.814814814814813
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.10003662109375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.102081298828125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.101593017578125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.0994873046875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.099639892578125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.099609375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.103118896484375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.101409912109375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.101104736328125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.100494384765625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.102691650390625,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.207427978515625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.202667236328125,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.201690673828125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20660400390625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.201507568359375,
+    &quot;score&quot;: 57.14285714285715
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.202056884765625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20062255859375,
+    &quot;score&quot;: 7.547169811320755
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.202392578125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.202239990234375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.206298828125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.199676513671875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20068359375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20196533203125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20147705078125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.201446533203125,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.2000732421875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.201141357421875,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.207366943359375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.20233154296875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.202423095703125,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.32366943359375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.325439453125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.330291748046875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.324127197265625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.324920654296875,
+    &quot;score&quot;: 74.99999999999999
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.325469970703125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.324676513671875,
+    &quot;score&quot;: 17.391304347826082
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.326446533203125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.32843017578125,
+    &quot;score&quot;: 15.384615384615385
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.32318115234375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.32586669921875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3240966796875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3275146484375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3270263671875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.326995849609375,
+    &quot;score&quot;: 28.57142857142857
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.326263427734375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.324554443359375,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.324249267578125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.327880859375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.325836181640625,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.382843017578125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.384613037109375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.38031005859375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.38201904296875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.383453369140625,
+    &quot;score&quot;: 74.99999999999999
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.384002685546875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.383209228515625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.38433837890625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.379669189453125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3817138671875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3843994140625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.383270263671875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.385406494140625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.384918212890625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3848876953125,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3841552734375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.383087158203125,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.38214111328125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.3797607421875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.384368896484375,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.467681884765625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.469451904296875,
+    &quot;score&quot;: 3.389830508474576
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.473663330078125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.467498779296875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.468292236328125,
+    &quot;score&quot;: 74.99999999999999
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.46820068359375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.468048095703125,
+    &quot;score&quot;: 14.814814814814813
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.46917724609375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.4718017578125,
+    &quot;score&quot;: 44.44444444444445
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.467193603515625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.46923828125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.468109130859375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.470245361328125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.47039794921875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.4697265625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.468994140625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.46728515625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.467620849609375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.470611572265625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.469207763671875,
+    &quot;score&quot;: 85.71428571428571
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.5972900390625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.59906005859375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.603271484375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.596466064453125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.598541259765625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.597808837890625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.597015380859375,
+    &quot;score&quot;: 20.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.59942626953125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.601409912109375,
+    &quot;score&quot;: 14.814814814814813
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.596160888671875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.598846435546875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.59771728515625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.600494384765625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.599365234375,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.599334716796875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.598602294921875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.596893310546875,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.596588134765625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.600860595703125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.598175048828125,
+    &quot;score&quot;: 18.181818181818183
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.6434326171875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.644317626953125,
+    &quot;score&quot;: 7.4074074074074066
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.64324951171875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.643890380859375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.643798828125,
+    &quot;score&quot;: 74.99999999999999
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.645233154296875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.642913818359375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.64404296875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.646026611328125,
+    &quot;score&quot;: 12.5
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.6429443359375,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.643463134765625,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.64385986328125,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.645751953125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.645263671875,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.645233154296875,
+    &quot;score&quot;: 28.571428571428577
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.64385986328125,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.642791748046875,
+    &quot;score&quot;: 33.33333333333333
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.644012451171875,
+    &quot;score&quot;: 100.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.6461181640625,
+    &quot;score&quot;: 0.0
+  },
+  {
+    &quot;occupancy_pct&quot;: 0.6434326171875,
+    &quot;score&quot;: 85.71428571428571
+  }
+]</pre>
+  </details>
+</div>
+</body>
+</html>

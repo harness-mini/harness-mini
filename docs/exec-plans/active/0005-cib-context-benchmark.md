@@ -180,9 +180,13 @@ chain. The lanes converge at **#5** (needs #4) → **#6** (integrates all).
   under control, even on the paper's own model** (flat ~30 ±15 across 11–82%). Conclusion +
   limits in `results/FINDINGS.md`; **A1 updated** (empirical "paper proved 40%" support withdrawn;
   40% kept as conservative default only). Transport hardened (URLError/SSL backoff, #13).
-- **Next (optional):** replicate the paper's natural-doc QA-F1 task with/without truncation-control
-  to test the difficulty-confound hypothesis directly; or D2 k=2 high-N on gpt-4o-mini for contrast.
-  Balance ~$6.2.
+- **QA-F1 confound test DONE (#14, Qwen2.5-7B):** real HotpotQA, same 20 Q/bucket, filler vs
+  distractor fill. **Pure occupancy flat (60→62); interference declines (49→41).** ⇒ the cliff
+  is interference density, not raw occupancy — the natural-length confound, mechanistic (but
+  gradual, modest, one model). Data in `results/qwen2.5-7b-qa-confound/`; full writeup in
+  `results/FINDINGS.md`; **A1 updated** ("40% = conservative default, not a law").
+- **Next (optional):** filler-vs-distractor on a frontier model (gpt-4o-mini) for contrast; push
+  distractor occupancy higher. Balance ~$5.6. Otherwise the investigation's core question is answered.
 
 ## Next
 - Skeleton → evaluate (L2) → horizontal expansion (#7–#11) → run on current model →
