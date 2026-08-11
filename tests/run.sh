@@ -468,6 +468,55 @@ assert_contains "$out" "garden: ok" "garden ok with <3 non-high items and no cad
 rm -rf "$GDIR"
 
 # =============================================================================
+echo "harness.sh status — readiness verdict (ready|warning|blocked) + plan-scoped resumable"
+RDY="$(mktemp -d)"; mkdir -p "$RDY/.claude/skills/x" "$RDY/docs/exec-plans/active" \
+  "$RDY/.trace/checkpoints" "$RDY/.trace/evals" "$RDY/harness"
+printf 'AGENTS\n' > "$RDY/AGENTS.md"
+printf 'version: 0.0.0\n' > "$RDY/harness/harness.lock"
+printf 'x\n' > "$RDY/.claude/skills/x/SKILL.md"
+# healthy install, active plan + matching checkpoint -> ready + resumable yes
+printf -- '---\nplan: alpha\nseq: 0001\nstage: implement\n---\n## Now\n- ship slice one\n' \
+  > "$RDY/docs/exec-plans/active/0001-alpha.md"
+printf -- '---\nplan: alpha\nseq: 001\n---\n' > "$RDY/.trace/checkpoints/alpha-001.md"
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
+assert_exit 0 "$code" "status readiness: healthy exits 0"
+assert_contains "$out" "ready: ready" "status readiness: ready when install+plan+cp ok"
+assert_contains "$out" "ship slice one" "status readiness: next action from plan Now"
+assert_contains "$out" "resumable: yes" "status readiness: plan-scoped checkpoint => resumable yes"
+# foreign checkpoint alone must NOT make resumable yes (plan-scoped)
+rm -f "$RDY/.trace/checkpoints/alpha-001.md"
+printf -- '---\nplan: other\nseq: 001\n---\n' > "$RDY/.trace/checkpoints/other-001.md"
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "resumable: partial" "status readiness: foreign checkpoint ignored"
+assert_contains "$out" "ready: warning" "status readiness: partial resume => warning"
+# no active plan => warning (not blocked), resumable no
+rm -f "$RDY/docs/exec-plans/active/"*.md
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "ready: warning" "status readiness: no active plan => warning"
+assert_contains "$out" "resumable: no" "status readiness: no plan => resumable no"
+# install broken (no AGENTS.md) => blocked
+rm -f "$RDY/AGENTS.md"
+printf -- '---\nplan: alpha\nseq: 0001\nstage: implement\n---\n' \
+  > "$RDY/docs/exec-plans/active/0001-alpha.md"
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "ready: blocked" "status readiness: missing AGENTS.md => blocked"
+# restore AGENTS; done without eval => blocked
+printf 'AGENTS\n' > "$RDY/AGENTS.md"
+printf -- '---\nplan: shipit\nseq: 0001\nstage: done\n---\n' \
+  > "$RDY/docs/exec-plans/active/0001-shipit.md"
+rm -f "$RDY/docs/exec-plans/active/0001-alpha.md"
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "ready: blocked" "status readiness: done without eval => blocked"
+assert_contains "$out" "evaluate" "status readiness: blocked next-action mentions evaluate"
+# passing eval clears the done-gate block (garden/update quiet) -> ready
+printf -- '---\nplan: shipit\nseq: 001\ntier: L1\nverdict: pass\n---\n' \
+  > "$RDY/.trace/evals/shipit-001.md"
+printf -- '---\nplan: shipit\nseq: 001\n---\n' > "$RDY/.trace/checkpoints/shipit-001.md"
+out="$(HARNESS_ROOT="$RDY" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "ready: ready" "status readiness: done+pass eval => ready"
+rm -rf "$RDY"
+
+# =============================================================================
 echo "harness.sh report — aggregate .trace into a metrics summary (grep/awk only)"
 RPT="$(mktemp -d)"; mkdir -p "$RPT/harness" "$RPT/.trace/runtime" "$RPT/.trace/checkpoints" "$RPT/.trace/evals"
 printf 'version: 0.6.0\n' > "$RPT/harness/harness.lock"

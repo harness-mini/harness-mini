@@ -29,6 +29,21 @@ offline. Then continue.
 Record the chosen evaluation tier in the plan's `eval:` field (see the `evaluate`
 skill); the `evaluate` exit condition below reads it.
 
+## Plan-stage write ban (convention — no permission engine)
+While an active plan's `stage` is **`intake`**, **`prd`**, or **`issues`**,
+agents **MUST NOT** modify product code. Allowed edits in those stages:
+
+- `docs/` (including `docs/exec-plans/`)
+- `.trace/` (checkpoints, evals, garden backlog)
+- harness plan/skill/agent docs **only when the change is the plan itself**
+  (e.g. writing this plan's PRD) — not drive-by refactors of unrelated skills
+
+Product code (application source, and for harness-mini itself: `bin/` behavior
+changes unrelated to the plan's stated issues) waits until `stage: implement`.
+This is a **convention** enforced by the main agent / planner — Mini does not
+ship a git dirty-tree checker. Cold sessions: prefer `bin/harness.sh status`
+(`ready:` line) before acting.
+
 ## Fan out the implement stage (full mode)
 You are the orchestrator. Once the **vertical skeleton** passes evaluate (the path
 is proven, the layer contract pinned), you may build the remaining independent

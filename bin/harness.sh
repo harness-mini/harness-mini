@@ -314,33 +314,44 @@ cmd_doctor() {
 }
 
 # cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
+# Ends with a single readiness verdict (OpenHarness dry-run idea, Mini-shaped):
+#   ready: <ready|warning|blocked> — <one next action>
 cmd_status() {
   local root="$HARNESS_ROOT"
   echo "harness-mini $(installed_version)"
 
   # update check (best-effort) — remind on entry if a newer harness-mini exists.
   # Silent when offline/unknown so the cold-resume view stays fast & quiet.
-  local _latest; _latest="$(latest_version)"
+  local _latest _behind=no
+  _latest="$(latest_version)"
   if [ -n "$_latest" ] && version_newer "$(installed_version)" "$_latest"; then
     echo "update: $_latest available — run \`harness.sh update\`"
+    _behind=yes
   fi
 
+  local f plan stage cp nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
   if ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"
-    local f plan stage cp
     for f in "$root"/docs/exec-plans/active/*.md; do
+      [ -f "$f" ] || continue
       plan="$(awk -F': *' '/^plan:/{print $2; exit}' "$f")"
       stage="$(awk -F': *' '/^stage:/{print $2; exit}' "$f")"
       [ -z "$plan" ] && plan="$(basename "$f" .md)"
       printf '  %-24s stage: %s\n' "$plan" "${stage:-?}"
       cp="$(ls "$root"/.trace/checkpoints/"$plan"-*.md 2>/dev/null | sort | tail -n1)"
       [ -n "$cp" ] && printf '     last checkpoint: %s\n' "$(basename "$cp" .md)"
+      nplans=$((nplans + 1))
+      [ -n "$cp" ] && nplans_with_cp=$((nplans_with_cp + 1))
+      if [ -z "$first_plan" ]; then
+        first_plan="$plan"; first_stage="${stage:-?}"; first_file="$f"
+      fi
     done
   else
     echo "active plans: none"
   fi
 
-  echo "update conflicts: $(count_dotnew "$root") .new file(s)"
+  local nnew; nnew="$(count_dotnew "$root")"
+  echo "update conflicts: $nnew .new file(s)"
 
   local newest last cpct ev run
   newest="$(ls -t "$root"/.trace/runtime/*.jsonl 2>/dev/null | head -n1)"
@@ -375,16 +386,73 @@ cmd_status() {
   fi
   printf 'garden: %s (%s checkpoint(s) since last; %s backlog item(s))\n' "$gdue" "$since" "$open"
 
-  local hasplan=no hascp=no
-  ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1 && hasplan=yes
-  ls "$root"/.trace/checkpoints/*.md >/dev/null 2>&1 && hascp=yes
-  if [ "$hasplan" = yes ] && [ "$hascp" = yes ]; then
-    echo "resumable: yes (active plan + checkpoint)"
-  elif [ "$hasplan" = yes ]; then
-    echo "resumable: partial (plan, no checkpoint yet)"
-  else
+  # resumable — plan-scoped: only checkpoints matching an active plan's slug count
+  local resume=no
+  if [ "$nplans" -eq 0 ]; then
     echo "resumable: no (no active plan)"
+    resume=no
+  elif [ "$nplans_with_cp" -eq "$nplans" ]; then
+    echo "resumable: yes (active plan + checkpoint)"
+    resume=yes
+  else
+    echo "resumable: partial (plan, no checkpoint yet)"
+    resume=partial
   fi
+
+  # readiness verdict — one line; blocked > warning > ready (grill #1 → A)
+  local level=ready next="" nskills done_plan="" r
+  nskills=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+  [ -z "$nskills" ] && nskills=0
+
+  if [ ! -f "$root/AGENTS.md" ]; then
+    level=blocked; next="restore AGENTS.md (re-run init.sh)"
+  elif [ "$nskills" -eq 0 ]; then
+    level=blocked; next="install skills (re-run init.sh)"
+  else
+    for f in "$root"/docs/exec-plans/active/*.md; do
+      [ -f "$f" ] || continue
+      stage="$(awk -F': *' '/^stage:/{print $2; exit}' "$f")"
+      [ "$stage" = "done" ] || continue
+      plan="$(awk -F': *' '/^plan:/{print $2; exit}' "$f")"
+      [ -z "$plan" ] && plan="$(basename "$f" .md)"
+      local evf has_pass=no
+      for evf in "$root"/.trace/evals/"$plan"-*.md; do
+        [ -f "$evf" ] && grep -q '^verdict: pass' "$evf" && { has_pass=yes; break; }
+      done
+      if [ "$has_pass" != "yes" ]; then
+        level=blocked
+        done_plan="$plan"
+        next="run evaluate for $plan (anti-self-praise gate)"
+        break
+      fi
+    done
+  fi
+
+  if [ "$level" != "blocked" ]; then
+    if [ "$nplans" -eq 0 ]; then
+      level=warning; next="open a plan (docs/templates/quick-plan.md or full-plan.md)"
+    elif [ "$nnew" -gt 0 ]; then
+      level=warning; next="resolve $nnew .new file(s) from update"
+    elif [ "$gdue" = "DUE" ]; then
+      level=warning; next="dispatch gardener (garden: DUE)"
+    elif [ "$_behind" = "yes" ]; then
+      level=warning; next="run harness.sh update ($_latest available)"
+    elif [ "$resume" = "partial" ]; then
+      level=warning; next="write a checkpoint for $first_plan before continuing"
+    else
+      # ready — prefer the plan's ## Now first bullet
+      next="$(awk '
+        /^## Now/ { in_now=1; next }
+        in_now && /^## / { exit }
+        in_now && /^[[:space:]]*-[[:space:]]+/ {
+          sub(/^[[:space:]]*-[[:space:]]+/, ""); print; exit
+        }
+      ' "$first_file" 2>/dev/null)"
+      [ -n "$next" ] || next="continue $first_plan at stage $first_stage"
+    fi
+  fi
+
+  printf 'ready: %s — %s\n' "$level" "$next"
   return 0
 }
 

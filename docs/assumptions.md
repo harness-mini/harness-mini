@@ -98,3 +98,24 @@ re-tested against the current model.
   well, so heavy caps may be noise — but the convention is woven through every doc
   (principle #9) and there's no A/B signal, so don't rip it out blind. Highest-
   priority experiment: A/B a constraint with vs without caps on the current model.
+
+## A6 — Status readiness verdict (`ready:` line)
+- **Assumption:** a cold session will act on a one-line `ready|warning|blocked`
+  verdict + next action from `harness.sh status`, reducing re-decision drift.
+- **Patches:** agents (and humans) seeing raw status facts but re-deriving "what
+  next" each time; OpenHarness-style dry-run readiness without a second CLI.
+- **Test if stale:** sample N cold resumes; count how often the next action taken
+  matches the `ready:` next-action. If agents ignore the line (≥50% mismatch)
+  on the current model, **delete the line** (Five-Step step 2).
+- **Status:** registered 2026-08-11 · plan `session-ops`.
+
+## A7 — Plan-stage write ban (convention-only)
+- **Assumption:** stating a MUST in `stage-viewer` (no git dirty-tree checker)
+  is enough to stop product-code edits during intake/prd/issues.
+- **Patches:** agents "helpfully" implementing before the walking skeleton is
+  authorized; Mini refuses a permission engine.
+- **Test if stale:** audit N plans for product-code commits while `stage` ∈
+  {intake,prd,issues}. If violations are common, consider the ≤10% add-back
+  (soft doctor WARN) recorded in `session-ops` five-step — or delete the
+  convention if models already abstain unaided.
+- **Status:** registered 2026-08-11 · plan `session-ops`.
