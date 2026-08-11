@@ -78,12 +78,13 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 
 `bin/harness.sh help` lists the commands (`version` · `update` · `doctor` ·
 `status` · `report` · `release`); installed version + checksums live in
-`harness/harness.lock` (canonical source: `VERSION`). Two semantics that aren't
+`harness/harness.lock` (canonical source: `VERSION`). Semantics that aren't
 obvious from `--help`: `update` is **checksum-guarded** — your edits are kept,
 upstream lands as `<file>.new`, and `docs/exec-plans/` + `.trace/` are never
 touched; `doctor` enforces the **eval-gate** — a plan can't be `done` without a
-`verdict: pass` record in `.trace/evals/`. `release` is source-repo only (see the
-`release` skill).
+`verdict: pass` record in `.trace/evals/`; `status` ends with a **`ready:`**
+verdict (`ready|warning|blocked` + next action). `release` is source-repo only
+(see the `release` skill).
 
 ## Skills by stage
 

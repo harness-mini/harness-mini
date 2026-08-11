@@ -7,6 +7,19 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Session ops — cold-resume readiness without a second runtime (#38).**
+  `harness.sh status` now ends with a single `ready: <ready|warning|blocked> — <next>`
+  verdict (OpenHarness dry-run idea, Mini-shaped): blocked only for install-broken
+  or an active `done` plan without `verdict: pass`; warnings cover no plan, garden
+  DUE, `.new` conflicts, behind-latest, and partial resume. Resumable is
+  **plan-scoped** (foreign checkpoints no longer lie). Checkpoint skill gains an
+  additive `## Task state` block (acceptance / footprint / last green / open
+  issues). `stage-viewer` + planner document a plan-stage write ban (convention
+  only — no permission engine) for `intake`/`prd`/`issues`. Assumptions **A6** /
+  **A7** registered; short pointers in `AGENTS.md` / `ARCHITECTURE.md`. Plan:
+  `docs/exec-plans/completed/0006-session-ops.md`.
+
 ## [0.9.0] - 2026-06-24
 
 ### Added

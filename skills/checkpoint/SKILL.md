@@ -30,6 +30,13 @@ prev: <plan>-<seq-1 or none>
 - <what is mid-flight, exact state>
 ## Next (resume here)
 - <the very first action the next session should take>
+## Task state
+<!-- Compact-with-state payload (OpenHarness idea, Mini-shaped). Additive —
+     older checkpoints without this section remain valid. -->
+- Acceptance: <which plan ACs / issues are met vs open — or "none yet">
+- Footprint: <files/dirs in flight for the current slice — or "none">
+- Last green: <exact test/command that was green — or "none">
+- Open issues: <issue ids still open — or "none">
 ## Decisions
 - <choices made + where the rationale lives>
 ## Open questions / blockers

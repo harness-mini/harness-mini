@@ -66,6 +66,8 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 ```
 
 - State lives in each `docs/exec-plans/active/<plan>.md` frontmatter (`stage:`).
+- **Plan-stage write ban:** while `stage` ∈ {intake, prd, issues}, no product-code
+  edits (convention in `stage-viewer`; Mini has no permission engine).
 - **Transition authority (mode C):** agents work freely *within* a stage, but
   only the **main agent** (via `stage-viewer`) advances the FSM. No sub-agent
   may mark its own output "done" — the evaluator gate plus main-agent control
@@ -78,7 +80,8 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
   "periodically" — **≥5 checkpoints** since the last sweep, a plan completing, a
   pending release, or the **smell backlog** (`.trace/garden-backlog.md`) crossing
   its threshold (any `high` / ≥3 open). `harness.sh status` prints `garden:
-  DUE|ok`; the main agent dispatches the gardener. See the `garden` skill.
+  DUE|ok` and a final `ready: <ready|warning|blocked> — <next>` verdict; the
+  main agent dispatches the gardener. See the `garden` skill.
 
 ## Coding contract: horizontal + vertical (`slice-coding`)
 
