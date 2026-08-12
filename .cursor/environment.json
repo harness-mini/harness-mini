@@ -1,6 +1,6 @@
 {
   "name": "harness-mini",
-  "install": "sh .cursor/install.sh",
+  "install": "sh /agent/repos/harness-mini/.cursor/install.sh",
   "terminals": [
     {
       "name": "website-dev",
