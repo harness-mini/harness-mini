@@ -220,14 +220,12 @@ assert_eq "MY EDIT" "$(cat "$rule")" "re-run never overwrites a user-edited skil
 rm -rf "$CSRC" "$CNEW"
 
 # =============================================================================
-echo "repo assets — parallel-slices skill exists and is mirrored to .claude/"
+echo "repo assets — parallel-slices skill exists"
 assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill source exists"
-assert_eq "true" "$([ -f "$ROOT/.claude/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill is mirrored to .claude/skills/"
 
 # =============================================================================
 echo "tdd skill — one red→green cycle per acceptance criterion (#29)"
 assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd source requires a failing test per acceptance criterion"
-assert_contains "$(cat "$ROOT/.claude/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd mirror carries the per-criterion rule"
 
 # =============================================================================
 echo "harness.sh version — report the installed harness version"
@@ -562,7 +560,7 @@ assert_contains "$out" "evaluation on record" "doctor confirms the eval record"
 rm -rf "$EG"
 
 # =============================================================================
-echo "ctx-hook.sh — heuristic context gauge for the Claude Code PostToolUse hook"
+echo "ctx-hook.sh — heuristic context gauge for the PostToolUse hook"
 HK="$BIN/ctx-hook.sh"
 HKT="$(mktemp -d)"
 big="$HKT/big.jsonl"; head -c 4000 /dev/zero | tr '\0' x > "$big"   # ~4000 bytes -> ~1000 est tokens

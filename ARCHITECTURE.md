@@ -30,7 +30,7 @@ docs/
   references/          # *-llms.txt distillates of the source blogs
 tests/run.sh           # zero-dep TDD suite for bin/* and init.sh
 harness/
-  manifest.md          # neutral pointer list for non-Claude CLIs
+  manifest.md          # pointer list of installed skill and agent files
   harness.lock         # installed version + pristine checksums of managed files
 .trace/
   checkpoints/         # COMMITTED — decisions, milestones, handoffs

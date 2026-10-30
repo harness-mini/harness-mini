@@ -3,4 +3,4 @@ description: Decompose a PRD into atomic, testable issues — the executable wor
 alwaysApply: false
 ---
 
-harness-mini skill **to-issues**. Read `.claude/skills/to-issues/SKILL.md` and follow it for this task.
+harness-mini skill **to-issues**. Read `skills/to-issues/SKILL.md` and follow it for this task.

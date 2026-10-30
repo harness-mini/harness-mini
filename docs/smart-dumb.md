@@ -102,12 +102,13 @@ everything, so it naturally stays under budget.
 **Behavioral + structural**, not a hard runtime kill: agents follow this
 protocol and the explorer firewall does the heavy lifting.
 
-### Give the 40% line teeth (opt-in, Claude Code)
+### Give the 40% line teeth (opt-in hook)
 The rule only bites if something *watches*. `bin/ctx-hook.sh` is a PostToolUse
 adapter that, after every tool call, estimates context from the transcript size,
 records a `ctx_pct` sample (so `harness.sh report` has real data), and nudges you
-to checkpoint once you cross the line. It's the one Claude-Code-specific file —
-**opt-in**, so the harness stays CLI-agnostic. Wire it up in `.claude/settings.json`:
+to checkpoint once you cross the line. It is **opt-in**. Hosts that don't emit
+the hook payload ignore it; everyone else can run `bin/ctx.sh` by hand. Wire the
+hook from `.claude/settings.json`:
 
 ```json
 {

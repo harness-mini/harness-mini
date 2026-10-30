@@ -163,6 +163,6 @@ straight to implement; everything else flows exactly like this.
 
 Next: read [`AGENTS.md`](../AGENTS.md) (the map), then
 [`docs/principles.md`](principles.md) (the Mini constraint + Five-Step core-mind).
-Driving a non-Claude agent? See
+Another host? See
 [`docs/codex-getting-started.md`](codex-getting-started.md) /
 [`docs/cursor-getting-started.md`](cursor-getting-started.md).

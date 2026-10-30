@@ -9,11 +9,11 @@
 #   existing project   -> recon graft: seed a RECON plan that maps the codebase
 #                         into ARCHITECTURE.md via the Explorer; no founder funnel.
 #
-# Install layout (decision: native .claude/ + neutral mirror):
-#   skills/  -> .claude/skills/    (auto-discovered by Claude Code)
-#   agents/  -> .claude/agents/    (auto-discovered by Claude Code)
+# Install layout (on-disk paths stay .claude/; any host reads the files):
+#   skills/  -> .claude/skills/
+#   agents/  -> .claude/agents/
 #   bin/ docs/ AGENTS.md ARCHITECTURE.md  -> copied as-is
-#   harness/manifest.md            -> neutral pointer list for other CLIs
+#   harness/manifest.md            -> pointer list of those files
 #
 # Usage:  init.sh [target_dir] [--mode new|existing]
 # Env:    HARNESS_SRC   source root (default: directory containing this script)
@@ -134,13 +134,13 @@ copy_file "$SRC/AGENTS.md"       "$DEST/AGENTS.md"
 copy_file "$SRC/ARCHITECTURE.md" "$DEST/ARCHITECTURE.md"
 chmod +x "$DEST"/bin/*.sh 2>/dev/null || true
 
-# --- neutral mirror manifest (for non-Claude CLIs) --------------------------
+# --- manifest: pointer list of the installed skill and agent files ----------
 if [ ! -f "$DEST/harness/manifest.md" ]; then
   {
-    echo "# harness-mini manifest (CLI-neutral pointer list)"
+    echo "# harness-mini manifest"
     echo
-    echo "Claude Code auto-loads skills/agents from .claude/. Other CLIs (codex,"
-    echo "cursor) should read the files below directly."
+    echo "Skills and agents are files under .claude/skills/ and .claude/agents/."
+    echo "Any coding agent that can read the repo should open the paths below."
     echo
     echo "## Skills (.claude/skills/)"
     ( cd "$DEST/.claude/skills" 2>/dev/null && {
@@ -158,7 +158,7 @@ fi
 
 # --- routing gate: seed each CLI's native always-on entry file ---------------
 # Additive + idempotent. So any agent prefers the harness over ad-hoc tools right
-# after install, without the user having to say so. CLAUDE.md (Claude Code) gets a
+# after install, without the user having to say so. CLAUDE.md gets a
 # marker-guarded block so a user's existing memory is never clobbered;
 # .cursor/rules/harness-mini.mdc (Cursor) is harness-owned and created only if
 # absent. Both restate the short gate and point at AGENTS.md (the full map).
@@ -183,7 +183,7 @@ else
 fi
 
 # --- Cursor skill mirror: one agent-requestable rule per skill (#23) ---------
-# Cursor doesn't auto-discover .claude/skills/ the way Claude Code does. Emit a
+# Cursor does not read .claude/skills/ on its own. Emit a
 # thin .cursor/rules/<name>.mdc per skill — `alwaysApply: false` + the skill's
 # `description:` — so Cursor's agent can pull a skill on demand by its description
 # (progressive-disclosure parity). Each rule points at the canonical SKILL.md
