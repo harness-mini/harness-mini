@@ -1,18 +1,34 @@
 # harness-mini
 
-Run an agent like Claude Code on a long task and it **drifts** — wandering off
-the goal, re-deciding settled questions, and polishing the wrong thing. Push the
-session further and its **context explodes**, as heavy reads and dead-end
-transcripts crowd out working memory until the agent goes dumb. Close the window
-and **session amnesia** wipes every hard-won decision, constraint, and in-flight
-plan you had built up.
+**A minimal outer harness for developers' long coding tasks.**
 
-harness-mini is a minimal, **Claude Code-first** agent harness — skills,
-sub-agents, and distilled best-practice docs over thin shell glue — that keeps a
-long-running agent on-task, context-light, and resumable across sessions. Skills
-and sub-agents are auto-discovered by Claude Code; any other CLI that reads
-Markdown and runs shell can drive the same files, though that path is secondary
-(see [CLI support](#cli-support)).
+Run a coding agent on a multi-session feature and it **drifts** — wandering off
+the goal, re-deciding settled questions, polishing the wrong thing. Push further
+and **context explodes** as heavy reads and dead ends crowd out working memory.
+Close the window and **session amnesia** wipes decisions, constraints, and
+in-flight plans.
+
+harness-mini keeps that work **on-task, context-light, and resumable**: repo
+conventions + thin shell glue (skills, sub-agents, distilled docs). It is an
+**outer harness for coding** — not a generic agent shell, not a sandbox
+platform. The contract is **files + shell**: any coding agent that can read the
+repo and run commands can drive it.
+
+### Who it's for / not for
+
+| For | Not for |
+|---|---|
+| Developers doing cross-session feature work who will commit plans & traces | One-shot Q&A, chat-only agents, or anyone who won't write plans to git |
+| Bootstrap → one feature at a time → independent eval → mergeable main | Generic non-coding long-running orchestration as the primary story |
+| Outer harness (guides + sensors) around your coding agent | IDE replacement, multi-agent SaaS, or "sandbox as the product" |
+
+### How it compares (one glance)
+
+| | harness-mini | Generic agent harness | Bare coding agent | Host CI only |
+|---|---|---|---|---|
+| Focus | **Coding** long tasks | Often domain-general | Single-session by default | Gates after the fact |
+| Cross-session bridge | Plans, checkpoints, evals in-repo | Varies / platform state | You reinvent it | No agent loop |
+| Done gate | Independent evaluate + `doctor` | Often self-report | Easy to self-praise | Pass/fail without agent education |
 
 ## Quick Demo
 
