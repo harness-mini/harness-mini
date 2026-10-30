@@ -7,8 +7,8 @@ The Ralph Wiggum loop: persist a task across context resets without a human
 babysitting each turn.
 
 ## Loop is a contract, not a tool
-"Loop" is a **CLI-neutral abstraction**, not one command. Every CLI binds it to a
-different native mechanism — but the contract is the same everywhere. A loop is:
+"Loop" is a contract, not one vendor command. Each host binds it to its own
+mechanism — the contract stays the same. A loop is:
 
 1. **Bounded** — a hard cap on iterations, so a stuck loop can't burn unbounded spend.
 2. **Externally checked** — a *separate* pass/fail predicate decides "done." The
@@ -25,16 +25,16 @@ have an objective pass/fail check AND might it exceed one session?**
   per-iteration checkpoints); don't pay it for a bounded, single-pass task.
 
 ### Adapter table — one contract, one fallback, thin per-CLI bindings
-Don't fork per-CLI implementations (that is anti-Mini — N sources of truth).
-`bin/ralph.sh` is already CLI-neutral: it runs `sh -c "$cmd"` and hardcodes no
-CLI. The `--cmd` indirection IS the seam that absorbs the difference.
+Don't fork per-host implementations (that is anti-Mini — N sources of truth).
+`bin/ralph.sh` runs `sh -c "$cmd"` and hardcodes no host. The `--cmd`
+indirection is the seam that absorbs the difference.
 
-| CLI / intent | native mechanism | when to prefer |
+| Host / intent | native mechanism | when to prefer |
 |---|---|---|
-| any — autonomous work→check→repeat | `bin/ralph.sh --cmd … --until …` | the portable default |
-| Codex / Cursor | their `-p`/exec equivalent passed to `--cmd` | = the fallback |
-| Claude Code — recurring / self-paced | `/loop`, `ScheduleWakeup` | interval polling, harness-tracked |
-| Claude Code — time-triggered | `schedule` (cron routines) | scheduled runs |
+| any — autonomous work→check→repeat | `bin/ralph.sh --cmd … --until …` | the default |
+| Codex / Cursor | their `-p`/exec equivalent passed to `--cmd` | same default |
+| host with `/loop` or `ScheduleWakeup` | `/loop`, `ScheduleWakeup` | interval polling, harness-tracked |
+| host with cron routines | `schedule` | scheduled runs |
 
 ## Mechanism
 `bin/ralph.sh --max N --until '<predicate>' --cmd '<work>'`
@@ -62,6 +62,6 @@ CLI. The `--cmd` indirection IS the seam that absorbs the difference.
 ```
 HARNESS_HUMAN_FLAG=.trace/needs-human \
 bin/ralph.sh --max 6 \
-  --until 'claude -p "run evaluator on plan auth; exit 0 iff all criteria pass"' \
-  --cmd   'claude -p "advance plan auth one slice via tdd + slice-coding"'
+  --until '<agent> -p "run evaluator on plan auth; exit 0 iff all criteria pass"' \
+  --cmd   '<agent> -p "advance plan auth one slice via tdd + slice-coding"'
 ```

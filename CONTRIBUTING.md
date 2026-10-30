@@ -32,7 +32,7 @@ The repo has two skill/agent trees, and confusing them is the #1 contributor tra
 | Tree | Status | You |
 |------|--------|-----|
 | `skills/<name>/SKILL.md`, `agents/<name>.md` | **canonical source** | **edit here** |
-| `.claude/skills/`, `.claude/agents/` | committed **generated mirror** (lets Claude Code discover the harness *in this repo*) | **don't hand-edit** |
+| `.claude/skills/`, `.claude/agents/` | committed **generated mirror** of the install layout | **don't hand-edit** |
 
 After editing a skill or agent, regenerate the mirror so they don't drift:
 
@@ -150,7 +150,7 @@ Use **GitHub Issues**. Search first — it may already be filed.
 
 - **Version:** output of `bin/harness.sh version`.
 - **Environment:** OS + shell (e.g. macOS / zsh, Ubuntu / bash), and which agent
-  CLI you're driving it with (claude / codex / cursor) if relevant.
+  CLI you're driving, if relevant.
 - **Steps to reproduce:** the exact commands.
 - **Expected vs. actual:** what you thought would happen, what did.
 - **Evidence:** the relevant slice of output, or a `.trace/runtime/*.jsonl` line.

@@ -1,21 +1,19 @@
 # Using harness-mini with Cursor
 
 harness-mini is an **environment, not a program** — Markdown skills/agents +
-distilled docs + thin POSIX shell. Claude Code auto-discovers `.claude/skills/`
-and `.claude/agents/`; Cursor doesn't, but it can use the same harness by reading
-the files. No adapter, no extension, no dependency.
+distilled docs + thin POSIX shell. Skills and agents live in `.claude/skills/`
+and `.claude/agents/`. Cursor does not read that tree by itself; `init.sh`
+also writes a thin `.cursor/rules/` pointer per skill. No extra runtime.
 
-> **Heads up — this is a secondary path.** harness-mini is Claude Code-first.
-> `init.sh` now mirrors each skill into `.cursor/rules/` as an **agent-requested**
-> rule (`alwaysApply: false` + the skill's `description`), so Cursor's agent can
-> surface a skill on demand — but you still reproduce sub-agents with separate
-> chats, and there's no equivalent of the 40%-line hook. The file-level mechanism
-> is tested **and now demonstrated once end-to-end**: a worked run
-> ([`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/),
+> **What differs on Cursor.** Sub-agents are separate chats, and there is no
+> 40%-line hook — use `bin/ctx.sh` by hand. `init.sh` mirrors each skill into
+> `.cursor/rules/` as an **agent-requested** rule (`alwaysApply: false` + the
+> skill's `description`), so Cursor's agent can surface a skill on demand. The
+> file-level mechanism is tested **and demonstrated once end-to-end**: a worked
+> run ([`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/),
 > [#23](https://github.com/harness-mini/harness-mini/issues/23)) shows Cursor
-> observably loading the gate and pulling skill rules on demand. That's one model
-> session, not a cross-version guarantee — so this stays a **secondary path**, not
-> claimed parity.
+> observably loading the gate and pulling skill rules on demand. That's one
+> model session, not a guarantee for every host.
 
 ## 1. Install
 

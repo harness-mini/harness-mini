@@ -562,7 +562,7 @@ assert_contains "$out" "evaluation on record" "doctor confirms the eval record"
 rm -rf "$EG"
 
 # =============================================================================
-echo "ctx-hook.sh — heuristic context gauge for the Claude Code PostToolUse hook"
+echo "ctx-hook.sh — heuristic context gauge for the PostToolUse hook"
 HK="$BIN/ctx-hook.sh"
 HKT="$(mktemp -d)"
 big="$HKT/big.jsonl"; head -c 4000 /dev/zero | tr '\0' x > "$big"   # ~4000 bytes -> ~1000 est tokens

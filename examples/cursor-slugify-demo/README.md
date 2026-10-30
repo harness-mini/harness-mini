@@ -80,8 +80,8 @@ bash bin/ctx.sh 80000 200000; echo "exit=$?"   # prints "40%", exit=2
 ```
 **What proves it:** `ctx.sh` prints the occupancy (`40%`) and signals via **exit code** —
 `2` means at/over the 40% line ("checkpoint now"), `0` means still in the smart zone
-(see `docs/smart-dumb.md`). That's the discipline the Claude Code hook automates, here
-run by hand. Paste both the `40%` line and `exit=2`.
+(see `docs/smart-dumb.md`). That's the discipline `bin/ctx-hook.sh` automates
+on hosts that wire it, here run by hand. Paste both the `40%` line and `exit=2`.
 
 ### Beat 4 — Evaluator firewall (separate chat)
 Open a **brand-new Cursor chat** (it must never have seen the build). **Type:**

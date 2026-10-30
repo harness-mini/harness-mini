@@ -1,13 +1,11 @@
 # Using harness-mini with OpenAI Codex
 
-harness-mini is **Claude Code-first, but CLI-portable** — it's an environment, not
-a program. Claude Code gets native auto-discovery of `.claude/skills/` and
-`.claude/agents/`; Codex doesn't, but it can use the exact same harness by
+harness-mini is an **environment, not a program**. Skills and agents are
+files under `.claude/skills/` and `.claude/agents/`. Codex uses them by
 **reading the files directly**. No adapter, no daemon, no dependency.
 
-> **This is a secondary path.** On Codex you load skills by hand and reproduce
-> sub-agents with separate sessions — it works, but it isn't at parity with the
-> Claude Code experience.
+> **What differs on Codex.** You open each skill by hand and reproduce
+> sub-agents as separate sessions.
 
 ## 1. Install (same as everyone)
 
@@ -69,6 +67,5 @@ bash bin/trace.sh codex implement tool_call ctx_pct=22   # log a runtime event
 ```
 
 That's the whole integration: read the docs, open the skill files, run the shell.
-*Any agent that can run shell can use it* — but on Codex that means **loading
-skills by hand**, a manual path that trails the auto-discovered Claude Code
-experience.
+*Any agent that can read files and run shell can use it.* On Codex, open the
+skill file when you need it.
