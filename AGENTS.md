@@ -1,23 +1,35 @@
 # harness-mini — agent map
 
-> This file is a **map, not an encyclopedia** (~100 lines). It is injected into
-> every run. Keep it small: a table of contents pointing at the system of record.
-> If everything is "important," nothing is. Prune aggressively.
+<!-- AGENT-MAP v1 · sections carry ANCHOR: marks — jump by trigger, read one target, never preload -->
+
+> **⌖ Context navigation map** — injected every run. A **map, not an encyclopedia**:
+> read the pointer your trigger names, not the whole territory. Prune aggressively.
+
+| Anchor | Jump when… |
+|--------|------------|
+| **`gate`** | any non-trivial task starts here — routing + precedence |
+| **`forty`** | context feels heavy, or it's time to checkpoint/reset |
+| **`mini`** · **`versioning`** | adding to / updating the harness itself |
+| **`fsm`** | you need stage rules or want to advance a plan |
+| **`map`** | you need to find where something lives |
+| **`skills`** · **`agents`** | picking the tool or worker for a stage |
+| **`trace`** | logging an event or committing a checkpoint |
 
 ## Start here — routing gate (precedence)
 
+<!-- ANCHOR: gate -->
+
 This project runs on **harness-mini**. Before non-trivial work — a feature, a
 multi-step or ambiguous change, anything cross-cutting — **route it through the
-`stage-viewer` skill first**, and prefer harness-mini's lifecycle, skills, and
-sub-agents over ad-hoc tools or other installed plugins. When a harness skill and
-another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
-the ceremony (quick mode). On entering a fresh session, `stage-viewer` first
-checks for a newer harness-mini (`bin/harness.sh version`) and prompts you to
-update. The rest of this file is the map. The repository is the **system of
-record** — anything not in a version-controlled file does not exist to you; read
-the pointer you need, when you need it, never preload everything.
+`stage-viewer` skill first**; when a harness skill and another tool both fit,
+**the harness skill wins.** Trivial one-line fixes may skip the ceremony (quick
+mode). On a fresh session, `stage-viewer` first checks for a newer harness
+(`bin/harness.sh version`). The repository is the **system of record** — anything
+not in a version-controlled file does not exist to you.
 
 ## The one rule that governs everything: the 40% line
+
+<!-- ANCHOR: forty -->
 
 Context occupancy below **40%** is the *smart zone* (you reason sharply); at or
 above 40% is the *dumb zone* (you degrade, lose instructions, get "context
@@ -28,8 +40,7 @@ anxiety"). Keep yourself smart:
    take back only its distilled answer. Sub-agents are context firewalls.
 2. **Checkpoint at 40%.** When you cross the line, stop taking new work, write a
    checkpoint (`checkpoint` skill → `.trace/checkpoints/`), update the active
-   exec-plan, and reset. Hand off *while you are still smart enough to write a
-   good handoff.*
+   exec-plan, and reset — while still smart enough to write a good handoff.
 3. **One bounded task per session.** A session scoped to a single plan-step never
    needs to hold everything.
 
@@ -37,6 +48,8 @@ Estimate occupancy any time with `bin/ctx.sh <used_tokens> [window]`.
 Full contract: `docs/smart-dumb.md`.
 
 ## Core constraint: Mini (when changing the harness itself)
+
+<!-- ANCHOR: mini -->
 
 The harness *is the environment, not a program.* Before adding anything to
 harness-mini: **shell-or-doc first, no environment dependence, no complex
@@ -47,11 +60,11 @@ manager, or third-party binary. Question harness requirements and try to
 
 ## Lifecycle (the state machine you live inside)
 
-```
-intake → prd → issues → implement ⇄ evaluate → checkpoint → done
-                           ↑___________|   (loop until criteria pass)
-       garden ──── runs orthogonally, on triggers ────
-```
+<!-- ANCHOR: fsm -->
+
+`intake → prd → issues → implement ⇄ evaluate → checkpoint → done`, with `garden`
+running orthogonally on triggers — full diagram + per-state exit conditions:
+`ARCHITECTURE.md#lifecycle-at-a-glance`.
 
 - Only the **main agent** (via the `stage-viewer` skill) advances the stage.
   **No worker may promote its own work to "done."** (Anti-self-praise firewall.)
@@ -60,12 +73,14 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 
 ## Where things live (progressive disclosure)
 
+<!-- ANCHOR: map -->
+
 | Need | Go to |
 |------|-------|
 | Core beliefs + delete-first discipline | `docs/principles.md` |
 | Load-bearing assumptions + staleness tests | `docs/assumptions.md` |
 | The smart/dumb (40%) contract | `docs/smart-dumb.md` |
-| Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
+| Lifecycle FSM diagram + layer stack | `ARCHITECTURE.md#lifecycle-at-a-glance` |
 | Active work + decision logs | `docs/exec-plans/active/` |
 | Source-blog distillates | `docs/references/*-llms.txt` |
 | Skills (how to do a task) | `skills/<name>/SKILL.md` here; `.claude/skills/<name>/SKILL.md` after install |
@@ -76,17 +91,19 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 
 ## Versioning — `bin/harness.sh` (the front door)
 
+<!-- ANCHOR: versioning -->
+
 `bin/harness.sh help` lists the commands (`version` · `update` · `doctor` ·
 `status` · `report` · `release`); installed version + checksums live in
-`harness/harness.lock` (canonical source: `VERSION`). Semantics that aren't
-obvious from `--help`: `update` is **checksum-guarded** — your edits are kept,
-upstream lands as `<file>.new`, and `docs/exec-plans/` + `.trace/` are never
-touched; `doctor` enforces the **eval-gate** — a plan can't be `done` without a
-`verdict: pass` record in `.trace/evals/`; `status` ends with a **`ready:`**
-verdict (`ready|warning|blocked` + next action). `release` is source-repo only
-(see the `release` skill).
+`harness/harness.lock` (canonical source: `VERSION`). Non-obvious semantics:
+`update` is **checksum-guarded** (your edits kept, upstream lands as `<file>.new`;
+`docs/exec-plans/` + `.trace/` never touched); `doctor` enforces the **eval-gate**
+(`done` needs a `verdict: pass` in `.trace/evals/`); `status` ends with a
+**`ready:`** verdict; `release` is source-repo only (the `release` skill).
 
 ## Skills by stage
+
+<!-- ANCHOR: skills -->
 
 - **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `grill-me`, `release`
 - **intake (new project only):** `founder-check`
@@ -97,6 +114,8 @@ verdict (`ready|warning|blocked` + next action). `release` is source-repo only
 
 ## Sub-agents (separate context windows = firewalls)
 
+<!-- ANCHOR: agents -->
+
 | Agent | Role | Skills | Model |
 |-------|------|--------|-------|
 | planner | goal → exec-plan | to-prd, to-issues | sonnet |
@@ -105,13 +124,14 @@ verdict (`ready|warning|blocked` + next action). `release` is source-repo only
 | explorer | disposable read/search → distillate | (none) | haiku |
 | gardener | entropy GC, demote stale context | garden, refactor, clean-code | haiku |
 
-Model = capability **tier** (CLI maps it), not a pinned version. The builder
-(generator) auto-upgrades to the top tier (`opus`) when `HARNESS_TOP_MODEL` is
-set, else stays sonnet; every other role keeps its static tier. The spawning
-agent resolves it with `bin/model.sh builder` and passes it as the worker's model
-override (`HARNESS_MODEL_BUILDER=<alias>` pins an exact model).
+Model = capability **tier** (CLI maps it), not a pinned version. The generator
+auto-upgrades to the top tier (`opus`) when `HARNESS_TOP_MODEL` is set; every
+other role keeps its static tier. Resolve at spawn time with
+`bin/model.sh builder` (`HARNESS_MODEL_BUILDER=<alias>` pins an exact model).
 
 ## Tracing (best-effort, never blocks work)
+
+<!-- ANCHOR: trace -->
 
 Log events with `bin/trace.sh <agent> <stage> <event> [k=v ...]` → appends JSONL
 to `.trace/runtime/`. Include `ctx_pct=<n>` so the 40% line is observable.
