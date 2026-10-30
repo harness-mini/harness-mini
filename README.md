@@ -1,20 +1,46 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="harness-mini — a minimal outer harness for developers' long coding tasks" width="100%">
+</p>
+
 # harness-mini
 
 **A minimal outer harness for developers' long coding tasks.**
 
-Run a coding agent on a multi-session feature and it **drifts** — wandering off
-the goal, re-deciding settled questions, polishing the wrong thing. Push further
-and **context explodes** as heavy reads and dead ends crowd out working memory.
-Close the window and **session amnesia** wipes decisions, constraints, and
-in-flight plans.
+<p align="center">
+  <a href="https://github.com/harness-mini/harness-mini/releases"><img src="https://img.shields.io/github/v/release/harness-mini/harness-mini?style=flat-square&color=1f6feb" alt="latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-30363d?style=flat-square" alt="MIT license"></a>
+  <a href="CONTRIBUTING.md"><img src="https://img.shields.io/badge/lang-POSIX%20shell%20%C2%B7%200%20deps-30363d?style=flat-square" alt="POSIX shell, zero dependencies"></a>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Linux-30363d?style=flat-square" alt="macOS and Linux">
+</p>
 
-harness-mini keeps that work **on-task, context-light, and resumable**: repo
-conventions + thin shell glue (skills, sub-agents, distilled docs). It is an
-**outer harness for coding** — not a generic agent shell, not a sandbox
-platform. The contract is **files + shell**: any coding agent that can read the
-repo and run commands can drive it.
+Run a coding agent on a multi-session feature and three failure modes compound:
+it **drifts** off the goal, **context explodes** as heavy reads crowd out working
+memory, and closing the window means **session amnesia** — decisions and
+in-flight plans evaporate. harness-mini keeps that work **on-task,
+context-light, and resumable** with nothing but repo conventions and thin shell
+glue: skills, sub-agents, plans, checkpoints, and evals — all committed to git.
+It is an **outer harness around your coding agent** (not a generic agent shell,
+not a sandbox platform), and its whole contract is **files + shell**: any agent
+that can read the repo and run commands can drive it.
 
-### Who it's for / not for
+## Core Architecture Contract
+
+The harness is an **environment, not a program** — no runtime, no daemon, no
+package manager, no third-party binary. Five invariants define it:
+
+| Invariant | Meaning | System of record |
+|---|---|---|
+| **1 · Files + shell** | Markdown skills + small POSIX `bin/*.sh`; nothing else executes. | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| **2 · Lifecycle FSM** | Every requirement rides `intake → prd → issues → implement ⇄ evaluate → checkpoint → done`; only the main agent (via `stage-viewer`) advances a stage. | [`ARCHITECTURE.md`](ARCHITECTURE.md#lifecycle-fsm) |
+| **3 · Anti-self-praise firewall** | `done` requires an independent `verdict: pass` committed to `.trace/evals/` — `harness.sh doctor` FAILs otherwise. | the [`evaluate`](skills/evaluate/SKILL.md) skill |
+| **4 · The 40% line** | Keep context occupancy below 40%; delegate heavy reads to disposable `explorer` sub-agents (context firewalls); checkpoint + reset at the line. | [`docs/smart-dumb.md`](docs/smart-dumb.md) |
+| **5 · Managed-set boundary** | The harness owns one checksummed file set (`harness/harness.lock`); your exec-plans, `.trace/`, and project code are never touched by `update`. | [`ARCHITECTURE.md`](ARCHITECTURE.md#versioning--update-model) |
+
+Under all of it sits the **Mini constraint** — delete before you add; a new
+capability is a doc by default and only becomes shell when it must execute
+([`docs/principles.md`](docs/principles.md)).
+
+## Who it's for / not for
 
 | For | Not for |
 |---|---|
@@ -22,7 +48,7 @@ repo and run commands can drive it.
 | Bootstrap → one feature at a time → independent eval → mergeable main | Generic non-coding long-running orchestration as the primary story |
 | Outer harness (guides + sensors) around your coding agent | IDE replacement, multi-agent SaaS, or "sandbox as the product" |
 
-### How it compares (one glance)
+## How it compares (one glance)
 
 | | harness-mini | Generic agent harness | Bare coding agent | Host CI only |
 |---|---|---|---|---|
@@ -177,7 +203,7 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 
 | Path | Purpose |
 |------|---------|
-| `AGENTS.md` | ~100-line map injected every run |
+| `AGENTS.md` | context navigation map injected every run (anchor marks) |
 | `ARCHITECTURE.md` | layer stack + lifecycle FSM |
 | `init.sh` | additive/idempotent installer |
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |

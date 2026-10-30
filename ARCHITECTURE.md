@@ -2,10 +2,62 @@
 
 Top-level map of how harness-mini is laid out and how work flows through it.
 
+## Lifecycle at a glance
+
+Every requirement is a plan file riding this state machine — **only the main
+agent (via `stage-viewer`) advances a state; sub-agents never do.**
+
+```
+  start ── init.sh seeds the first plan: 0001-intake (new) · 0001-recon (existing)
+         │
+         ▼
+   ┌────────────┐  exit: founder-check done (new) · recon done (existing)
+   │   intake   │
+   └────────────┘
+         │  to-prd → stress-test it with grill-me
+         ▼
+   ┌────────────┐  exit: PRD written and grilled
+   │    prd     │
+   └────────────┘
+         │  to-issues → atomic, testable work units
+         ▼
+   ┌────────────┐  exit: atomic, testable issues exist
+   │   issues   │  (the plan-stage write ban lifts here)
+   └────────────┘
+         │  implement → one vertical slice (tdd · slice-coding)
+         ▼
+   ┌────────────┐  exit: slice green → hand to the evaluator
+   │ implement  │◀┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
+   └────────────┘                               ┆
+         │  evaluate (separate window)          ┆ criteria fail
+         ▼                                      ┆ → rework loop
+   ┌────────────┐  verdict: pass                ┆
+   │  evaluate  │┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘
+   └────────────┘
+         │  checkpoint → committed handoff
+         ▼
+   ┌────────────┐
+   │ checkpoint │  gate: verdict: pass in .trace/evals/ (doctor enforces)
+   └────────────┘
+         │  archive → docs/exec-plans/completed/
+         ▼
+   ┌────────────┐
+   │    done    │
+   └────────────┘
+
+  garden ⟳ runs orthogonal to every state — fires on triggers (≥5 checkpoints ·
+  a plan completing · pre-release · smell backlog) and never blocks the loop
+```
+
+- **quick mode:** a trivial, unambiguous fix (≤ ~1 slice) may jump straight to
+  `implement` — the ceremony scales with risk, not habit.
+- **solid arrows** advance only when the exit condition holds; the **dashed**
+  loop is the implement ⇄ evaluate rework cycle until criteria pass.
+
 ## Repository layout
 
 ```
-AGENTS.md              # ~100-line map injected every run (table of contents)
+AGENTS.md              # context navigation map injected every run (anchor index)
 ARCHITECTURE.md        # this file
 VERSION                # canonical version (SemVer); bumped by `harness.sh release`
 CHANGELOG.md           # Keep-a-Changelog; rolled on release
@@ -59,11 +111,8 @@ GitHub release (gated on green tests + a clean tree).
 
 ## Lifecycle FSM
 
-```
-intake → prd → issues → implement ⇄ evaluate → checkpoint → done
-                           ↑___________|   (loop until criteria pass)
-       garden ──── runs orthogonally, on triggers ────
-```
+_(The full diagram with per-state exit conditions is at the top:
+[Lifecycle at a glance](#lifecycle-at-a-glance).)_
 
 - State lives in each `docs/exec-plans/active/<plan>.md` frontmatter (`stage:`).
 - **Plan-stage write ban:** while `stage` ∈ {intake, prd, issues}, no product-code
