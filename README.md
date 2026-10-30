@@ -199,10 +199,9 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `bench/cib/` | context-intelligence benchmark + live results ([`FINDINGS.md`](bench/cib/results/FINDINGS.md)) |
 
 > **Editing skills?** `skills/<name>/SKILL.md` (and `agents/<name>.md`) are the
-> **canonical source** — edit there. `.claude/skills/` and `.claude/agents/` are a
-> committed **generated mirror** of that install layout;
-> regenerate with `cp -R skills/. .claude/skills/` (and `agents/`). Don't hand-edit
-> the mirror.
+> **canonical source** — edit there. `init.sh` copies them into a target
+> project's `.claude/skills/` and `.claude/agents/`. This repo does not commit
+> that directory.
 
 ## Sub-agents
 

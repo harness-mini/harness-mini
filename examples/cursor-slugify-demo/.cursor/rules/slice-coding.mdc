@@ -3,4 +3,4 @@ description: The horizontal+vertical coding constraint. Use in the implement sta
 alwaysApply: false
 ---
 
-harness-mini skill **slice-coding**. Read `.claude/skills/slice-coding/SKILL.md` and follow it for this task.
+harness-mini skill **slice-coding**. Read `skills/slice-coding/SKILL.md` and follow it for this task.

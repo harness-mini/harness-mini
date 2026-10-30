@@ -3,4 +3,4 @@ description: Fan out the horizontal expansion of the implement stage to parallel
 alwaysApply: false
 ---
 
-harness-mini skill **parallel-slices**. Read `.claude/skills/parallel-slices/SKILL.md` and follow it for this task.
+harness-mini skill **parallel-slices**. Read `skills/parallel-slices/SKILL.md` and follow it for this task.

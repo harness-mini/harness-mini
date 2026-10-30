@@ -241,13 +241,21 @@ cmd_doctor() {
       || emit ok "harness-mini up to date ($(installed_version))"
   fi
 
+  # Installed projects keep skills under .claude/skills/. The source repo
+  # commits only skills/ — it does not carry a .claude/ mirror.
+  local skill_root="" skill_label=""
   if [ -d "$root/.claude/skills" ]; then
+    skill_root="$root/.claude/skills"; skill_label=".claude/skills"
+  elif [ -d "$root/skills" ]; then
+    skill_root="$root/skills"; skill_label="skills"
+  fi
+  if [ -n "$skill_root" ]; then
     local nfolders nflat
-    nfolders=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-    nflat=$(find "$root/.claude/skills" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+    nfolders=$(find "$skill_root" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+    nflat=$(find "$skill_root" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
     [ "$nfolders" -gt 0 ] && emit ok "$nfolders skills in <name>/SKILL.md shape" \
-                          || emit fail ".claude/skills has no <name>/SKILL.md"
-    [ "$nflat" -gt 0 ] && emit warn "$nflat flat .md skill(s) in .claude/skills (old shape)"
+                          || emit fail "$skill_label has no <name>/SKILL.md"
+    [ "$nflat" -gt 0 ] && emit warn "$nflat flat .md skill(s) in $skill_label (old shape)"
   else
     emit fail ".claude/skills missing"
   fi
@@ -403,6 +411,10 @@ cmd_status() {
   local level=ready next="" nskills done_plan="" r
   nskills=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
   [ -z "$nskills" ] && nskills=0
+  if [ "$nskills" -eq 0 ] && [ -d "$root/skills" ]; then
+    nskills=$(find "$root/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+    [ -z "$nskills" ] && nskills=0
+  fi
 
   if [ ! -f "$root/AGENTS.md" ]; then
     level=blocked; next="restore AGENTS.md (re-run init.sh)"

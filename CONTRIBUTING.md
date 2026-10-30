@@ -25,24 +25,18 @@ faith, critique ideas not people, and help newcomers land their first PR.
   - [`docs/principles.md`](docs/principles.md) — golden principles + Musk's Five-Step.
   - [`docs/smart-dumb.md`](docs/smart-dumb.md) — the smart/dumb context contract.
 
-### Source vs installed tree (read this once)
+### Source vs install layout (read this once)
 
-The repo has two skill/agent trees, and confusing them is the #1 contributor trap:
+This repository has one skill/agent tree. Edit that. Do not add a `.claude/`
+directory here — it is gitignored.
 
 | Tree | Status | You |
 |------|--------|-----|
 | `skills/<name>/SKILL.md`, `agents/<name>.md` | **canonical source** | **edit here** |
-| `.claude/skills/`, `.claude/agents/` | committed **generated mirror** of the install layout | **don't hand-edit** |
 
-After editing a skill or agent, regenerate the mirror so they don't drift:
-
-```bash
-cp -R skills/.  .claude/skills/
-cp -R agents/.  .claude/agents/
-```
-
-`bin/harness.sh doctor` warns if the source and mirror diverge — run it before
-you push.
+`init.sh` copies those files into the **target** project's `.claude/skills/`
+and `.claude/agents/`. `bin/harness.sh doctor` warns only when both trees
+exist and differ.
 
 ## 1. Ways to contribute
 
@@ -52,9 +46,8 @@ You don't have to write code to make a real difference:
   one folder per skill. `SKILL.md` is required (frontmatter `name:` + `description:`
   — the description is how an agent decides to load it); add optional `scripts/`,
   `references/`, `assets/`, `examples/`, `tests/` only if the skill genuinely
-  needs them (don't scaffold empty dirs). Keep it one job, ~1 screen. Then sync
-  the generated mirror (see "Source vs installed tree" below) and add it to
-  `harness/manifest.md`.
+  needs them (don't scaffold empty dirs). Keep it one job, ~1 screen. Then add
+  it to `harness/manifest.md`.
 - **New sub-agents** (`agents/<name>.md`, flat) — a role with its own context
   window. Set `tools:`, `model:` (haiku/sonnet/opus per the tier table), `skills:`.
 - **Shell glue** (`bin/*.sh`) — must be POSIX-friendly, dependency-free, and

@@ -3,4 +3,4 @@ description: The forward code-quality constraint (Clean Code). Use while writing
 alwaysApply: false
 ---
 
-harness-mini skill **clean-code**. Read `.claude/skills/clean-code/SKILL.md` and follow it for this task.
+harness-mini skill **clean-code**. Read `skills/clean-code/SKILL.md` and follow it for this task.

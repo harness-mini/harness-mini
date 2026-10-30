@@ -22,10 +22,11 @@ When that file is filled in, #23's last open item is satisfied.
 This folder has its own nested [`.cursor/rules/`](./.cursor/rules/) — the **gate**
 (`harness-mini.mdc`, `alwaysApply: true`) plus one **agent-requested** rule per skill
 (`<name>.mdc`, `alwaysApply: false` + the skill's `description`), generated in the
-exact format `init.sh` produces. Each rule is a thin pointer to the canonical
-`.claude/skills/<name>/SKILL.md` at the repo root — single source of truth, no copy.
+exact format `init.sh` produces, except the path points at this repo's source
+tree. Each rule is a thin pointer to `skills/<name>/SKILL.md` — single source
+of truth, no copy. This repo does not commit a `.claude/` directory.
 
-**Setup:** open the **harness-mini repo root** in Cursor (so `.claude/skills/` resolves),
+**Setup:** open the **harness-mini repo root** in Cursor (so `skills/` resolves),
 then work on files **inside this folder**. The nested rules apply to this subtree.
 
 ---
@@ -58,7 +59,7 @@ Paste each prompt into Cursor verbatim and record the response in `TRANSCRIPT.md
 
 **What proves it:** Cursor does **not** just dump code. Because the gate is loaded, it
 calls the work non-trivial, offers to route through `stage-viewer`, and proposes the
-lifecycle (prd → issues → tdd) — referencing `.claude/skills/stage-viewer/SKILL.md`.
+lifecycle (prd → issues → tdd) — referencing `skills/stage-viewer/SKILL.md`.
 **The tell:** it mentions harness-mini / stage-viewer / the lifecycle *unprompted*.
 
 ### Beat 2 — Skill pulled on demand (agent-requested rule)
@@ -85,7 +86,7 @@ on hosts that wire it, here run by hand. Paste both the `40%` line and `exit=2`.
 
 ### Beat 4 — Evaluator firewall (separate chat)
 Open a **brand-new Cursor chat** (it must never have seen the build). **Type:**
-> You are grading, not building. Read `.claude/skills/evaluate/SKILL.md`. Here are the
+> You are grading, not building. Read `skills/evaluate/SKILL.md`. Here are the
 > acceptance criteria and the diff — pass/fail each with evidence, and run the tests.
 
 …then paste the 5 criteria above + the output of `git diff`.

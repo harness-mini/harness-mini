@@ -3,4 +3,4 @@ description: Drive a long-running "work → check → repeat" loop until an exit
 alwaysApply: false
 ---
 
-harness-mini skill **ralph-loop**. Read `.claude/skills/ralph-loop/SKILL.md` and follow it for this task.
+harness-mini skill **ralph-loop**. Read `skills/ralph-loop/SKILL.md` and follow it for this task.

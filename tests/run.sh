@@ -220,14 +220,12 @@ assert_eq "MY EDIT" "$(cat "$rule")" "re-run never overwrites a user-edited skil
 rm -rf "$CSRC" "$CNEW"
 
 # =============================================================================
-echo "repo assets — parallel-slices skill exists and is mirrored to .claude/"
+echo "repo assets — parallel-slices skill exists"
 assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill source exists"
-assert_eq "true" "$([ -f "$ROOT/.claude/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill is mirrored to .claude/skills/"
 
 # =============================================================================
 echo "tdd skill — one red→green cycle per acceptance criterion (#29)"
 assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd source requires a failing test per acceptance criterion"
-assert_contains "$(cat "$ROOT/.claude/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd mirror carries the per-criterion rule"
 
 # =============================================================================
 echo "harness.sh version — report the installed harness version"

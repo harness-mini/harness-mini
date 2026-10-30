@@ -3,4 +3,4 @@ description: Apply Elon Musk's Five-Step Algorithm to any requirement or plan be
 alwaysApply: false
 ---
 
-harness-mini skill **five-step**. Read `.claude/skills/five-step/SKILL.md` and follow it for this task.
+harness-mini skill **five-step**. Read `skills/five-step/SKILL.md` and follow it for this task.

@@ -3,4 +3,4 @@ description: Greenfield-only intake gate. Apply founder/startup best-practice (f
 alwaysApply: false
 ---
 
-harness-mini skill **founder-check**. Read `.claude/skills/founder-check/SKILL.md` and follow it for this task.
+harness-mini skill **founder-check**. Read `skills/founder-check/SKILL.md` and follow it for this task.
