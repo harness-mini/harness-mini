@@ -3,4 +3,4 @@ description: The recovery code-quality constraint (Refactoring). Use to improve 
 alwaysApply: false
 ---
 
-harness-mini skill **refactor**. Read `.claude/skills/refactor/SKILL.md` and follow it for this task.
+harness-mini skill **refactor**. Read `skills/refactor/SKILL.md` and follow it for this task.

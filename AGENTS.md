@@ -68,8 +68,8 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 | Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
 | Active work + decision logs | `docs/exec-plans/active/` |
 | Source-blog distillates | `docs/references/*-llms.txt` |
-| Skills (how to do a task) | `.claude/skills/<name>/SKILL.md` (one folder per skill) |
-| Sub-agents (who does the work) | `.claude/agents/<name>.md` (flat) |
+| Skills (how to do a task) | `skills/<name>/SKILL.md` here; `.claude/skills/<name>/SKILL.md` after install |
+| Sub-agents (who does the work) | `agents/<name>.md` here; `.claude/agents/<name>.md` after install |
 | Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
 | Committed evaluation verdicts (the `done`-gate) | `.trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |

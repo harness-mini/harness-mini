@@ -3,4 +3,4 @@ description: Grade work against the plan's acceptance criteria from a SEPARATE c
 alwaysApply: false
 ---
 
-harness-mini skill **evaluate**. Read `.claude/skills/evaluate/SKILL.md` and follow it for this task.
+harness-mini skill **evaluate**. Read `skills/evaluate/SKILL.md` and follow it for this task.

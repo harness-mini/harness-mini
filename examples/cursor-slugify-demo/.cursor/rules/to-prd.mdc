@@ -3,4 +3,4 @@ description: Turn a raw idea or requirement into an executable PRD document — 
 alwaysApply: false
 ---
 
-harness-mini skill **to-prd**. Read `.claude/skills/to-prd/SKILL.md` and follow it for this task.
+harness-mini skill **to-prd**. Read `skills/to-prd/SKILL.md` and follow it for this task.

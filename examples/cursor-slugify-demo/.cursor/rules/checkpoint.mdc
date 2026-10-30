@@ -3,4 +3,4 @@ description: Write a committed handoff checkpoint so a fresh session can resume 
 alwaysApply: false
 ---
 
-harness-mini skill **checkpoint**. Read `.claude/skills/checkpoint/SKILL.md` and follow it for this task.
+harness-mini skill **checkpoint**. Read `skills/checkpoint/SKILL.md` and follow it for this task.

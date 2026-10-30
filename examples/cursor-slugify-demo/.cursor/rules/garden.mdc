@@ -3,4 +3,4 @@ description: Entropy garbage-collection. Periodically scan for drift — stale d
 alwaysApply: false
 ---
 
-harness-mini skill **garden**. Read `.claude/skills/garden/SKILL.md` and follow it for this task.
+harness-mini skill **garden**. Read `skills/garden/SKILL.md` and follow it for this task.

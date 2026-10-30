@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# ctx-hook.sh — optional Claude Code PostToolUse adapter that gives the 40% rule
-# teeth. It estimates context occupancy after each tool call and (a) records a
+# ctx-hook.sh — optional PostToolUse adapter that gives the 40% rule teeth.
+# It estimates context occupancy after each tool call and (a) records a
 # ctx_pct trace event so `harness.sh report` can chart the trend, and (b) nudges
 # the agent to checkpoint when it crosses the smart/dumb line.
 #
-# This is the ONE Claude-Code-specific file in the harness: it speaks CC's hook
-# protocol (JSON on stdin with a `transcript_path`). It is OPT-IN — wire it up in
-# .claude/settings.json yourself (see docs/smart-dumb.md). Other CLIs ignore it;
-# the harness stays CLI-agnostic.
+# Protocol: JSON on stdin with a `transcript_path`. OPT-IN — wire it from
+# .claude/settings.json (see docs/smart-dumb.md). Hosts that don't emit that
+# payload ignore it. Behavior of the script is unchanged either way.
 #
 # HONEST CAVEAT: bytes(transcript)/4 is a heuristic proxy for tokens, not a true
 # count (no portable token counter exists). It is good enough to watch the trend

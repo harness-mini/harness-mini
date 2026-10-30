@@ -1,7 +1,7 @@
-# harness-mini manifest (CLI-neutral pointer list)
+# harness-mini manifest
 
-Claude Code auto-loads skills/agents from .claude/. Other CLIs (codex,
-cursor) should read the files below directly.
+Skills and agents are files under `.claude/skills/` and `.claude/agents/`.
+Any coding agent that can read the repo should open the paths below.
 
 ## Skills (.claude/skills/ — one folder per skill, instructions in SKILL.md)
 - checkpoint/SKILL.md

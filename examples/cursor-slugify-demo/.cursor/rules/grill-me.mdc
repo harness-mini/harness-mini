@@ -3,4 +3,4 @@ description: Interview the user relentlessly about a plan or design until reachi
 alwaysApply: false
 ---
 
-harness-mini skill **grill-me**. Read `.claude/skills/grill-me/SKILL.md` and follow it for this task.
+harness-mini skill **grill-me**. Read `skills/grill-me/SKILL.md` and follow it for this task.
