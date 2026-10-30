@@ -54,7 +54,7 @@ bash harness-mini/init.sh /path/to/your/project
 to re-run). It behaves asymmetrically:
 
 - **New/empty project** → generative bootstrap: seeds an intake plan and runs the
-  founder funnel (`founder-check → five-step → to-prd → to-issues`).
+  founder funnel (`founder-check → to-prd → to-issues`).
 - **Existing project** → recon graft: installs additively and seeds a recon plan
   (the `explorer` maps your codebase into `ARCHITECTURE.md`); skips the founder
   funnel.
@@ -78,7 +78,7 @@ install layout in its own way:
 
 | | On disk | How a host uses it |
 |---|---|---|
-| Skills (16) | `.claude/skills/<name>/SKILL.md` | Read the file. **Cursor** also gets an agent-requested `.cursor/rules/<skill>.mdc` (written by `init.sh`). **Codex** reads the file on demand. |
+| Skills (15) | `.claude/skills/<name>/SKILL.md` | Read the file. **Cursor** also gets an agent-requested `.cursor/rules/<skill>.mdc` (written by `init.sh`). **Codex** reads the file on demand. |
 | Sub-agents (5) | `.claude/agents/<name>.md` | A separate context window where the host can spawn one; otherwise a separate chat or session. |
 | Routing gate | `CLAUDE.md`, `.cursor/rules/harness-mini.mdc`, top of `AGENTS.md` | Seeded once, additive. |
 | 40%-line teeth | `bin/ctx-hook.sh` | Optional PostToolUse hook, wired from `.claude/settings.json`. Hosts without that hook use `bin/ctx.sh` by hand. |
@@ -186,9 +186,9 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `bin/model.sh` | resolve a role's model alias (builder → the highest-available frontier model tier when enabled) |
 | `bin/ctx-hook.sh` | opt-in PostToolUse hook (auto ctx_pct + 40% nudge) |
 | `harness/harness.lock` | installed version + managed-file checksums |
-| `skills/<name>/SKILL.md` → `.claude/skills/` | 16 skills (one folder each) |
+| `skills/<name>/SKILL.md` → `.claude/skills/` | 15 skills (one folder each) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
-| `docs/principles.md` | golden principles + Musk's Five-Step core-mind |
+| `docs/principles.md` | golden principles + the Mini delete-first constraint |
 | `docs/smart-dumb.md` | the 40% contract |
 | `docs/exec-plans/{active,completed}/` | plans + decision logs (committed) |
 | `docs/references/*-llms.txt` | the 5 source distillates |

@@ -7,7 +7,6 @@ Any coding agent that can read the repo should open the paths below.
 - checkpoint/SKILL.md
 - clean-code/SKILL.md
 - evaluate/SKILL.md
-- five-step/SKILL.md
 - founder-check/SKILL.md
 - garden/SKILL.md
 - grill-me/SKILL.md

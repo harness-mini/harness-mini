@@ -57,7 +57,7 @@ You may move a plan forward only when the stage's exit condition is met:
 
 | From | Exit condition to advance |
 |------|---------------------------|
-| intake | founder-check + five-step done (new) / recon done (existing) |
+| intake | founder-check done (new) / recon done (existing) |
 | prd | PRD written and grilled (`grill-me`) |
 | issues | atomic, testable issues exist |
 | implement | a vertical slice is green; ready for evaluation (after a fan-out: all parallel slices green + integrated) |

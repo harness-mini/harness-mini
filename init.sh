@@ -5,7 +5,7 @@
 #
 # Behaviour is asymmetric by project type:
 #   new/empty project  -> generative bootstrap: seed an INTAKE plan that runs the
-#                         founder funnel (founder-check -> five-step -> to-prd).
+#                         founder funnel (founder-check -> to-prd).
 #   existing project   -> recon graft: seed a RECON plan that maps the codebase
 #                         into ARCHITECTURE.md via the Explorer; no founder funnel.
 #
@@ -282,10 +282,8 @@ A brand-new project. Run the founder funnel before writing any code.
 ## Now (resume here)
 1. Run **founder-check**: who is the user, the smallest valuable slice,
    the riskiest assumption, the build-measure-learn loop.
-2. Run **five-step**: question every requirement, delete, simplify,
-   accelerate, automate — in that order.
-3. Run **to-prd**: write the executable PRD.
-4. Run **to-issues**: decompose into atomic, testable issues.
+2. Run **to-prd**: write the executable PRD.
+3. Run **to-issues**: decompose into atomic, testable issues.
 
 ## Next
 - Advance stage (`stage-viewer`) to `implement`; the generator builds one

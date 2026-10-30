@@ -1,5 +1,5 @@
 ---
-description: Turn a raw idea or requirement into an executable PRD document — a versioned artifact the harness treats as a first-class source of truth. Use in the prd stage after founder-check/five-step. Output is agent-readable, testable, and committed.
+description: Turn a raw idea or requirement into an executable PRD document — a versioned artifact the harness treats as a first-class source of truth. Use in the prd stage after founder-check. Output is agent-readable, testable, and committed.
 alwaysApply: false
 ---
 

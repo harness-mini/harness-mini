@@ -125,7 +125,7 @@ echo "init.sh — additive, idempotent installer with new/existing asymmetry"
 # Build a fake source tree so installer logic is tested independent of real assets.
 FSRC="$(mktemp -d)"
 mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs" "$FSRC/skills/demo"
-printf 'skill body\n' > "$FSRC/skills/five-step.md"
+printf 'skill body\n' > "$FSRC/skills/sample.md"
 printf 'demo body\n'  > "$FSRC/skills/demo/SKILL.md"   # canonical folder-form skill
 printf 'agent body\n' > "$FSRC/agents/planner.md"
 printf 'echo hi\n'    > "$FSRC/bin/ctx.sh"
@@ -135,7 +135,7 @@ printf 'map\n'        > "$FSRC/AGENTS.md"
 NEW="$(mktemp -d)"
 code=0; HARNESS_SRC="$FSRC" bash "$BIN/../init.sh" "$NEW" >/dev/null 2>&1 || code=$?
 assert_exit 0 "$code" "init succeeds on empty project"
-assert_eq "true" "$([ -f "$NEW/.claude/skills/five-step.md" ] && echo true || echo false)" "skills install to .claude/skills/"
+assert_eq "true" "$([ -f "$NEW/.claude/skills/sample.md" ] && echo true || echo false)" "skills install to .claude/skills/"
 assert_eq "true" "$([ -f "$NEW/.claude/skills/demo/SKILL.md" ] && echo true || echo false)" "folder-form skill installs to .claude/skills/<name>/SKILL.md"
 assert_eq "true" "$([ -f "$NEW/.claude/agents/planner.md" ] && echo true || echo false)" "agents install to .claude/agents/"
 assert_eq "true" "$([ -f "$NEW/harness/manifest.md" ] && echo true || echo false)" "neutral harness/manifest.md mirror written"
@@ -143,6 +143,7 @@ assert_eq "true" "$([ -f "$NEW/.gitignore" ] && grep -q '.trace/runtime' "$NEW/.
 plan="$(cat "$NEW"/docs/exec-plans/active/0001-*.md 2>/dev/null)"
 assert_contains "$plan" "stage: intake" "new project seeds an intake-stage plan"
 assert_contains "$plan" "founder-check" "new project plan points to founder-check funnel"
+assert_eq "false" "$(printf '%s' "$plan" | grep -qi 'five-step' && echo true || echo false)" "new project funnel omits five-step"
 
 # --- existing project: recon graft (no founder funnel) ---
 EXIST="$(mktemp -d)"
@@ -152,7 +153,7 @@ assert_exit 0 "$code" "init succeeds on existing project"
 plan="$(cat "$EXIST"/docs/exec-plans/active/0001-*.md 2>/dev/null)"
 assert_contains "$plan" "recon" "existing project seeds a recon plan"
 assert_eq "false" "$(printf '%s' "$plan" | grep -q 'founder-check' && echo true || echo false)" "existing project skips founder funnel"
-assert_eq "true" "$([ -f "$EXIST/.claude/skills/five-step.md" ] && echo true || echo false)" "existing project still gets skills installed"
+assert_eq "true" "$([ -f "$EXIST/.claude/skills/sample.md" ] && echo true || echo false)" "existing project still gets skills installed"
 
 # --- additive: never overwrite a user's existing file ---
 printf 'MY CUSTOM MAP\n' > "$NEW/AGENTS.md"
@@ -288,7 +289,7 @@ rm -rf "$UDIR"
 echo "init.sh — writes harness/harness.lock (version + managed checksums)"
 LSRC="$(mktemp -d)"
 mkdir -p "$LSRC/skills" "$LSRC/agents" "$LSRC/bin" "$LSRC/docs" "$LSRC/skills/demo"
-printf 'skill body\n' > "$LSRC/skills/five-step.md"
+printf 'skill body\n' > "$LSRC/skills/sample.md"
 printf 'demo body\n'  > "$LSRC/skills/demo/SKILL.md"   # folder-form skill
 printf 'agent body\n' > "$LSRC/agents/planner.md"
 printf 'echo hi\n'    > "$LSRC/bin/ctx.sh"
@@ -298,7 +299,7 @@ LDEST="$(mktemp -d)"
 HARNESS_SRC="$LSRC" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1
 lock="$(cat "$LDEST/harness/harness.lock" 2>/dev/null)"
 assert_contains "$lock" "version: 0.4.2" "lock records the source VERSION"
-assert_contains "$lock" ".claude/skills/five-step.md" "lock lists a managed skill by target path"
+assert_contains "$lock" ".claude/skills/sample.md" "lock lists a managed skill by target path"
 assert_contains "$lock" ".claude/skills/demo/SKILL.md" "lock recurses folder-form skills (<name>/SKILL.md)"
 assert_contains "$lock" "AGENTS.md" "lock lists managed AGENTS.md"
 # the lock must record the PRISTINE source checksum, not a user-edited copy

@@ -22,7 +22,7 @@ faith, critique ideas not people, and help newcomers land their first PR.
 - **Read the conventions once.** They're short and they're the whole point:
   - [`AGENTS.md`](AGENTS.md) — the map, and the **40% rule** that governs everything.
   - [`ARCHITECTURE.md`](ARCHITECTURE.md) — layout, lifecycle FSM, the managed set.
-  - [`docs/principles.md`](docs/principles.md) — golden principles + Musk's Five-Step.
+  - [`docs/principles.md`](docs/principles.md) — golden principles + the Mini delete-first constraint.
   - [`docs/smart-dumb.md`](docs/smart-dumb.md) — the smart/dumb context contract.
 
 ### Source vs install layout (read this once)
@@ -150,9 +150,8 @@ Use **GitHub Issues**. Search first — it may already be filed.
 
 A failing case added to `tests/run.sh` *is* the ideal bug report.
 
-**Feature proposals** are run through the harness's own front door — Musk's
-[Five-Step](skills/five-step.md), starting with step 1: **question the
-requirement.** In the issue, tell us:
+**Feature proposals** are run through the harness's own front door: first
+**question the requirement** and try to delete it before adding anything. In the issue, tell us:
 
 - **The problem**, not the solution — what can't you do today, and why does it matter?
 - **The smallest valuable slice** that would help (we ship thin and iterate).
