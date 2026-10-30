@@ -1,0 +1,17 @@
+{
+  "name": "harness-mini",
+  "install": "sh /agent/repos/harness-mini/.cursor/install.sh",
+  "terminals": [
+    {
+      "name": "website-dev",
+      "command": "if [ -d ../harness-mini-website/site ]; then cd ../harness-mini-website/site && npm run dev; else echo 'harness-mini-website not checked out — nothing to serve.'; fi",
+      "description": "Next.js dev server for the harness-mini-website (http://localhost:3000). Only runs when the sibling website repo is checked out."
+    }
+  ],
+  "ports": [
+    { "name": "website dev server", "port": 3000 }
+  ],
+  "repositoryDependencies": [
+    "github.com/harness-mini/harness-mini-website"
+  ]
+}
