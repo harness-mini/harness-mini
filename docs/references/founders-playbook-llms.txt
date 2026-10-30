@@ -75,7 +75,7 @@ while preserving the lean AI-centered advantage.
 
 ## → How harness-mini uses this
 founder-check skill (greenfield intake) encodes the Idea-stage four questions +
-riskiest-assumption lens · "validate before building" → five-step delete pass ·
+riskiest-assumption lens · "validate before building" → delete-first scoping ·
 "persistent context / arch before build" → AGENTS.md + exec-plans + the repo as
 system of record · "compounding AI debt" → garden agent + clean-code/refactor ·
 "scope written down" → to-prd Out-of-scope section · evidence-not-completeness →

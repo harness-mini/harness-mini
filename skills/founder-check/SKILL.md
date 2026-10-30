@@ -20,11 +20,11 @@ Source distillate: `docs/references/founders-playbook-llms.txt`.
 4. **What is the build-measure-learn loop?** How will you know it worked? Define
    the signal you'll watch before you build.
 
-## Then hand off to five-step
-Founder-check feeds `five-step`: the riskiest-assumption lens makes step 2
-(delete) sharper — cut everything not needed to test the assumption.
+## Then hand off to planning
+Founder-check sharpens the riskiest assumption so the PRD can deliberately
+delete everything not needed to test it.
 
-Funnel order: **founder-check → five-step → to-prd → to-issues**.
+Funnel order: **founder-check → to-prd → to-issues**.
 
 ## Output
 A "Founder check" block at the top of the intake plan with the four answers.

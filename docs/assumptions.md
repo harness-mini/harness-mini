@@ -7,7 +7,8 @@
 >
 > The `garden` sweep audits this register on a trigger (cadence: **pre-release**,
 > and whenever the builder model tier moves). An assumption that no longer earns
-> its keep is **deleted** — Five-Step step 2 applied to the harness's own beliefs.
+> its keep is **deleted** — the Mini constraint's delete-first discipline applied
+> to the harness's own beliefs.
 
 Each entry: the assumption · the model-gap it patches · the experiment that would
 show it's gone stale · status. `registered` = first logged; `audited` = last
@@ -106,7 +107,7 @@ re-tested against the current model.
   next" each time; OpenHarness-style dry-run readiness without a second CLI.
 - **Test if stale:** sample N cold resumes; count how often the next action taken
   matches the `ready:` next-action. If agents ignore the line (≥50% mismatch)
-  on the current model, **delete the line** (Five-Step step 2).
+  on the current model, **delete the line** as delete-first applied to the harness.
 - **Status:** registered 2026-08-11 · plan `session-ops`.
 
 ## A7 — Plan-stage write ban (convention-only)
@@ -116,6 +117,6 @@ re-tested against the current model.
   authorized; Mini refuses a permission engine.
 - **Test if stale:** audit N plans for product-code commits while `stage` ∈
   {intake,prd,issues}. If violations are common, consider the ≤10% add-back
-  (soft doctor WARN) recorded in `session-ops` five-step — or delete the
+  (soft doctor WARN) recorded for `session-ops` — or delete the
   convention if models already abstain unaided.
 - **Status:** registered 2026-08-11 · plan `session-ops`.

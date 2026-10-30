@@ -1,6 +1,6 @@
 ---
 name: to-prd
-description: Turn a raw idea or requirement into an executable PRD document — a versioned artifact the harness treats as a first-class source of truth. Use in the prd stage after founder-check/five-step. Output is agent-readable, testable, and committed.
+description: Turn a raw idea or requirement into an executable PRD document — a versioned artifact the harness treats as a first-class source of truth. Use in the prd stage after founder-check. Output is agent-readable, testable, and committed.
 ---
 
 A PRD here is **executable**: written for an agent to act on, with testable
@@ -17,7 +17,7 @@ acceptance criteria — not prose for humans to admire.
 - [ ] <concrete, testable statement>
 - [ ] <each maps to something the evaluator can check>
 ## Out of scope
-- <explicitly deleted via five-step — list it so it stays deleted>
+- <explicitly deleted from scope — list it so it stays deleted>
 ## Vertical slices (build order)
 1. <thinnest end-to-end slice first>
 2. ...

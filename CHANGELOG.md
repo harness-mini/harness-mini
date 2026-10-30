@@ -7,6 +7,10 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Removed
+- **Five-Step as a skill, core-mind, and mandatory intake gate (#46).** The harness
+  keeps only a plain delete-first discipline under the Mini constraint.
+
 ## [0.10.0] - 2026-08-11
 
 ### Added

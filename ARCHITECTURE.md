@@ -22,7 +22,7 @@ skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   Installed (recursively) to .claude/skills/<name>/
 agents/                # sub-agents, flat <name>.md → installed to .claude/agents/
 docs/
-  principles.md        # golden principles + Five-Step core-mind
+  principles.md        # golden principles + the Mini delete-first constraint
   smart-dumb.md        # the 40% occupancy contract
   exec-plans/
     active/            # in-flight plans + decision logs (committed)
@@ -111,7 +111,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 ## New vs existing project (set by `init.sh`)
 
 - **new** → generative bootstrap: seed `0001-intake.md`, run the founder funnel
-  (founder-check → five-step → to-prd → to-issues).
+  (founder-check → to-prd → to-issues).
 - **existing** → recon graft: seed `0001-recon.md`, the explorer maps the
   codebase into this file's "Domains & layers" section below; skip the founder
   funnel; install additively without overwriting anything.

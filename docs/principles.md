@@ -23,36 +23,13 @@ install. The contract is files + shell — see the README.
 3. **No complex languages.** Keep glue boringly simple — readable by an agent at a
    glance, debuggable with `set -x`. Cleverness is a smell; a 30-line script that
    one obvious thing beats a framework.
-4. **Mini beats featureful.** Apply the Five-Step below *to the harness itself*:
-   question the requirement, then try to **delete** it before adding code. Most
+4. **Mini beats featureful.** Question each harness requirement and try to
+   **delete** it before adding code. Most
    new "features" should be a new skill or a paragraph in a doc, not new code.
 
 > If a change can't be done in shell or a doc without adding a dependency, the
 > answer is usually "make it a convention" or "don't." Carve-outs must be argued
 > in the PR and recorded in the decision log.
-
-## Core-mind: Musk's Five-Step Algorithm
-
-Apply **in order** before building anything. The order matters more than any
-single step. (See the `five-step` skill for the operational checklist.)
-
-1. **Make the requirement less dumb.** Question every requirement. Attach a
-   *person's name* to it, never a department — requirements from "the system"
-   are guesses in disguise. The smartest people's requirements are still partly
-   wrong.
-2. **Delete the part or process.** If you are not later forced to add back at
-   least 10% of what you deleted, you did not delete enough. The best part is no
-   part; the best process is no process.
-3. **Simplify or optimize — only what survived step 2.** The most common error
-   of a smart engineer is to optimize a thing that should not exist.
-4. **Accelerate cycle time.** Speed up — but never before steps 1–3. Never
-   accelerate a process that should be deleted.
-5. **Automate — last.** Automating a flawed or unnecessary process locks the
-   flaw in. Automate only what has survived all four prior steps.
-
-> The two named failure modes this prevents: **optimizing** and **automating**
-> something that should have been deleted. In an agent harness these are the
-> expensive mistakes — they get encoded and replicated across every future run.
 
 ## Golden principles (mechanical, enforce-able)
 
@@ -106,8 +83,8 @@ So we hold them as **hypotheses, not law**:
    stale* — a concrete experiment, ideally read off `harness.sh report`.
 2. **Re-test on a trigger, don't trust forever.** The `garden` sweep audits the
    register (cadence: **pre-release**, when the model tier moves). A constraint
-   that no longer earns its keep gets **deleted** — that is Five-Step step 2
-   applied to the harness's own beliefs, not just its features.
+   that no longer earns its keep gets **deleted** — the Mini constraint's
+   delete-first discipline applied to the harness's own beliefs, not just its features.
 3. **Decoupling validated, not copied.** The post's brain/hands/session split is
    already ours (main agent / sub-agent firewalls / `.trace/`); we *interrogate*
    the session (`status`/`report`/checkpoints) instead of reloading it. The infra

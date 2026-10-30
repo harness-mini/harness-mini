@@ -72,7 +72,7 @@ $ cp docs/templates/full-plan.md docs/exec-plans/active/0001-demo-auth.md
 
 Fill the plan (run `to-prd`, then `to-issues`). The result is the worked example
 [`examples/demo-auth/0001-demo-auth.md`](examples/demo-auth/0001-demo-auth.md) —
-note how **five-step** *deleted* signup, password reset, and social login from v1,
+note how its delete-first pass removed signup, password reset, and social login from v1,
 and how the **acceptance criteria** are concrete and testable (200+token / 401 no
 enumeration / bcrypt / `npm test` green). Those criteria are the contract the
 evaluator grades against later.
@@ -162,7 +162,7 @@ checkpoint → cold-resume.** Quick-mode changes skip the PRD/issues ceremony an
 straight to implement; everything else flows exactly like this.
 
 Next: read [`AGENTS.md`](../AGENTS.md) (the map), then
-[`docs/principles.md`](principles.md) (the Mini constraint + Five-Step core-mind).
+[`docs/principles.md`](principles.md) (the Mini delete-first constraint and golden principles).
 Another host? See
 [`docs/codex-getting-started.md`](codex-getting-started.md) /
 [`docs/cursor-getting-started.md`](cursor-getting-started.md).

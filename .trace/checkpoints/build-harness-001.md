@@ -14,7 +14,7 @@ prev: none
 - Build complete and committed.
 ## Next (resume here)
 - Drop harness-mini into a real target project: `bash init.sh /path/to/project`.
-- For a greenfield target, run the intake funnel (founder-check → five-step →
+- For a greenfield target, run the intake funnel (founder-check →
   to-prd → to-issues). For an existing target, run the explorer recon pass.
 ## Decisions
 - See docs/exec-plans/completed/0001-build-harness.md for the full decision log.

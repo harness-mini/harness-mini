@@ -12,9 +12,8 @@ eval: L1        # L1 default; bump to L2 for arch/security/data-loss/public-API/
 > lifecycle. For a tiny obvious change, use `docs/templates/quick-plan.md` instead.
 
 ## Intake
-<!-- NEW project → founder-check + five-step. EXISTING project → recon (explorer). -->
-- **Five-step** (question → delete → simplify → accelerate → automate): what can be
-  *deleted* before anything is built?
+<!-- NEW project → founder-check. EXISTING project → recon (explorer). -->
+- Delete-first pass: what can be *deleted* before anything is built?
 - Riskiest assumption: <…>
 
 ## Problem
@@ -22,7 +21,7 @@ eval: L1        # L1 default; bump to L2 for arch/security/data-loss/public-API/
 
 ## PRD (run `to-prd`)
 - Goal: <the smallest valuable outcome>
-- Out of scope (deleted via five-step): <…>
+- Out of scope (deliberately deleted): <…>
 
 ## Acceptance criteria
 - [ ] <criterion — testable; mark which need agent/human judgment vs. machine check>

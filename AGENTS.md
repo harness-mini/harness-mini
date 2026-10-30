@@ -42,8 +42,8 @@ The harness *is the environment, not a program.* Before adding anything to
 harness-mini: **shell-or-doc first, no environment dependence, no complex
 languages.** A new capability is a Markdown skill/agent/doc by default and only
 becomes a small POSIX `bin/*.sh` when it must execute — never a runtime, package
-manager, or third-party binary. Apply the Five-Step to the harness itself: try to
-**delete** before you add. Full contract: `docs/principles.md` → "The Mini constraint."
+manager, or third-party binary. Question harness requirements and try to
+**delete** before adding. Full contract: `docs/principles.md` → "The Mini constraint."
 
 ## Lifecycle (the state machine you live inside)
 
@@ -62,7 +62,7 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 
 | Need | Go to |
 |------|-------|
-| Core beliefs + Musk's Five-Step core-mind | `docs/principles.md` |
+| Core beliefs + delete-first discipline | `docs/principles.md` |
 | Load-bearing assumptions + staleness tests | `docs/assumptions.md` |
 | The smart/dumb (40%) contract | `docs/smart-dumb.md` |
 | Layer stack + lifecycle FSM detail | `ARCHITECTURE.md` |
@@ -88,7 +88,7 @@ verdict (`ready|warning|blocked` + next action). `release` is source-repo only
 
 ## Skills by stage
 
-- **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `five-step`, `grill-me`, `release`
+- **orchestrate:** `stage-viewer`, `ralph-loop`, `checkpoint`, `grill-me`, `release`
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `parallel-slices`, `clean-code`, `refactor`
@@ -99,7 +99,7 @@ verdict (`ready|warning|blocked` + next action). `release` is source-repo only
 
 | Agent | Role | Skills | Model |
 |-------|------|--------|-------|
-| planner | goal → exec-plan | to-prd, to-issues, five-step | sonnet |
+| planner | goal → exec-plan | to-prd, to-issues | sonnet |
 | generator | build one slice via TDD | tdd, slice-coding, clean-code, refactor, checkpoint | sonnet · *opus* |
 | evaluator | grade vs criteria (separate window) | evaluate, clean-code | opus |
 | explorer | disposable read/search → distillate | (none) | haiku |
