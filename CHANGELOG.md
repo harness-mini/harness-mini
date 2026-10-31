@@ -7,6 +7,13 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Accessibility statement** — root `ACCESSIBILITY.md` + a README Community
+  link: plain-text/`NO_COLOR` commitments for the CLI, Markdown a11y rules
+  (heading order, descriptive links, prose beside diagrams), supported
+  environments, known limitations, and a public issue reporting path with an
+  `accessibility` label.
+
 ## [0.11.0] - 2026-10-30
 
 ### Removed
