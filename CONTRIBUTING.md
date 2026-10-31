@@ -79,7 +79,7 @@ Checklist before you open a PR:
       green. See [`skills/tdd/SKILL.md`](skills/tdd/SKILL.md).
 - [ ] **You followed `slice-coding`** for anything multi-step: a thin vertical
       slice end-to-end before breadth. See [`skills/slice-coding/SKILL.md`](skills/slice-coding/SKILL.md).
-- [ ] **`AGENTS.md` stays a map** (~100 lines). If your change adds a pointer,
+- [ ] **`AGENTS.md` stays a map.** If your change adds a pointer,
       add one line — don't turn the map into an encyclopedia.
 - [ ] **Docs updated** alongside the code (README / ARCHITECTURE / manifest as relevant).
 - [ ] **`CHANGELOG.md` `[Unreleased]`** has a user-facing line for your change.
