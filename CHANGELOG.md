@@ -7,6 +7,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Security policy** — root `SECURITY.md`: supported versions (latest `v0.x` only),
+  scope (installer/CLI shell surface, `harness.lock` supply-chain integrity,
+  skills/agents content), private vulnerability reporting, and response
+  expectations (7d ack · 30d assessment · 90d disclosure).
+
 ## [0.11.0] - 2026-10-30
 
 ### Removed
