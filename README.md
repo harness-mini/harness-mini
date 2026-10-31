@@ -275,6 +275,10 @@ the occasional ~30 lines of test-first shell. Ship thin, keep it smart.
 [GitHub Discussions](https://github.com/harness-mini/harness-mini/discussions) —
 questions, show-and-tell, and feedback welcome.
 
+Accessibility matters here too — our [accessibility statement](ACCESSIBILITY.md)
+covers goals for the CLI's plain-text output and the docs, supported
+environments, and how to report barriers.
+
 ## License
 
 [MIT](LICENSE) © 2026 harness-mini contributors.
