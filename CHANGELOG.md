@@ -14,6 +14,14 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   environments, known limitations, and a public issue reporting path with an
   `accessibility` label.
 
+### Changed
+- **First-screen & navigation upgrade (docs-nav-001).** README leads with a
+  committed SVG banner (`docs/assets/banner.svg`) + shields.io badges and states
+  the five-invariant **Core Architecture Contract**; `ARCHITECTURE.md` opens with
+  a full ASCII lifecycle FSM (per-state exit conditions, rework loop, quick mode,
+  garden orthogonality); `AGENTS.md` becomes an anchor-marked context navigation
+  map (`ANCHOR:` marks + a trigger jump table; prose pruned to fund the budget).
+
 ## [0.11.0] - 2026-10-30
 
 ### Removed
