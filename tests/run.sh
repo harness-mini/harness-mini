@@ -524,6 +524,10 @@ out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
 assert_exit 0 "$code" "status fine with an unparseable twin"
 out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
 assert_contains "$out" "unparseable" "doctor warns on an unparseable twin"
+# plan_id-only twin (no status) is not readable either — same bar as status
+printf '{ "plan_id": "0001-intake", "slices": [] }\n' > "$WTWIN"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "unparseable" "doctor warns on a twin without a status field"
 rm -rf "$WDIR"
 
 # =============================================================================

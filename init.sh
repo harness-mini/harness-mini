@@ -45,7 +45,8 @@ say() { printf '  %s\n' "$1"; }
 
 # Routing-gate v2 text (see "routing gate" below). Marker-guarded with
 # HARNESS_ROUTING_GATE_BEGIN/END; an install seeded with the v1 block
-# (harness-mini:start/end) is UPGRADED IN PLACE — there is ever exactly one gate.
+# (harness-mini:start/end) has it REMOVED and the v2 gate appended — there is
+# ever exactly one gate.
 # Status-first: a cold session runs `bin/harness.sh status` and picks the next
 # slice with passes:false from the JSON twin before touching any code.
 GATE_BEGIN='<!-- HARNESS_ROUTING_GATE_BEGIN -->'
@@ -169,7 +170,7 @@ fi
 # --- routing gate: seed each CLI's native always-on entry file ---------------
 # Additive + idempotent + upgradeable. CLAUDE.md is user space: only the
 # marker-guarded gate block is ever written. If a v1 block (harness-mini:start/
-# end) is present it is REPLACED in place, so exactly one gate ever exists.
+# end) is present it is stripped and the v2 gate appended (exactly one gate).
 # .cursor/rules/harness-mini.mdc is harness-owned: created if absent; if it still
 # carries the v1 version-first line, that one line is swapped to status-first.
 if [ ! -f "$DEST/CLAUDE.md" ]; then
@@ -178,13 +179,18 @@ if [ ! -f "$DEST/CLAUDE.md" ]; then
 elif grep -qF "$GATE_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
   say "skip  CLAUDE.md routing gate (present)"
 elif grep -qF "$V1_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
-  awk -v b="$V1_BEGIN" -v e="$V1_END" '
+  if awk -v b="$V1_BEGIN" -v e="$V1_END" '
     $0 == b { skip=1 }
     !skip   { print }
     $0 == e { skip=0 }
-  ' "$DEST/CLAUDE.md" > "$DEST/CLAUDE.md.gate.tmp" && mv "$DEST/CLAUDE.md.gate.tmp" "$DEST/CLAUDE.md"
-  { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
-  say "upgr  CLAUDE.md routing gate v1 -> v2 (replaced in place)"
+  ' "$DEST/CLAUDE.md" > "$DEST/CLAUDE.md.gate.tmp"; then
+    mv "$DEST/CLAUDE.md.gate.tmp" "$DEST/CLAUDE.md"
+    { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
+    say "upgr  CLAUDE.md routing gate v1 -> v2 (v1 stripped, v2 appended)"
+  else
+    rm -f "$DEST/CLAUDE.md.gate.tmp"
+    say "warn  CLAUDE.md v1 gate strip failed — left untouched"
+  fi
 else
   { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
   say "add   CLAUDE.md routing gate v2 (appended)"

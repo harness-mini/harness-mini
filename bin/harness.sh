@@ -292,15 +292,18 @@ cmd_doctor() {
   # dual-file twins: each active MD plan should carry a same-basename .json
   # workboard (WARN only, never FAIL — the MD stays the lifecycle authority and
   # status degrades gracefully to MD-only without the twin).
-  local pf2 twin2 wpok2
+  local pf2 twin2 wb2 wpid2 wst2
   for pf2 in "$root"/docs/exec-plans/active/*.md; do
     [ -f "$pf2" ] || continue
     twin2="${pf2%.md}.json"
     if [ ! -f "$twin2" ]; then
       emit warn "$(basename "$pf2" .md): no JSON twin — workboard blind (docs/templates/full-plan.md)"
     else
-      wpok2="$(json_wb "$twin2" | awk -F'|' '{print $6}')"
-      [ "$wpok2" = "1" ] \
+      # "Readable" = same bar status applies: plan_id seen AND a status value.
+      wb2="$(json_wb "$twin2")"
+      wpid2="$(printf '%s' "$wb2" | awk -F'|' '{print $6}')"
+      wst2="$(printf '%s' "$wb2" | awk -F'|' '{print $1}')"
+      { [ "$wpid2" = "1" ] && [ -n "$wst2" ]; } \
         || emit warn "$(basename "$pf2" .md): JSON twin unparseable — fix fields or delete it"
     fi
   done

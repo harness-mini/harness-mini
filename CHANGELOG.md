@@ -31,13 +31,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   `HARNESS_ROUTING_GATE_BEGIN/END`-marked block ([CRITICAL AGENT INSTRUCTION]:
   run `bin/harness.sh status` first, pick the highest-priority `passes: false`
   slice, one slice per session, progressive exposure, never alter JSON `steps`)
-  into `CLAUDE.md`, and **upgrades v1 installs in place** (the old
-  `harness-mini:start/end` block is replaced — exactly one gate, ever). The
-  `.cursor/rules/harness-mini.mdc` gate is regenerated status-first. `AGENTS.md`
-  carries a single merged routing-gate section (mandatory `status` first,
-  quick repository map, no full-history loads) and documents the twin contract.
-
-### Changed
+  into `CLAUDE.md`, and **upgrades v1 installs** (the old
+  `harness-mini:start/end` block is stripped and the v2 gate appended — exactly
+  one gate, ever). The `.cursor/rules/harness-mini.mdc` gate is regenerated
+  status-first. `AGENTS.md` carries a single merged routing-gate section
+  (mandatory `status` first, quick repository map, no full-history loads) and
+  documents the twin contract.
 - **First-screen & navigation upgrade (docs-nav-001).** README leads with a
   committed SVG banner (`docs/assets/banner.svg`) + shields.io badges and states
   the five-invariant **Core Architecture Contract**; `ARCHITECTURE.md` opens with

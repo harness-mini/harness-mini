@@ -78,7 +78,7 @@
         "bash tests/run.sh fully green",
         "grep sweep: no stale references to the old gate wording remain"
       ],
-      "passes": false
+      "passes": true
     }
   ]
 }

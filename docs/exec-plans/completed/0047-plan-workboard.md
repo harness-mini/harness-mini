@@ -1,7 +1,7 @@
 ---
 plan: plan-workboard
 seq: 0047
-stage: implement
+stage: done
 owner: main
 mode: full
 eval: L1
@@ -75,24 +75,21 @@ wordings (`version` in AGENTS.md gate, gate in CLAUDE.md, cursor rule).
   grep-level checks for one-gate-only in AGENTS.md/CLAUDE.md fixtures.
 
 ## Now (resume here)
-- slice-006 content is complete; run the **L1 evaluation** (separate context)
-  over the full plan, then flip slice-006 `passes` and advance to checkpoint.
+- DONE. L1 verdict: pass 8/8 (`.trace/evals/plan-workboard-001.md`); reviewer's
+  clean-code findings applied (doctor twin bar unified, migration guarded,
+  comment + CHANGELOG fixes) with the suite re-run green. Plan moves to
+  `docs/exec-plans/completed/` in PR for #52.
 
 ## Next
-- On `verdict: pass`: checkpoint, PR referencing #52, merge.
+- (none — completed)
 
 ## Session Context Handoff
 
 **Last Updated**: 2026-11-01 (Session #2)
-**Completed Work**: all six slices implemented — templates+schema+twin template,
-demo-auth twin, `harness.sh status` workboard + doctor twin warnings, init.sh
-gate v2 with v1 migration, AGENTS.md merged status-first gate, four skills
-state the contract, CHANGELOG + walkthrough. `bash tests/run.sh` 200/200 green.
-Slices 1–5 flipped `passes` on per-slice machine evidence (green suite);
-slice-006 awaits the L1 verdict.
-**Current Blockers / Risks**: one mid-flight hiccup (duplicated JSON closing
-braces) caught by the validate-and-go step and fixed — the workboard parser
-never saw it. None open.
+**Completed Work**: all six slices implemented and independently evaluated
+(L1, 8/8 PASS); clean-code findings applied post-verdict; 6/6 slices
+`passes: true`; final suite green.
+**Current Blockers / Risks**: none.
 
 ## Decisions log
 - 2026-11-01: init.sh stays the additive installer; gate upgraded in place with
