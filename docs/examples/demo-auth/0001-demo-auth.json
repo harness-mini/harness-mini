@@ -1,0 +1,41 @@
+{
+  "plan_id": "0001-demo-auth",
+  "title": "Add password login — demo-api (worked example)",
+  "status": "in_progress",
+  "current_slice_id": "slice-002",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "api",
+      "description": "Walking skeleton: POST /login with valid credentials returns 200 + session token",
+      "steps": [
+        "Failing test: POST /login with seeded valid creds expects 200 + {token}",
+        "Route + handler issuing a short-lived session token",
+        "npm test green including the new login test"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-002",
+      "category": "backend",
+      "description": "Failure path: wrong/unknown credentials return 401 with no user enumeration",
+      "steps": [
+        "Failing test: wrong password expects 401 with the same body as unknown email",
+        "Verify against the bcrypt hash; never compare or log plaintext",
+        "npm test green including both new failure tests"
+      ],
+      "passes": false
+    },
+    {
+      "id": "slice-003",
+      "category": "backend",
+      "description": "Integrate: issue the token via the existing session middleware",
+      "steps": [
+        "Failing test: token from /login is accepted by a protected endpoint",
+        "Replace the hand-rolled token issuance with the session middleware",
+        "npm test green; no regression in existing session tests"
+      ],
+      "passes": false
+    }
+  ]
+}

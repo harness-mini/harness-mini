@@ -12,6 +12,9 @@ eval: L0        # L0 self-check (tiny) or L1 lightweight reviewer; see evaluate 
 > PRD/issues ceremony. Use `docs/templates/full-plan.md` instead if the change is
 > ambiguous, cross-cutting, touches architecture, or risks data/security.
 > (When unsure, the README first-screen table decides for you.)
+>
+> **Dual file:** quick plans also keep a same-basename `<NNN-slug>.json` twin
+> (usually a single slice) — schema + rules: `docs/templates/full-plan.md`.
 
 ## Problem
 <One or two sentences: what's broken or missing, and why it matters now.>
@@ -28,6 +31,11 @@ eval: L0        # L0 self-check (tiny) or L1 lightweight reviewer; see evaluate 
 
 ## Evidence (fill on completion)
 - <test output, observed behaviour — the proof the criteria passed>
+
+## Session Context Handoff
+**Last Updated**: <YYYY-MM-DD> (Session #<n>)
+**Completed Work**: <what landed and was verified>
+**Current Blockers / Risks**: <what is stuck or fragile>
 
 ## Decisions
 - <anything non-obvious; or "none">

@@ -28,7 +28,7 @@ harness-mini: installing into /Users/you/demo-api  (mode: existing)
   add   bin/ctx.sh bin/trace.sh bin/ralph.sh bin/harness.sh …
   add   AGENTS.md ARCHITECTURE.md
   add   harness/manifest.md
-  add   CLAUDE.md (routing gate)
+  add   CLAUDE.md (routing gate v2)
   add   .cursor/rules/harness-mini.mdc
   add   harness/harness.lock (v0.2.0)
   add   docs/exec-plans/active/0001-recon.md
@@ -66,12 +66,19 @@ would be **quick mode** instead; see the README decision table). Copy the templa
 
 ```console
 $ cp docs/templates/full-plan.md docs/exec-plans/active/0001-demo-auth.md
+$ cp docs/templates/full-plan-twin.json docs/exec-plans/active/0001-demo-auth.json
 ```
+
+Every plan is a **dual file**: `<NNN-slug>.md` (the narrative) + a same-basename
+`.json` twin (the machine workboard `harness.sh status` reads to point the next
+session at the slice with `passes: false`).
 
 ## 3. Plan — PRD + issues
 
-Fill the plan (run `to-prd`, then `to-issues`). The result is the worked example
-[`examples/demo-auth/0001-demo-auth.md`](examples/demo-auth/0001-demo-auth.md) —
+Fill the plan (run `to-prd`, then `to-issues` — it emits the JSON twin). The
+result is the worked example
+[`examples/demo-auth/0001-demo-auth.md`](examples/demo-auth/0001-demo-auth.md)
+(+ its [`0001-demo-auth.json`](examples/demo-auth/0001-demo-auth.json) twin) —
 note how its delete-first pass removed signup, password reset, and social login from v1,
 and how the **acceptance criteria** are concrete and testable (200+token / 401 no
 enumeration / bcrypt / `npm test` green). Those criteria are the contract the

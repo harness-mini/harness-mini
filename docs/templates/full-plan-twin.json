@@ -1,0 +1,18 @@
+{
+  "plan_id": "<NNN-slug>",
+  "title": "<Title>",
+  "status": "planned",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "<one line — what end-to-end capability this slice proves>",
+      "steps": [
+        "<testable step — write these as checks, never weaken them to pass>",
+        "<…>"
+      ],
+      "passes": false
+    }
+  ]
+}

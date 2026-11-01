@@ -39,7 +39,9 @@ criterion needs a human/agent call, it is at least L1.
 
 ## Verdict
 - **All criteria PASS** → report pass. Only then may the **main agent** advance the
-  stage. (No tier advances the stage itself.)
+  stage — and flip the evaluated slice's `passes` to `true` in the plan's JSON
+  twin (never the builder, never you: you report, the main agent records).
+  (No tier advances the stage itself.)
 - **Any FAIL** → report fail with the gaps; the loop returns to `implement` (often
   via `ralph-loop`) until it passes.
 

@@ -1,0 +1,84 @@
+{
+  "plan_id": "0047-plan-workboard",
+  "title": "Dual JSON+MD exec-plans (machine workboard) + status-first routing gate",
+  "status": "in_progress",
+  "current_slice_id": "slice-006",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "docs",
+      "description": "Templates document the dual-file rule + JSON schema + Session Context Handoff; demo-auth gets a JSON twin",
+      "steps": [
+        "full-plan.md gains the Session Context Handoff section and the twin-file rule note",
+        "quick-plan.md gains the same handoff section and points at the schema",
+        "JSON schema documented once in full-plan.md (fields: plan_id, title, status, current_slice_id, slices[].id/category/description/steps/passes)",
+        "docs/examples/demo-auth/0001-demo-auth.json created as the worked example",
+        "bash tests/run.sh stays green"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-002",
+      "category": "backend",
+      "description": "harness.sh status prints the workboard from JSON twins; doctor warns on missing/unparseable twins",
+      "steps": [
+        "status lists per-plan JSON status + current slice + next passes:false slice (awk only, no jq)",
+        "parsing tolerates arbitrary indentation and blank lines in the twin",
+        "plans without a JSON twin keep the current MD-only output (no breakage)",
+        "doctor emits warn (not fail) for missing or unparseable twin",
+        "tests/run.sh covers: parse fixture, missing twin fallback, doctor warning"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-003",
+      "category": "backend",
+      "description": "init.sh routing-gate v2: HARNESS_ROUTING_GATE markers, CRITICAL text, migration of the old gate block",
+      "steps": [
+        "CLAUDE.md gate block rewritten with HARNESS_ROUTING_GATE_BEGIN/END markers and the CRITICAL AGENT INSTRUCTION text",
+        "re-run on an install with the old harness-mini:start/end block replaces it (exactly one gate remains)",
+        "re-run on an install with the new block is a no-op (idempotent)",
+        ".cursor rule wording aligned to status-first",
+        "tests/run.sh covers: fresh inject, idempotent re-run, old-marker migration"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-004",
+      "category": "docs",
+      "description": "AGENTS.md single merged routing gate, status-first, with Repository Map additions",
+      "steps": [
+        "gate section instructs: on a new session MUST run bin/harness.sh status first",
+        "Repository Map lines added: active plans in docs/exec-plans/active/ (never load full history), 40% guardrail pointer",
+        "exactly one routing-gate section remains in AGENTS.md",
+        "old version-first fresh-session line removed from the gate"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-005",
+      "category": "docs",
+      "description": "Skills state the dual-file contract end to end",
+      "steps": [
+        "to-issues: emit the JSON twin beside every MD plan it creates",
+        "checkpoint: refresh the plan's Session Context Handoff section",
+        "stage-viewer: advancing updates JSON status/current_slice_id; only main flips passes",
+        "evaluate: passes flips to true only after an evaluator verdict (anti-self-praise)",
+        "skills stay under ~90 lines each, map-not-encyclopedia tone"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-006",
+      "category": "docs",
+      "description": "CHANGELOG Unreleased entry + walkthrough/README consistency sweep + full green run",
+      "steps": [
+        "CHANGELOG.md [Unreleased] entry describing the dual-file contract and gate v2",
+        "docs/walkthrough.md consistent with the new plan format",
+        "bash tests/run.sh fully green",
+        "grep sweep: no stale references to the old gate wording remain"
+      ],
+      "passes": false
+    }
+  ]
+}

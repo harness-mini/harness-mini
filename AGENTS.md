@@ -15,17 +15,26 @@
 | **`skills`** · **`agents`** | picking the tool or worker for a stage |
 | **`trace`** | logging an event or committing a checkpoint |
 
-## Start here — routing gate (precedence)
+## Start here — routing gate (mandatory, precedence)
 
 <!-- ANCHOR: gate -->
 
-This project runs on **harness-mini**. Before non-trivial work — a feature, a
+When a new session starts, **MUST FIRST** run `bin/harness.sh status` to check
+the currently active workboard (active plans · JSON status · current slice ·
+next `passes: false` slice). Then, before non-trivial work — a feature, a
 multi-step or ambiguous change, anything cross-cutting — **route it through the
 `stage-viewer` skill first**; when a harness skill and another tool both fit,
 **the harness skill wins.** Trivial one-line fixes may skip the ceremony (quick
-mode). On a fresh session, `stage-viewer` first checks for a newer harness
-(`bin/harness.sh version`). The repository is the **system of record** — anything
-not in a version-controlled file does not exist to you.
+mode). The repository is the **system of record** — anything not in a
+version-controlled file does not exist to you.
+
+Quick repository map (details in the `map` anchor below):
+
+- **Architecture definition**: `ARCHITECTURE.md`
+- **Execution plans**: active plans live under `docs/exec-plans/active/`
+  (same-basename `.md` + `.json` twins). Do NOT load the full historical
+  records — read only the plan you are working, and only your slice.
+- **Quality & constraints**: `docs/smart-dumb.md` (maintain the 40% guardrail).
 
 ## The one rule that governs everything: the 40% line
 
@@ -68,8 +77,11 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 
 - Only the **main agent** (via the `stage-viewer` skill) advances the stage.
   **No worker may promote its own work to "done."** (Anti-self-praise firewall.)
-- Each requirement is a file in `docs/exec-plans/active/<plan>.md` with a
-  `stage:` field. Read it before acting; act only within your role's stage.
+- Each requirement is a **dual-file plan** in `docs/exec-plans/active/`:
+  `<NNN-slug>.md` (narrative, frontmatter `stage:` = the lifecycle authority)
+  + `<NNN-slug>.json` (machine workboard: `status`, `current_slice_id`,
+  `slices[].passes`). Read it before acting; act only within your role's stage.
+  Never alter `steps` in the JSON — they are the slice's test conditions.
 
 ## Where things live (progressive disclosure)
 
