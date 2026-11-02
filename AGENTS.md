@@ -21,7 +21,9 @@
 
 When a new session starts, **MUST FIRST** run `bin/harness.sh status` to check
 the currently active workboard (active plans · JSON status · current slice ·
-next `passes: false` slice). Then, before non-trivial work — a feature, a
+next `passes: false` slice) and its session path — `path: init` (plan
+bootstrap: planning/board work, no product code) vs `path: coding` (incremental
+slice work). Then, before non-trivial work — a feature, a
 multi-step or ambiguous change, anything cross-cutting — **route it through the
 `stage-viewer` skill first**; when a harness skill and another tool both fit,
 **the harness skill wins.** Trivial one-line fixes may skip the ceremony (quick

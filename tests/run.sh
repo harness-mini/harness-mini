@@ -567,6 +567,63 @@ assert_contains "$out" "unparseable" "doctor warns on a twin without a status fi
 rm -rf "$WDIR"
 
 # =============================================================================
+echo "harness.sh status — session path (path: init|coding + path_reason, #57)"
+# fixture factory: <root> <slug> <stage> <twin: none|next|green|empty|garbage>
+mkplan() {
+  printf -- '---\nplan: %s\nseq: 0001\nstage: %s\nowner: main\n---\n# t\n' "$2" "$3" \
+    > "$1/docs/exec-plans/active/$2.md"
+  case "$4" in
+    next)   printf '{ "plan_id": "%s", "status": "in_progress", "current_slice_id": "slice-002",\n  "slices": [ { "id": "slice-001", "passes": true }, { "id": "slice-002", "passes": false } ] }\n' "$2" > "$1/docs/exec-plans/active/$2.json" ;;
+    green)  printf '{ "plan_id": "%s", "status": "in_progress", "slices": [ { "id": "slice-001", "passes": true } ] }\n' "$2" > "$1/docs/exec-plans/active/$2.json" ;;
+    empty)  printf '{ "plan_id": "%s", "status": "planned", "slices": [] }\n' "$2" > "$1/docs/exec-plans/active/$2.json" ;;
+    garbage) printf 'not json {{{\n' > "$1/docs/exec-plans/active/$2.json" ;;
+  esac
+}
+mkboard() { local d; d="$(mktemp -d)"; mkdir -p "$d/harness" "$d/docs/exec-plans/active"; printf 'version: 0.0.0\n' > "$d/harness/harness.lock"; printf '%s' "$d"; }
+# 1. empty board
+PB="$(mkboard)"
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: init" "path: init on an empty board"
+assert_contains "$out" "path_reason: empty board" "empty-board reason"
+rm -rf "$PB"
+# 2. planning stage (no twin needed)
+PB="$(mkboard)"; mkplan "$PB" 0001-idea prd none
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: init" "path: init while still planning"
+assert_contains "$out" "path_reason: still planning" "planning-stage reason"
+rm -rf "$PB"
+# 3. implement + next passes:false slice -> coding
+PB="$(mkboard)"; mkplan "$PB" 0001-coder implement next
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: coding" "path: coding with a next slice"
+assert_contains "$out" "path_reason: next slice ready" "next-slice reason"
+rm -rf "$PB"
+# 4. all slices green, plan not closed -> coding wrap-up
+PB="$(mkboard)"; mkplan "$PB" 0001-doneish implement green
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: coding" "path: coding on all-green not closed"
+assert_contains "$out" "path_reason: wrap-up" "wrap-up reason"
+rm -rf "$PB"
+# 5. missing twin at coding stage -> conservative init
+PB="$(mkboard)"; mkplan "$PB" 0001-twinless implement none
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: init" "missing twin degrades to init"
+assert_contains "$out" "path_reason: twin missing" "twin-missing reason"
+rm -rf "$PB"
+# 6. unparseable twin at coding stage -> conservative init
+PB="$(mkboard)"; mkplan "$PB" 0001-badtwin implement garbage
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: init" "unparseable twin degrades to init"
+assert_contains "$out" "path_reason: twin unparseable" "twin-unparseable reason"
+rm -rf "$PB"
+# 7. multi-plan priority: planning + coding-ready -> coding wins
+PB="$(mkboard)"; mkplan "$PB" 0001-idea prd none; mkplan "$PB" 0002-coder implement next
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "path: coding" "coding-ready plan wins over a planning plan"
+assert_contains "$out" "path_reason: next slice ready" "multi-plan picks the ready slice"
+rm -rf "$PB"
+
+# =============================================================================
 echo "harness.sh status — garden trigger (cadence + smell backlog)"
 GDIR="$(mktemp -d)"; mkdir -p "$GDIR/.trace/checkpoints" "$GDIR/harness"
 printf 'version: 0.0.0\n' > "$GDIR/harness/harness.lock"

@@ -394,6 +394,17 @@ cmd_status() {
 
   local f plan stage cp nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
   local twin wb wst wcur wnxt wnp wns wpok wtot
+  # session path — one machine answer to "is this session plan bootstrap or
+  # incremental coding?" (discussion #55 / issue #57). Derived ONLY from file
+  # truth: MD stage + JSON twin. Priority across plans (first plan wins within
+  # a class): a coding-provable plan beats a planning one, because the gate's
+  # question is "may this session write product code". A missing/unparseable
+  # twin at a coding stage is conservative init — coding must be PROVEN.
+  #   class 1 coding next slice ready      (coding stage + twin has passes:false)
+  #   class 2 coding wrap-up               (coding stage + twin all green, plan open)
+  #   class 3 init  twin missing|unparseable (conservative: coding unprovable)
+  #   class 4 init  still planning         (intake|prd|issues, or twin w/o slices)
+  local p_class=9 p_reason="empty board" pc pr
   if ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"
     for f in "$root"/docs/exec-plans/active/*.md; do
@@ -420,6 +431,24 @@ cmd_status() {
           fi
         fi
       fi
+      # classify this plan for the session path
+      case "$stage" in
+        implement|evaluate|checkpoint)
+          if [ ! -f "$twin" ]; then pc=3; pr="twin missing"
+          else
+            wb="$(json_wb "$twin")"
+            IFS='|' read -r wst wcur wnxt wnp wns wpok <<< "$wb"
+            if [ "$wpok" = "1" ] && [ -n "$wst" ]; then
+              if [ "$wns" -gt 0 ]; then pc=1; pr="next slice ready"
+              elif [ "$wnp" -gt 0 ]; then pc=2; pr="wrap-up"
+              else pc=4; pr="still planning"    # twin has no slices yet
+              fi
+            else pc=3; pr="twin unparseable"; fi
+          fi ;;
+        intake|prd|issues) pc=4; pr="still planning" ;;
+        *) pc=4; pr="still planning" ;;   # unknown stage: coding unprovable
+      esac
+      if [ "$pc" -lt "$p_class" ]; then p_class="$pc"; p_reason="$pr"; fi
       nplans=$((nplans + 1))
       [ -n "$cp" ] && nplans_with_cp=$((nplans_with_cp + 1))
       if [ -z "$first_plan" ]; then
@@ -429,6 +458,11 @@ cmd_status() {
   else
     echo "active plans: none"
   fi
+
+  # session path verdict — the line gate v2 and the session-* skills branch on
+  local p_path=init; [ "$p_class" -le 2 ] && p_path=coding
+  printf 'path: %s\n' "$p_path"
+  printf 'path_reason: %s\n' "$p_reason"
 
   local nnew; nnew="$(count_dotnew "$root")"
   echo "update conflicts: $nnew .new file(s)"
@@ -596,7 +630,7 @@ usage: harness.sh <command>
   version                 show installed version (+ latest, best-effort)
   update [--src DIR]      pull a newer version into this project (checksum-guarded)
   doctor                  check install health (ok/warn/fail; exit 1 on a fail)
-  status                  show current work state (plans, workboard, checkpoints, resumability)
+  status                  show work state (plans, workboard, session path, checkpoints)
   report [run]            aggregate .trace metrics (stages, context, evals, checkpoints)
   release <x.y.z> [opts]  bump + tag + GitHub release (source repo only)
 EOF

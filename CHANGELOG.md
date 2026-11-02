@@ -19,6 +19,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   the update applies and the next command runs the new script.
 
 ### Added
+- **Session path in `harness.sh status` (#57).** Two new machine lines —
+  `path: init|coding` + `path_reason:` — derived only from file truth (MD
+  `stage:` + the JSON twin): empty board or planning stage → `init`
+  (`empty board` / `still planning`); a coding stage with a `passes: false`
+  slice → `coding` (`next slice ready`); all-green plan not closed → `coding`
+  (`wrap-up`). Missing/unparseable twin degrades conservatively to `init`
+  (`twin missing` / `twin unparseable`). Across plans, a coding-provable plan
+  wins. This is the line the session-path skills (#58/#59) and the path-aware
+  gate (#60) branch on.
 - **Dual-file exec-plans — machine workboard (#52).** Every active plan keeps a
   same-basename `<NNN-slug>.json` twin beside its MD (`plan_id`, `title`,
   `status`, `current_slice_id`, `slices[]` with `id/category/description/steps/
