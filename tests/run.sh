@@ -312,43 +312,73 @@ assert_exit 0 "$code" "re-init with a lock present is idempotent"
 rm -rf "$LSRC" "$LDEST"
 
 # =============================================================================
-echo "init.sh — routing gate v2 (markers, idempotency, v1 migration)"
+echo "init.sh — routing gate v3 (path-aware, markers, idempotency, v1/v2 migration)"
 GSRC="$(mktemp -d)"; mkdir -p "$GSRC/skills" "$GSRC/agents" "$GSRC/bin" "$GSRC/docs"
 printf 'gate-skill\n' > "$GSRC/skills/sample.md"
 printf 'agent\n'      > "$GSRC/agents/planner.md"
 printf 'echo hi\n'    > "$GSRC/bin/ctx.sh"
 printf 'map\n'        > "$GSRC/AGENTS.md"
-# fresh install: v2 markers + CRITICAL text + status-first
+# fresh install: markers + CRITICAL text + status-first + path branching
 GDST="$(mktemp -d)"
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GDST" >/dev/null 2>&1
 gmc="$(cat "$GDST/CLAUDE.md" 2>/dev/null)"
-assert_contains "$gmc" "HARNESS_ROUTING_GATE_BEGIN" "fresh install seeds the v2 gate markers"
+assert_contains "$gmc" "HARNESS_ROUTING_GATE_BEGIN" "fresh install seeds the gate markers"
 assert_contains "$gmc" "CRITICAL AGENT INSTRUCTION" "gate carries the CRITICAL instruction"
 assert_contains "$gmc" "bin/harness.sh status" "gate is status-first"
-assert_contains "$gmc" "passes: false" "gate points at the next passes:false slice"
+assert_contains "$gmc" "path: init" "gate branches on path: init"
+assert_contains "$gmc" "path: coding" "gate branches on path: coding"
+assert_contains "$gmc" "session-init" "gate points at session-init"
+assert_contains "$gmc" "session-coding" "gate points at session-coding"
+assert_contains "$gmc" "Getting Bearings" "gate carries the one-line bearings pointer"
+assert_contains "$gmc" "passes: false" "gate points at the next passes:false slice (coding branch)"
 assert_contains "$gmc" "AGENTS.md" "gate points at the full map (AGENTS.md)"
+# path-blind check: every instruction to pick a passes:false slice must sit in
+# the coding branch (planning boards must not be pushed into product slices)
+bad_pick="$(printf '%s' "$gmc" | grep 'passes: false' | grep -vc 'coding' || true)"
+assert_eq "0" "$bad_pick" "slice-picking is conditioned on path: coding"
 # idempotent: re-run leaves exactly one gate block
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GDST" >/dev/null 2>&1
 assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$GDST/CLAUDE.md")" "gate idempotent: still one block"
-# cursor rule seeded and status-first
+assert_contains "$(cat "$GDST/CLAUDE.md")" "session-coding" "re-run keeps the v3 content"
+# cursor rule seeded, status-first, and path-aware
 curs="$(cat "$GDST/.cursor/rules/harness-mini.mdc" 2>/dev/null)"
 assert_contains "$curs" "bin/harness.sh status" "cursor rule is status-first"
+assert_contains "$curs" "session-init" "cursor rule points at session-init"
+assert_contains "$curs" "session-coding" "cursor rule points at session-coding"
+assert_contains "$curs" "path" "cursor rule mentions the path branch"
 rm -rf "$GDST"
-# v1 migration: old marker block is replaced in place; user content survives
+# v1 migration: old marker block is replaced; user content survives
 MDST="$(mktemp -d)"
 printf '# my project memory\nkeep me\n' > "$MDST/CLAUDE.md"
 printf '\n<!-- harness-mini:start -->\nv1 gate text\n<!-- harness-mini:end -->\n' >> "$MDST/CLAUDE.md"
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$MDST" >/dev/null 2>&1
 mgmc="$(cat "$MDST/CLAUDE.md")"
-assert_contains "$mgmc" "keep me" "migration preserves user content"
-assert_contains "$mgmc" "HARNESS_ROUTING_GATE_BEGIN" "migration installs the v2 gate"
-assert_eq "0" "$(grep -c 'harness-mini:start' "$MDST/CLAUDE.md")" "migration removes the v1 block"
-assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$MDST/CLAUDE.md")" "migration leaves one v2 block"
+assert_contains "$mgmc" "keep me" "v1 migration preserves user content"
+assert_contains "$mgmc" "HARNESS_ROUTING_GATE_BEGIN" "v1 migration installs the v3 gate"
+assert_eq "0" "$(grep -c 'harness-mini:start' "$MDST/CLAUDE.md")" "v1 migration removes the v1 block"
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$MDST/CLAUDE.md")" "v1 migration leaves one gate block"
+assert_contains "$mgmc" "session-coding" "v1 migration lands v3 content"
 # migration is also idempotent
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$MDST" >/dev/null 2>&1
 assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$MDST/CLAUDE.md")" "post-migration re-run stays one block"
 assert_contains "$(cat "$MDST/CLAUDE.md")" "keep me" "post-migration re-run still keeps user content"
-rm -rf "$MDST" "$GSRC"
+rm -rf "$MDST"
+# v2 -> v3 migration: marked block with stale (path-blind) content is replaced
+VDST="$(mktemp -d)"
+printf '# my project memory\nkeep me\n' > "$VDST/CLAUDE.md"
+{ printf '<!-- HARNESS_ROUTING_GATE_BEGIN -->\n[CRITICAL AGENT INSTRUCTION]\nYou are inside a project managed by harness-mini.\n\n1. Do NOT modify code directly before starting any task. You **MUST** first run the command: `bin/harness.sh status`\n2. Inspect the JSON plans under `docs/exec-plans/active/`, and select the highest-priority slice with `passes: false`.\n3. Follow the principle of progressive exposure strictly: only read code relevant to the current slice. Complete only one Slice per Session.\n4. Do NOT alter or delete the test conditions defined in `steps` inside JSON files.\n<!-- HARNESS_ROUTING_GATE_END -->\n'; } >> "$VDST/CLAUDE.md"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$VDST" >/dev/null 2>&1
+vgmc="$(cat "$VDST/CLAUDE.md")"
+assert_contains "$vgmc" "keep me" "v2 migration preserves user content"
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$VDST/CLAUDE.md")" "v2 migration leaves exactly one gate"
+assert_contains "$vgmc" "session-init" "v2 migration lands v3 content (session-init)"
+assert_contains "$vgmc" "session-coding" "v2 migration lands v3 content (session-coding)"
+assert_eq "1" "$(grep -c 'CRITICAL AGENT INSTRUCTION' "$VDST/CLAUDE.md")" "v2 migration drops the stale CRITICAL block"
+# v2 migration idempotent
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$VDST" >/dev/null 2>&1
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$VDST/CLAUDE.md")" "v2-migrated re-run stays one block"
+assert_contains "$(cat "$VDST/CLAUDE.md")" "keep me" "v2-migrated re-run keeps user content"
+rm -rf "$VDST" "$GSRC"
 
 # =============================================================================
 echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
@@ -776,6 +806,10 @@ assert_eq "1" "$(grep -ic '^## .*routing gate' "$am")" "AGENTS.md has exactly on
 assert_eq "0" "$(grep -c 'harness.sh version' "$am")" "AGENTS.md gate no longer says version-first"
 assert_contains "$(cat "$am")" "Do NOT load the full historical" "AGENTS.md map forbids loading full plan history"
 assert_contains "$(cat "$am")" "current_slice_id" "AGENTS.md documents the JSON twin fields"
+assert_contains "$(cat "$am")" "session-init" "AGENTS.md gate points at session-init"
+assert_contains "$(cat "$am")" "session-coding" "AGENTS.md gate points at session-coding"
+ambad="$(printf '%s' "$(cat "$am")" | grep 'passes: false' | grep -vc 'coding' || true)"
+assert_eq "0" "$ambad" "AGENTS.md conditions slice-picking on path: coding"
 
 # =============================================================================
 echo "source repo — session-init skill (#58: plan-layer playbook, no product code)"

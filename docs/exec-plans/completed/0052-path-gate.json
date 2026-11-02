@@ -1,0 +1,21 @@
+{
+  "plan_id": "0052-path-gate",
+  "title": "Path-aware routing gate v3 (branch on path, point to session-*)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "Gate v3 text + v2->v3 migration + AGENTS.md branch; copy/idempotency tests",
+      "steps": [
+        "tests/run.sh: fresh install gate mentions path:, session-init, session-coding, bearings pointer; v2->v3 migration leaves exactly one gate; re-run idempotent; AGENTS.md agrees",
+        "init.sh: gate v3 emitters; migration detects stale v2 block (markers present, session-coding absent) and replaces in place",
+        "AGENTS.md gate section: path branch + skill pointers + one-line bearings note",
+        "walkthrough gate-v2 wording bumped; CHANGELOG entry",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
