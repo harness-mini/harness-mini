@@ -859,6 +859,46 @@ assert_contains "$scb" "path: coding" "skill confirms path: coding from status"
 assert_contains "$(cat "$am")" "session-coding" "AGENTS.md skills list mentions session-coding"
 
 # =============================================================================
+echo "bin/session.sh — Outer session runner (P2, #61)"
+# mkboard/mkplan are defined in the session-path group above and reused here.
+SESS="$BIN/session.sh"
+# both skills installed in every fixture board, so selection is purely
+# path-driven — the runner must pick the right one, not just find one
+mkskills() { # <root>
+  for s in session-init session-coding; do
+    mkdir -p "$1/.claude/skills/$s"
+    cp "$ROOT/skills/$s/SKILL.md" "$1/.claude/skills/$s/SKILL.md"
+  done
+}
+# coding board -> session-coding body injected
+RB="$(mkboard)"; mkplan "$RB" 0001-coder implement next; mkskills "$RB"
+out="$(HARNESS_ROOT="$RB" HARNESS_NO_NET=1 bash "$SESS" 2>&1)"; code=$?
+assert_exit 0 "$code" "runner exits 0 on a coding board"
+assert_contains "$out" "Getting Bearings" "coding board injects session-coding body"
+assert_contains "$out" "bin/harness.sh status" "injected body still runs status first"
+assert_contains "$out" "path: coding" "wrapper states the session path"
+# init board -> session-init body injected (never bearings)
+RB2="$(mkboard)"; mkplan "$RB2" 0001-idea prd none; mkskills "$RB2"
+out2="$(HARNESS_ROOT="$RB2" HARNESS_NO_NET=1 bash "$SESS" 2>&1)"; code=$?
+assert_exit 0 "$code" "runner exits 0 on an init board"
+assert_contains "$out2" "plan session" "init board injects session-init body"
+assert_eq "0" "$(printf '%s' "$out2" | grep -c 'Getting Bearings')" "init board never gets coding bearings"
+# -- host-command mode: message passed as the final argument
+out3="$(HARNESS_ROOT="$RB" HARNESS_NO_NET=1 bash "$SESS" -- /bin/echo 2>&1)"; code=$?
+assert_exit 0 "$code" "runner -- mode exits 0"
+assert_eq "$out" "$out3" "-- mode delivers the same message as stdout mode"
+# fresh context: the runner persists nothing on the board
+n_before=$(find "$RB2" -type f | wc -l | tr -d ' ')
+HARNESS_ROOT="$RB2" HARNESS_NO_NET=1 bash "$SESS" >/dev/null 2>&1
+n_after=$(find "$RB2" -type f | wc -l | tr -d ' ')
+assert_eq "$n_before" "$n_after" "runner writes no files (fresh context per session)"
+# vendor-neutral kernel: no vendor CLI invocation, no host hook mechanism.
+# (.claude/skills is the harness's own install-layout path, not a vendor name.)
+assert_eq "0" "$(grep -vE '\.claude/' "$SESS" | grep -ciE 'claude|cursor|codex')" "script invokes no vendor CLI"
+assert_eq "0" "$(grep -ci 'sessionstart' "$SESS")" "script depends on no session-start hooks"
+rm -rf "$RB" "$RB2"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

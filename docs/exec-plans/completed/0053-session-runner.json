@@ -1,0 +1,20 @@
+{
+  "plan_id": "0053-session-runner",
+  "title": "bin/session.sh — Outer session runner (inject session-* as user message)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "bin/session.sh: path from status, skill body verbatim + wrapper, stdout or -- host-exec; docs + tests",
+      "steps": [
+        "tests/run.sh: coding board injects session-coding body (Getting Bearings), init board injects session-init body (plan session, no bearings), -- mode equals stdout mode, runner writes no files, script is vendor-free POSIX sh",
+        "bin/session.sh implemented (status → path → skill body, frontmatter stripped, generic wrapper)",
+        "docs/walkthrough.md gains the Unattended-runs recipe (P2 optional, host examples); CHANGELOG entry",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}

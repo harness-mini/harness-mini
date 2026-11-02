@@ -160,6 +160,26 @@ the harness: **work that survives a context reset.** The feature finishes in
 [`demo-auth-003`](examples/demo-auth/checkpoints/demo-auth-003.md); the plan moves
 to `docs/exec-plans/completed/`.
 
+## 9. Unattended runs — the Outer session runner (optional, P2)
+
+Interactive hosts rely on the agent noticing the gate and opening the right
+skill. Scripted long runs can instead **force** the playbook into a fresh
+context every session — no host hooks, no vendor lock-in, nothing required
+for core Mini:
+
+```console
+$ bin/session.sh                  # print the first user message (path-aware)
+$ bin/session.sh -- claude -p     # or: your host CLI, message as final argument
+$ bin/session.sh -- codex exec -  # any host; each invocation = a fresh context
+```
+
+The runner reads `bin/harness.sh status`, takes its `path:` line
+(`init` → `session-init`, `coding` → `session-coding`), and injects that
+skill's body **verbatim** under a short wrapper — the skill files stay the
+single source of truth. It persists nothing: every invocation starts clean.
+This is an orchestration convenience on top of the interactive assets, not a
+replacement for them.
+
 ---
 
 ## Recap
