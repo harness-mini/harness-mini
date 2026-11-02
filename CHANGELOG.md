@@ -19,6 +19,13 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   the update applies and the next command runs the new script.
 
 ### Added
+- **`session-init` skill (#58).** On-demand plan-layer playbook for boards where
+  `status` prints `path: init`: confirms the path first, branches on the board
+  (greenfield funnel via founder-check → to-prd → to-issues with the JSON twin ·
+  recon seed → explorer · stuck prd/issues → finish the stage · broken twin →
+  repair first), enforces the plan-stage write ban (**no product code**), never
+  flips `passes` (stage-viewer authority), and ends with a checkpoint. Listed
+  under orchestrate in AGENTS.md; no always-on prompt dump.
 - **Session path in `harness.sh status` (#57).** Two new machine lines —
   `path: init|coding` + `path_reason:` — derived only from file truth (MD
   `stage:` + the JSON twin): empty board or planning stage → `init`

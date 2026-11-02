@@ -778,6 +778,24 @@ assert_contains "$(cat "$am")" "Do NOT load the full historical" "AGENTS.md map 
 assert_contains "$(cat "$am")" "current_slice_id" "AGENTS.md documents the JSON twin fields"
 
 # =============================================================================
+echo "source repo — session-init skill (#58: plan-layer playbook, no product code)"
+si="$ROOT/skills/session-init/SKILL.md"
+assert_eq "true" "$([ -f "$si" ] && echo true || echo false)" "skills/session-init/SKILL.md exists"
+sib="$(cat "$si" 2>/dev/null)"
+assert_contains "$sib" "path: init" "skill opens by confirming path: init from status"
+assert_contains "$sib" "bin/harness.sh status" "skill names the status command"
+assert_contains "$sib" "product code" "skill bans product-code edits explicitly"
+assert_contains "$sib" "founder-check" "greenfield branch composes founder-check"
+assert_contains "$sib" "to-prd" "skill composes to-prd"
+assert_contains "$sib" "to-issues" "skill composes to-issues (emits the JSON twin)"
+assert_contains "$sib" "checkpoint" "skill ends with a checkpoint"
+assert_contains "$sib" "write ban" "skill references the plan-stage write ban"
+# the skill must NOT give the builder a way to flip passes (anti-self-praise)
+assert_eq "0" "$(printf '%s' "$sib" | grep -c 'flip.*passes.*true\|set.*passes.*true')" "skill never instructs flipping passes to true"
+assert_contains "$sib" "stage-viewer" "stage authority stays with stage-viewer"
+assert_contains "$(cat "$am")" "session-init" "AGENTS.md skills list mentions session-init"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]
