@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-02
+
 ### Added
 - **Outer session runner — `bin/session.sh` (#61, optional P2).** Forces the
   matching session playbook into a fresh context for unattended/scripted runs:
