@@ -1,0 +1,20 @@
+{
+  "plan_id": "0050-session-init",
+  "title": "session-init skill (plan-layer playbook, no product code)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "docs",
+      "description": "skills/session-init/SKILL.md with path-confirm, plan-only branches, hard bans; tests + wiring",
+      "steps": [
+        "tests/run.sh: assert skill file exists, confirms path: init, bans product-code edits, never flips passes, composes existing skills, AGENTS.md lists it",
+        "skills/session-init/SKILL.md written (English skeleton per #58 sketch)",
+        "AGENTS.md skills-by-stage gains session-init under orchestrate; CHANGELOG entry",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
