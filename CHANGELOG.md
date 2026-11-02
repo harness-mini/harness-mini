@@ -19,6 +19,17 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   the update applies and the next command runs the new script.
 
 ### Added
+- **Outer session runner — `bin/session.sh` (#61, optional P2).** Forces the
+  matching session playbook into a fresh context for unattended/scripted runs:
+  reads `path:` from `harness.sh status`, picks `session-init` or
+  `session-coding`, and emits that skill's body **verbatim** (frontmatter
+  stripped) under a short generic wrapper — skill files stay the single
+  source of truth. Default prints the first user message to stdout;
+  `-- <cmd…>` execs a host CLI with the message as its final argument. Each
+  invocation is a new process (fresh context, nothing persisted), the script
+  is vendor-neutral POSIX sh with no session-start-hook dependency, and it is
+  explicitly optional — not required for Mini core.
+
 - **Path-aware routing gate v3 (#60).** The always-on gate now branches on the
   `path:` line from `bin/harness.sh status`: `path: init` → open
   `session-init` (plan-layer only, no product code); `path: coding` → open
