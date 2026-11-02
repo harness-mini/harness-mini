@@ -19,6 +19,16 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   the update applies and the next command runs the new script.
 
 ### Added
+- **Path-aware routing gate v3 (#60).** The always-on gate now branches on the
+  `path:` line from `bin/harness.sh status`: `path: init` → open
+  `session-init` (plan-layer only, no product code); `path: coding` → open
+  `session-coding`, complete its **Getting Bearings** first, then exactly one
+  slice (the highest-priority `passes: false`, prefer `next:`). Planning
+  boards are no longer pushed into product slices; one-slice / never-alter-
+  `steps` / progressive-exposure rules carried over from v2. `init.sh`
+  migrates v1 **and** v2 (path-blind) gates in place — still exactly one
+  marker-guarded block — and regenerates the Cursor rule; `AGENTS.md`'s gate
+  section agrees with the injected copy.
 - **`session-coding` skill with the full Getting Bearings recipe (#59).**
   On-demand playbook for boards where `status` prints `path: coding`: the
   first turn MUST report the five locked bearings before any product code —

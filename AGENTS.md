@@ -20,10 +20,14 @@
 <!-- ANCHOR: gate -->
 
 When a new session starts, **MUST FIRST** run `bin/harness.sh status` to check
-the currently active workboard (active plans · JSON status · current slice ·
-next `passes: false` slice) and its session path — `path: init` (plan
-bootstrap: planning/board work, no product code) vs `path: coding` (incremental
-slice work). Then, before non-trivial work — a feature, a
+the active workboard and its session `path:` line, then open the matching
+session skill and follow it:
+
+- `path: init` → **`session-init`** — plan-layer work only (founder funnel,
+  PRD, issues, JSON twin). **No product code on this path.**
+- `path: coding` → **`session-coding`** — complete its **Getting Bearings** first turn before any product edit; then implement exactly one slice: the highest-priority `passes: false` slice the workboard's `next:` points at.
+
+Then, before non-trivial work — a feature, a
 multi-step or ambiguous change, anything cross-cutting — **route it through the
 `stage-viewer` skill first**; when a harness skill and another tool both fit,
 **the harness skill wins.** Trivial one-line fixes may skip the ceremony (quick
