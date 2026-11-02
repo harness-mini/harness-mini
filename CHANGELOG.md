@@ -19,6 +19,18 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   the update applies and the next command runs the new script.
 
 ### Added
+- **`session-coding` skill with the full Getting Bearings recipe (#59).**
+  On-demand playbook for boards where `status` prints `path: coding`: the
+  first turn MUST report the five locked bearings before any product code —
+  `pwd` · `status` + `git log --oneline -5` + latest checkpoint · open the
+  twin and select the highest-priority `"passes": false` slice (prefer
+  `next:`) · app baseline green (lint/types/tests or the app's own boot
+  script — **never harness-mini's installer `init.sh`**; on regression, stop
+  new slices and fix first) · tell the user the selected `[slice-id]`. Then
+  exactly one slice via `tdd`, verified against the JSON `steps` (never
+  rewritten), routed through `evaluate` — the builder never flips `passes`
+  (main agent / `stage-viewer` only) — ending with handoff + checkpoint +
+  commit, no half-open second slice, no `completed/` history loads.
 - **`session-init` skill (#58).** On-demand plan-layer playbook for boards where
   `status` prints `path: init`: confirms the path first, branches on the board
   (greenfield funnel via founder-check → to-prd → to-issues with the JSON twin ·

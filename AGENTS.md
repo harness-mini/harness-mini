@@ -119,7 +119,7 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 
 <!-- ANCHOR: skills -->
 
-- **orchestrate:** `stage-viewer`, `session-init` (`path: init` boards — plan-layer only), `ralph-loop`, `checkpoint`, `grill-me`, `release`
+- **orchestrate:** `stage-viewer`, `session-init` (`path: init` boards — plan-layer only), `session-coding` (`path: coding` boards — bearings first), `ralph-loop`, `checkpoint`, `grill-me`, `release`
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `parallel-slices`, `clean-code`, `refactor`

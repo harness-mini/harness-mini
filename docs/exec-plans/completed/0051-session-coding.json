@@ -1,0 +1,20 @@
+{
+  "plan_id": "0051-session-coding",
+  "title": "session-coding skill with full Getting Bearings recipe",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "docs",
+      "description": "skills/session-coding/SKILL.md: mandatory five-step bearings first, after-bearings loop, hard bans; tests + wiring",
+      "steps": [
+        "tests/run.sh: assert skill exists, first section is Getting Bearings, all five steps present, baseline != harness init.sh, one-slice + bans, AGENTS.md listing",
+        "skills/session-coding/SKILL.md written per the #55 locked recipe",
+        "AGENTS.md orchestrate line gains session-coding; CHANGELOG entry; mirror to .agents/skills/",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
