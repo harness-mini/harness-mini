@@ -390,6 +390,42 @@ assert_contains "$(cat "$UDEST/harness/harness.lock")" "version: 0.2.0" "update 
 rm -rf "$UOLD" "$UDEST" "$UNEW"
 
 # =============================================================================
+echo "harness.sh update — replacing the RUNNING script is deferred to exit (#62)"
+# bash reads scripts lazily: overwriting the executing harness.sh mid-run makes
+# the interpreter resume the NEW file at the OLD byte offset (crash). Fix:
+# the self-copy is the final action, followed by an immediate exit 0.
+SOOLD="$(mktemp -d)"; SONEW="$(mktemp -d)"
+for d in "$SOOLD" "$SONEW"; do
+  mkdir -p "$d/bin" "$d/skills" "$d/agents" "$d/docs"
+  printf 'agent\n'    > "$d/agents/planner.md"
+  printf 'map\n'      > "$d/AGENTS.md"
+done
+# the OLD upstream carries the real (pre-fix) CLI so the self-replacement path
+# actually executes; the NEW upstream shifts all code DOWN by a padded comment
+# after the shebang — so when the running interpreter resumes the swapped file
+# at its old byte offset it lands mid-code (crash bait; repro'd pre-fix).
+cp "$ROOT/bin/harness.sh"      "$SOOLD/bin/harness.sh"
+cp "$ROOT/bin/_harness_lib.sh" "$SOOLD/bin/_harness_lib.sh"
+printf '0.1.0\n' > "$SOOLD/VERSION"
+{ printf '#!/usr/bin/env bash\n'
+  printf '# %.0s' $(seq 1 100); printf '\n'
+  tail -n +2 "$ROOT/bin/harness.sh"
+} > "$SONEW/bin/harness.sh"
+cp "$ROOT/bin/_harness_lib.sh" "$SONEW/bin/_harness_lib.sh"
+printf '0.2.0\n' > "$SONEW/VERSION"
+SODST="$(mktemp -d)"
+HARNESS_SRC="$SOOLD" bash "$ROOT/init.sh" "$SODST" >/dev/null 2>&1
+upout="$(HARNESS_ROOT="$SODST" HARNESS_NO_NET=1 bash "$SODST/bin/harness.sh" update --src "$SONEW" 2>&1)"; code=$?
+assert_exit 0 "$code" "update over a changed bin/harness.sh exits 0 (self-replace deferred)"
+assert_eq "0" "$(printf '%s' "$upout" | grep -ciE 'unbound|syntax error|unexpected')" "no desync diagnostic while swapping the running script"
+assert_contains "$upout" "update bin/harness.sh" "log still reports the harness.sh update"
+assert_eq "$(cat "$SONEW/bin/harness.sh")" "$(cat "$SODST/bin/harness.sh")" "installed harness.sh matches the new upstream"
+assert_contains "$(cat "$SODST/harness/harness.lock")" "version: 0.2.0" "lock advanced by the self-updating run"
+code=0; HARNESS_ROOT="$SODST" HARNESS_NO_NET=1 bash "$SODST/bin/harness.sh" version >/dev/null 2>&1 || code=$?
+assert_exit 0 "$code" "replaced harness.sh still executes"
+rm -rf "$SOOLD" "$SONEW" "$SODST"
+
+# =============================================================================
 echo "harness.sh release — guarded bump + tag (throwaway repos; --no-push/--no-gh)"
 mkrepo() { # <dir> <version> <tests-exit> — a minimal source repo
   git -C "$1" init -q

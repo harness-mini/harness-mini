@@ -7,6 +7,17 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Fixed
+- **`harness.sh update` no longer crashes when the update includes its own
+  script (#62).** Overwriting the executing `bin/harness.sh` mid-run desynced
+  bash's lazy script reads (resumed the new file at the old byte offset →
+  `unbound variable`, nonzero exit). The self-copy is now deferred to the very
+  last action, followed by an immediate exit; the pair loop also runs in-shell
+  (herestring) so the deferral flag survives. Regression-tested with bin/-
+  bearing fixtures. Note: a one-time transition upgrade from v0.11.0 may still
+  print the error (the old running script predates the fix) — it is harmless:
+  the update applies and the next command runs the new script.
+
 ### Added
 - **Dual-file exec-plans — machine workboard (#52).** Every active plan keeps a
   same-basename `<NNN-slug>.json` twin beside its MD (`plan_id`, `title`,

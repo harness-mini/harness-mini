@@ -116,16 +116,29 @@ cmd_update() {
   [ -f "$src/VERSION" ] && src_ver="$(tr -d ' \t\r\n' < "$src/VERSION")"
   echo "updating harness-mini $(installed_version) -> $src_ver"
 
-  local newlock log; newlock="$(mktemp)"; log="$(mktemp)"
+  local newlock log pairs self deferred_src="" deferred_dst=""
+  newlock="$(mktemp)"; log="$(mktemp)"
   printf 'version: %s\n' "$src_ver" > "$newlock"
-
-  emit_managed_pairs "$src" | while IFS="$(printf '\t')" read -r s rel; do
+  # Absolute path of THIS running script. If the update set includes it, its
+  # copy is deferred: bash reads scripts lazily, so overwriting the executing
+  # file mid-run makes the interpreter resume the NEW file at the OLD byte
+  # offset (garbage commands, crash). The swap is the very last action, and the
+  # command exits immediately after it — never returning past its own file.
+  self="$(cd "$(dirname "$0")" 2>/dev/null && pwd)/$(basename "$0")"
+  pairs="$(emit_managed_pairs "$src")"
+  while IFS="$(printf '\t')" read -r s rel; do
     local dst="$HARNESS_ROOT/$rel" new base cur rec
     new="$(cksum_file "$s")"
     base="$(lock_sha "$LOCK" "$rel")"
     if [ -f "$dst" ]; then cur="$(cksum_file "$dst")"; else cur=""; fi
 
-    if [ ! -f "$dst" ]; then
+    if [ "$dst" -ef "$self" ]; then
+      if [ "$new" != "$cur" ]; then
+        deferred_src="$s"; deferred_dst="$dst"      # record now, copy last
+        printf 'update %s\n' "$rel" >> "$log"
+      fi
+      rec="$new"                                    # unchanged self: no swap
+    elif [ ! -f "$dst" ]; then
       mkdir -p "$(dirname "$dst")"; cp "$s" "$dst"; rec="$new"
       printf 'add    %s\n' "$rel" >> "$log"
     elif [ "$new" = "$cur" ]; then
@@ -143,12 +156,16 @@ cmd_update() {
       rec="$new"
     fi
     printf '%s  %s\n' "$rec" "$rel" >> "$newlock"
-  done
+  done <<< "$pairs"
 
   mv "$newlock" "$LOCK"
   if [ -s "$log" ]; then sed 's/^/  /' "$log"; else echo "  already up to date."; fi
   rm -f "$log"
   [ -n "$tmpclone" ] && rm -rf "$tmpclone"
+  if [ -n "$deferred_src" ]; then
+    cp "$deferred_src" "$deferred_dst"              # self-swap, then die here
+    exit 0
+  fi
   return 0
 }
 
