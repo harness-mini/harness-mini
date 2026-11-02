@@ -31,7 +31,7 @@ harness-mini: installing into /Users/you/demo-api  (mode: existing)
   add   CLAUDE.md (routing gate v3, path-aware)
   add   .cursor/rules/harness-mini.mdc
   add   harness/harness.lock (v0.2.0)
-  add   docs/exec-plans/active/0001-recon.md
+  add   docs/exec-plans/active/0001-recon.md (+ json twin)
 harness-mini: done.
 ```
 

@@ -275,8 +275,10 @@ if [ ! -f "$DEST/.gitignore" ] || ! grep -q '\.trace/runtime' "$DEST/.gitignore"
 fi
 
 # --- seed the first exec-plan (idempotent: only if none exists) -------------
-if ls "$DEST"/docs/exec-plans/active/0001-*.md >/dev/null 2>&1; then
-  say "skip  seed plan (active plan already present)"
+# Guard on ANY active *.md (not just 0001-*): an upgraded install whose plans
+# are numbered differently must not gain a spurious bootstrap plan (#63).
+if ls "$DEST"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
+  say "skip  seed plan (active plan(s) already present)"
 else
   if [ "$MODE" = "existing" ]; then
     cat > "$DEST/docs/exec-plans/active/0001-recon.md" <<'EOF'
@@ -314,7 +316,16 @@ Spawn the **explorer** agent to fill this schema into `ARCHITECTURE.md`'s
 ## Decisions
 - (record here)
 EOF
-    say "add   docs/exec-plans/active/0001-recon.md"
+    cat > "$DEST/docs/exec-plans/active/0001-recon.json" <<'EOF'
+{
+  "plan_id": "0001-recon",
+  "title": "Recon graft",
+  "status": "planned",
+  "current_slice_id": "",
+  "slices": []
+}
+EOF
+    say "add   docs/exec-plans/active/0001-recon.md (+ json twin)"
   else
     cat > "$DEST/docs/exec-plans/active/0001-intake.md" <<'EOF'
 ---
@@ -340,7 +351,16 @@ A brand-new project. Run the founder funnel before writing any code.
 ## Decisions
 - (record here)
 EOF
-    say "add   docs/exec-plans/active/0001-intake.md"
+    cat > "$DEST/docs/exec-plans/active/0001-intake.json" <<'EOF'
+{
+  "plan_id": "0001-intake",
+  "title": "Intake — greenfield bootstrap",
+  "status": "planned",
+  "current_slice_id": "",
+  "slices": []
+}
+EOF
+    say "add   docs/exec-plans/active/0001-intake.md (+ json twin)"
   fi
 fi
 

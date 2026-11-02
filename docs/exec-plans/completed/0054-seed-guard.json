@@ -1,0 +1,19 @@
+{
+  "plan_id": "0054-seed-guard",
+  "title": "init.sh: never seed a bootstrap plan when any active plan exists",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "Seed guard 0001-*.md -> *.md; fixture test with a non-0001 active plan",
+      "steps": [
+        "tests/run.sh: install -> remove 0001 seed, add 0009-oldthing.md -> re-run seeds nothing; empty dir still seeds intake; package.json dir seeds recon",
+        "init.sh: guard becomes any *.md in active/",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
