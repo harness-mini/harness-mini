@@ -552,6 +552,8 @@ WDIR="$(mktemp -d)"
 bash "$ROOT/init.sh" "$WDIR" >/dev/null 2>&1   # seeds 0001-intake.md (mode: new)
 WMD="$(ls "$WDIR"/docs/exec-plans/active/0001-*.md)"
 WTWIN="${WMD%.md}.json"
+# installs seed twins now (#64) — fabricate the legacy no-twin state explicitly
+rm -f "$WTWIN"
 # no twin yet -> status has no workboard line; doctor WARNs (never FAILs)
 out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
 assert_exit 0 "$code" "status fine when a plan has no JSON twin"
@@ -897,6 +899,53 @@ assert_eq "$n_before" "$n_after" "runner writes no files (fresh context per sess
 assert_eq "0" "$(grep -vE '\.claude/' "$SESS" | grep -ciE 'claude|cursor|codex')" "script invokes no vendor CLI"
 assert_eq "0" "$(grep -ci 'sessionstart' "$SESS")" "script depends on no session-start hooks"
 rm -rf "$RB" "$RB2"
+echo "init.sh — seed guard: never seed when any active plan exists (#63)"
+SGSRC="$(mktemp -d)"; mkdir -p "$SGSRC/skills" "$SGSRC/agents" "$SGSRC/bin" "$SGSRC/docs"
+printf 'skill\n' > "$SGSRC/skills/sample.md"
+printf 'agent\n'  > "$SGSRC/agents/planner.md"
+printf 'echo hi\n' > "$SGSRC/bin/ctx.sh"
+printf 'map\n'     > "$SGSRC/AGENTS.md"
+SGD="$(mktemp -d)"
+HARNESS_SRC="$SGSRC" bash "$ROOT/init.sh" "$SGD" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$SGD/docs/exec-plans/active/0001-intake.md" ] && echo true || echo false)" "empty board still seeds the intake plan"
+# user-owned, differently numbered board: remove the seed, add 0009-oldthing
+rm -f "$SGD/docs/exec-plans/active/0001-intake.md"
+printf -- '---\nplan: oldthing\nseq: 0009\nstage: implement\nowner: main\n---\n# Old\n' \
+  > "$SGD/docs/exec-plans/active/0009-oldthing.md"
+HARNESS_SRC="$SGSRC" bash "$ROOT/init.sh" "$SGD" >/dev/null 2>&1
+assert_eq "0" "$(ls "$SGD"/docs/exec-plans/active/0001-*.md 2>/dev/null | wc -l | tr -d ' ')" "no spurious 0001 seed beside a non-0001 active plan"
+assert_eq "true" "$([ -f "$SGD/docs/exec-plans/active/0009-oldthing.md" ] && echo true || echo false)" "user plan untouched by re-run"
+rm -rf "$SGD"
+# existing-project mode still seeds recon
+SGE="$(mktemp -d)"; printf '{"name":"x"}\n' > "$SGE/package.json"
+HARNESS_SRC="$SGSRC" bash "$ROOT/init.sh" "$SGE" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$SGE/docs/exec-plans/active/0001-recon.md" ] && echo true || echo false)" "existing-project install seeds the recon plan"
+rm -rf "$SGE" "$SGSRC"
+
+# =============================================================================
+echo "init.sh — seed plans carry their JSON twin (#64)"
+TWSRC="$(mktemp -d)"; mkdir -p "$TWSRC/skills" "$TWSRC/agents" "$TWSRC/bin" "$TWSRC/docs"
+printf 'skill\n' > "$TWSRC/skills/sample.md"
+printf 'agent\n'  > "$TWSRC/agents/planner.md"
+printf 'echo hi\n' > "$TWSRC/bin/ctx.sh"
+printf 'map\n'     > "$TWSRC/AGENTS.md"
+TW1="$(mktemp -d)"
+HARNESS_SRC="$TWSRC" bash "$ROOT/init.sh" "$TW1" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$TW1/docs/exec-plans/active/0001-intake.json" ] && echo true || echo false)" "intake seed has its JSON twin"
+out="$(HARNESS_ROOT="$TW1" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'no JSON twin')" "new-mode install: doctor has no twin warning"
+out="$(HARNESS_ROOT="$TW1" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "workboard: planned" "new-mode install: status shows the seed workboard"
+assert_contains "$out" "no slices yet" "seed workboard renders the no-slices line"
+rm -rf "$TW1"
+TW2="$(mktemp -d)"; printf '{"name":"x"}\n' > "$TW2/package.json"
+HARNESS_SRC="$TWSRC" bash "$ROOT/init.sh" "$TW2" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$TW2/docs/exec-plans/active/0001-recon.json" ] && echo true || echo false)" "recon seed has its JSON twin"
+out="$(HARNESS_ROOT="$TW2" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'no JSON twin')" "existing-mode install: doctor has no twin warning"
+out="$(HARNESS_ROOT="$TW2" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "workboard: planned" "existing-mode install: status shows the seed workboard"
+rm -rf "$TW2" "$TWSRC"
 
 # =============================================================================
 echo ""

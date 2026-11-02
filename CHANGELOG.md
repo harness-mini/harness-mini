@@ -8,6 +8,16 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Fixed
+- **Fresh installs no longer start with a doctor warning (#64).** The seeded
+  `0001-intake`/`0001-recon` plans now ship with their JSON twins
+  (`status: planned`, empty `slices`) — `doctor` is clean on day one and
+  `status` shows the seed plan's workboard line (`planned · no slices yet`)
+  from minute one. Legacy installs with twin-less plans still degrade
+  gracefully (WARN, never FAIL).
+- **`init.sh` no longer seeds a spurious bootstrap plan into upgraded installs
+  (#63).** The seed guard was "no `0001-*.md` present"; an install whose plans
+  are numbered differently (e.g. `0009-…`) gained an unrequested
+  `0001-intake.md` on upgrade. The guard is now "no active `*.md` at all".
 - **`harness.sh update` no longer crashes when the update includes its own
   script (#62).** Overwriting the executing `bin/harness.sh` mid-run desynced
   bash's lazy script reads (resumed the new file at the old byte offset →

@@ -1,0 +1,20 @@
+{
+  "plan_id": "0055-seed-twin",
+  "title": "init.sh: seeded plans carry their JSON twin (day-one contract)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "Seed 0001-intake.json / 0001-recon.json beside the MDs; doctor clean + status workboard from minute one",
+      "steps": [
+        "tests/run.sh: both install modes assert the twin exists, doctor has no 'no JSON twin' line, status prints a workboard line for the seed plan",
+        "init.sh: write the twin beside each seeded plan (status planned, empty slices)",
+        "walkthrough install transcript shows the twin; CHANGELOG entries for #63+#64",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
