@@ -7,27 +7,6 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
-### Fixed
-- **Fresh installs no longer start with a doctor warning (#64).** The seeded
-  `0001-intake`/`0001-recon` plans now ship with their JSON twins
-  (`status: planned`, empty `slices`) — `doctor` is clean on day one and
-  `status` shows the seed plan's workboard line (`planned · no slices yet`)
-  from minute one. Legacy installs with twin-less plans still degrade
-  gracefully (WARN, never FAIL).
-- **`init.sh` no longer seeds a spurious bootstrap plan into upgraded installs
-  (#63).** The seed guard was "no `0001-*.md` present"; an install whose plans
-  are numbered differently (e.g. `0009-…`) gained an unrequested
-  `0001-intake.md` on upgrade. The guard is now "no active `*.md` at all".
-- **`harness.sh update` no longer crashes when the update includes its own
-  script (#62).** Overwriting the executing `bin/harness.sh` mid-run desynced
-  bash's lazy script reads (resumed the new file at the old byte offset →
-  `unbound variable`, nonzero exit). The self-copy is now deferred to the very
-  last action, followed by an immediate exit; the pair loop also runs in-shell
-  (herestring) so the deferral flag survives. Regression-tested with bin/-
-  bearing fixtures. Note: a one-time transition upgrade from v0.11.0 may still
-  print the error (the old running script predates the fix) — it is harmless:
-  the update applies and the next command runs the new script.
-
 ### Added
 - **Outer session runner — `bin/session.sh` (#61, optional P2).** Forces the
   matching session playbook into a fresh context for unattended/scripted runs:
@@ -95,6 +74,27 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   (heading order, descriptive links, prose beside diagrams), supported
   environments, known limitations, and a public issue reporting path with an
   `accessibility` label.
+
+### Fixed
+- **Fresh installs no longer start with a doctor warning (#64).** The seeded
+  `0001-intake`/`0001-recon` plans now ship with their JSON twins
+  (`status: planned`, empty `slices`) — `doctor` is clean on day one and
+  `status` shows the seed plan's workboard line (`planned · no slices yet`)
+  from minute one. Legacy installs with twin-less plans still degrade
+  gracefully (WARN, never FAIL).
+- **`init.sh` no longer seeds a spurious bootstrap plan into upgraded installs
+  (#63).** The seed guard was "no `0001-*.md` present"; an install whose plans
+  are numbered differently (e.g. `0009-…`) gained an unrequested
+  `0001-intake.md` on upgrade. The guard is now "no active `*.md` at all".
+- **`harness.sh update` no longer crashes when the update includes its own
+  script (#62).** Overwriting the executing `bin/harness.sh` mid-run desynced
+  bash's lazy script reads (resumed the new file at the old byte offset →
+  `unbound variable`, nonzero exit). The self-copy is now deferred to the very
+  last action, followed by an immediate exit; the pair loop also runs in-shell
+  (herestring) so the deferral flag survives. Regression-tested with bin/-
+  bearing fixtures. Note: a one-time transition upgrade from v0.11.0 may still
+  print the error (the old running script predates the fix) — it is harmless:
+  the update applies and the next command runs the new script.
 
 ### Changed
 - **Routing gate v2 — status-first (#52).** `init.sh` injects a
