@@ -64,6 +64,25 @@ cmd_version() {
   fi
 }
 
+# json_wb <twin.json> — distill a plan's JSON twin into one |-separated line:
+#   status | current_slice_id | next-pass:false-slice | npass | nfail | plan_id-seen(0|1)
+# awk only (zero-dependency; no jq). Tolerates any indentation and compact
+# one-line slice objects (exact-key matching: "id" never collides with
+# plan_id/current_slice_id). "|" delimiter so EMPTY fields survive `read`
+# (IFS-whitespace would collapse them and shift columns). plan_id-seen=0 or
+# empty status => not a readable twin.
+json_wb() {
+  awk '
+    /"plan_id":[ \t]*"/          { pid=1 }
+    /"status":[ \t]*"/           { s=$0; sub(/.*"status":[ \t]*"*/,"",s);  sub(/".*/,"",s); st=s }
+    /"current_slice_id":[ \t]*"/ { s=$0; sub(/.*"current_slice_id":[ \t]*"*/,"",s); sub(/".*/,"",s); cur=s }
+    /"id":[ \t]*"/               { s=$0; sub(/.*"id":[ \t]*"*/,"",s);     sub(/".*/,"",s); id=s }
+    /"passes":[ \t]*true/        { np++; id="" }
+    /"passes":[ \t]*false/       { ns++; if (nxt=="") nxt=id; id="" }
+    END { printf "%s|%s|%s|%d|%d|%d\n", st, cur, nxt, np+0, ns+0, pid+0 }
+  ' "$1"
+}
+
 # cmd_update [--src DIR] — refresh managed files from upstream, checksum-guarded.
 # Per file (base = lock baseline, cur = on disk, new = upstream):
 #   absent          -> ADD       missing managed file
@@ -270,6 +289,25 @@ cmd_doctor() {
   ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1 \
     && emit ok "active exec-plan present" || emit warn "no active exec-plan"
 
+  # dual-file twins: each active MD plan should carry a same-basename .json
+  # workboard (WARN only, never FAIL — the MD stays the lifecycle authority and
+  # status degrades gracefully to MD-only without the twin).
+  local pf2 twin2 wb2 wpid2 wst2
+  for pf2 in "$root"/docs/exec-plans/active/*.md; do
+    [ -f "$pf2" ] || continue
+    twin2="${pf2%.md}.json"
+    if [ ! -f "$twin2" ]; then
+      emit warn "$(basename "$pf2" .md): no JSON twin — workboard blind (docs/templates/full-plan.md)"
+    else
+      # "Readable" = same bar status applies: plan_id seen AND a status value.
+      wb2="$(json_wb "$twin2")"
+      wpid2="$(printf '%s' "$wb2" | awk -F'|' '{print $6}')"
+      wst2="$(printf '%s' "$wb2" | awk -F'|' '{print $1}')"
+      { [ "$wpid2" = "1" ] && [ -n "$wst2" ]; } \
+        || emit warn "$(basename "$pf2" .md): JSON twin unparseable — fix fields or delete it"
+    fi
+  done
+
   { [ -f "$root/.gitignore" ] && grep -q '\.trace/runtime' "$root/.gitignore"; } \
     && emit ok ".trace/runtime gitignored" || emit warn ".trace/runtime not in .gitignore"
 
@@ -338,6 +376,7 @@ cmd_status() {
   fi
 
   local f plan stage cp nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
+  local twin wb wst wcur wnxt wnp wns wpok wtot
   if ls "$root"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"
     for f in "$root"/docs/exec-plans/active/*.md; do
@@ -348,6 +387,22 @@ cmd_status() {
       printf '  %-24s stage: %s\n' "$plan" "${stage:-?}"
       cp="$(ls "$root"/.trace/checkpoints/"$plan"-*.md 2>/dev/null | sort | tail -n1)"
       [ -n "$cp" ] && printf '     last checkpoint: %s\n' "$(basename "$cp" .md)"
+      # JSON twin -> one workboard line (the "what to do next" a cold session
+      # reads first). Absent or unreadable twin: silently degrade to MD-only.
+      twin="${f%.md}.json"
+      if [ -f "$twin" ]; then
+        wb="$(json_wb "$twin")"
+        IFS='|' read -r wst wcur wnxt wnp wns wpok <<< "$wb"
+        if [ "$wpok" = "1" ] && [ -n "$wst" ]; then
+          wtot=$((wnp + wns))
+          if [ "$wtot" -gt 0 ]; then
+            printf '     workboard: %s · %s/%s pass · current: %s · next: %s\n' \
+              "$wst" "$wnp" "$wtot" "${wcur:--}" "${wnxt:-all green}"
+          else
+            printf '     workboard: %s · no slices yet\n' "$wst"
+          fi
+        fi
+      fi
       nplans=$((nplans + 1))
       [ -n "$cp" ] && nplans_with_cp=$((nplans_with_cp + 1))
       if [ -z "$first_plan" ]; then
@@ -524,7 +579,7 @@ usage: harness.sh <command>
   version                 show installed version (+ latest, best-effort)
   update [--src DIR]      pull a newer version into this project (checksum-guarded)
   doctor                  check install health (ok/warn/fail; exit 1 on a fail)
-  status                  show current work state (plans, checkpoints, resumability)
+  status                  show current work state (plans, workboard, checkpoints, resumability)
   report [run]            aggregate .trace metrics (stages, context, evals, checkpoints)
   release <x.y.z> [opts]  bump + tag + GitHub release (source repo only)
 EOF

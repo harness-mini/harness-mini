@@ -43,39 +43,47 @@ DEST="$(cd "$DEST" && pwd)"
 
 say() { printf '  %s\n' "$1"; }
 
-# Routing-gate text shared by the seeded CLI entry files (see "routing gate"
-# below). Each CLI's native always-on file restates this short gate and points at
-# AGENTS.md (the full map) — establishing that the harness is preferred by default.
+# Routing-gate v2 text (see "routing gate" below). Marker-guarded with
+# HARNESS_ROUTING_GATE_BEGIN/END; an install seeded with the v1 block
+# (harness-mini:start/end) has it REMOVED and the v2 gate appended — there is
+# ever exactly one gate.
+# Status-first: a cold session runs `bin/harness.sh status` and picks the next
+# slice with passes:false from the JSON twin before touching any code.
+GATE_BEGIN='<!-- HARNESS_ROUTING_GATE_BEGIN -->'
+GATE_END='<!-- HARNESS_ROUTING_GATE_END -->'
+V1_BEGIN='<!-- harness-mini:start -->'
+V1_END='<!-- harness-mini:end -->'
+
 emit_claude_gate() {
+  printf '%s\n' "$GATE_BEGIN"
   cat <<'EOF'
-## harness-mini — routing gate
+[CRITICAL AGENT INSTRUCTION]
+You are inside a project managed by harness-mini.
 
-This project runs on **harness-mini**. For non-trivial work — a feature, a
-multi-step or ambiguous change, anything cross-cutting — **route it through the
-`stage-viewer` skill first** and prefer harness-mini's lifecycle, skills, and
-sub-agents over ad-hoc tools or other installed plugins. When a harness skill and
-another tool both fit, **the harness skill wins.** Trivial one-line fixes may skip
-the ceremony (quick mode). On a fresh session, first run `bin/harness.sh version`
-— if a newer harness-mini exists, tell the user and offer `bin/harness.sh update`.
+1. Do NOT modify code directly before starting any task. You **MUST** first run the command: `bin/harness.sh status`
+2. Inspect the JSON plans under `docs/exec-plans/active/`, and select the highest-priority slice with `passes: false`.
+3. Follow the principle of progressive exposure strictly: only read code relevant to the current slice. Complete only one Slice per Session.
+4. Do NOT alter or delete the test conditions defined in `steps` inside JSON files.
 
-Map: @AGENTS.md · Skills: `.claude/skills/<name>/SKILL.md` · 40% rule: `docs/smart-dumb.md`
+Full map & lifecycle: AGENTS.md · Workboard: `bin/harness.sh status` · 40% rule: `docs/smart-dumb.md`
 EOF
+  printf '%s\n' "$GATE_END"
 }
 emit_cursor_rule() {
   cat <<'EOF'
 ---
-description: harness-mini routing gate — prefer the harness lifecycle and skills
+description: harness-mini routing gate — status-first, prefer the harness lifecycle and skills
 alwaysApply: true
 ---
 
-This project runs on **harness-mini**. For non-trivial work — a feature, a
-multi-step or ambiguous change, anything cross-cutting — route it through the
-`stage-viewer` skill first and prefer harness-mini's lifecycle, skills, and
-sub-agents (read `.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other
-installed plugins. When a harness skill and another tool both fit, the harness
-skill wins. Trivial one-line fixes may skip the ceremony (quick mode). On a fresh
-session, first run `bin/harness.sh version` — if a newer harness-mini exists, tell
-the user and offer `bin/harness.sh update`.
+This project runs on **harness-mini**. On a fresh session, first run
+`bin/harness.sh status` and resume the highest-priority slice with `passes: false`
+from the JSON plan twins in `docs/exec-plans/active/`. For non-trivial work — a
+feature, a multi-step or ambiguous change, anything cross-cutting — route it
+through the `stage-viewer` skill first and prefer harness-mini's lifecycle,
+skills, and sub-agents (read `.claude/skills/<name>/SKILL.md`) over ad-hoc tools
+or other installed plugins. When a harness skill and another tool both fit, the
+harness skill wins. Trivial one-line fixes may skip the ceremony (quick mode).
 
 Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
 EOF
@@ -129,7 +137,10 @@ mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/bin" \
 copy_tree "$SRC/skills" "$DEST/.claude/skills"
 copy_tree "$SRC/agents" "$DEST/.claude/agents"
 copy_tree "$SRC/bin"    "$DEST/bin"
-copy_tree "$SRC/docs"   "$DEST/docs"
+# docs/ rides along EXCEPT exec-plans — that is user space; the source repo's
+# own active plans must never seed a fresh install.
+( cd "$SRC/docs" 2>/dev/null && find . -type f -not -path './exec-plans/*' ) \
+  | while read -r rel; do copy_file "$SRC/docs/${rel#./}" "$DEST/docs/${rel#./}"; done
 copy_file "$SRC/AGENTS.md"       "$DEST/AGENTS.md"
 copy_file "$SRC/ARCHITECTURE.md" "$DEST/ARCHITECTURE.md"
 chmod +x "$DEST"/bin/*.sh 2>/dev/null || true
@@ -157,27 +168,41 @@ if [ ! -f "$DEST/harness/manifest.md" ]; then
 fi
 
 # --- routing gate: seed each CLI's native always-on entry file ---------------
-# Additive + idempotent. So any agent prefers the harness over ad-hoc tools right
-# after install, without the user having to say so. CLAUDE.md gets a
-# marker-guarded block so a user's existing memory is never clobbered;
-# .cursor/rules/harness-mini.mdc (Cursor) is harness-owned and created only if
-# absent. Both restate the short gate and point at AGENTS.md (the full map).
-# Like manifest.md: seeded once, not in the checksum-managed set.
-GATE_START='<!-- harness-mini:start -->'
-GATE_END='<!-- harness-mini:end -->'
+# Additive + idempotent + upgradeable. CLAUDE.md is user space: only the
+# marker-guarded gate block is ever written. If a v1 block (harness-mini:start/
+# end) is present it is stripped and the v2 gate appended (exactly one gate).
+# .cursor/rules/harness-mini.mdc is harness-owned: created if absent; if it still
+# carries the v1 version-first line, that one line is swapped to status-first.
 if [ ! -f "$DEST/CLAUDE.md" ]; then
-  { printf '%s\n' "$GATE_START"; emit_claude_gate; printf '%s\n' "$GATE_END"; } > "$DEST/CLAUDE.md"
-  say "add   CLAUDE.md (routing gate)"
-elif ! grep -qF "$GATE_START" "$DEST/CLAUDE.md" 2>/dev/null; then
-  { printf '\n%s\n' "$GATE_START"; emit_claude_gate; printf '%s\n' "$GATE_END"; } >> "$DEST/CLAUDE.md"
-  say "add   CLAUDE.md routing gate (appended)"
-else
+  emit_claude_gate > "$DEST/CLAUDE.md"
+  say "add   CLAUDE.md (routing gate v2)"
+elif grep -qF "$GATE_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
   say "skip  CLAUDE.md routing gate (present)"
+elif grep -qF "$V1_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
+  if awk -v b="$V1_BEGIN" -v e="$V1_END" '
+    $0 == b { skip=1 }
+    !skip   { print }
+    $0 == e { skip=0 }
+  ' "$DEST/CLAUDE.md" > "$DEST/CLAUDE.md.gate.tmp"; then
+    mv "$DEST/CLAUDE.md.gate.tmp" "$DEST/CLAUDE.md"
+    { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
+    say "upgr  CLAUDE.md routing gate v1 -> v2 (v1 stripped, v2 appended)"
+  else
+    rm -f "$DEST/CLAUDE.md.gate.tmp"
+    say "warn  CLAUDE.md v1 gate strip failed — left untouched"
+  fi
+else
+  { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
+  say "add   CLAUDE.md routing gate v2 (appended)"
 fi
 if [ ! -f "$DEST/.cursor/rules/harness-mini.mdc" ]; then
   mkdir -p "$DEST/.cursor/rules"
   emit_cursor_rule > "$DEST/.cursor/rules/harness-mini.mdc"
   say "add   .cursor/rules/harness-mini.mdc"
+elif grep -q 'bin/harness.sh version' "$DEST/.cursor/rules/harness-mini.mdc" 2>/dev/null; then
+  # harness-owned file still carrying the v1 version-first wording -> regenerate
+  emit_cursor_rule > "$DEST/.cursor/rules/harness-mini.mdc"
+  say "upgr  .cursor/rules/harness-mini.mdc (v2, status-first)"
 else
   say "skip  .cursor/rules/harness-mini.mdc (exists)"
 fi

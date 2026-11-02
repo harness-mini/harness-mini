@@ -63,6 +63,14 @@ identity with email + password before issuing a session token.
 ## Next
 - Slice 3 integrate; then evaluate (L1) → checkpoint → done.
 
+## Session Context Handoff
+
+**Last Updated**: 2026-03-14 (Session #2)
+**Completed Work**: Slice 1 (happy-path `POST /login` → `200 {token}`) is green
+in `npm test` and was reviewed by the independent evaluator (L1).
+**Current Blockers / Risks**: the seeded test user fixture for slice 2 is stale
+— reseed `tests/fixtures/users.json` before the 401 tests.
+
 ## Decisions log
 - d0: local password login, OAuth deferred (five-step).
 - d1: bcrypt (already vendored); never compare plaintext.

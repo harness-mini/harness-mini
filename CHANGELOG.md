@@ -8,6 +8,18 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Added
+- **Dual-file exec-plans — machine workboard (#52).** Every active plan keeps a
+  same-basename `<NNN-slug>.json` twin beside its MD (`plan_id`, `title`,
+  `status`, `current_slice_id`, `slices[]` with `id/category/description/steps/
+  passes`). MD frontmatter `stage:` stays the lifecycle authority; JSON mirrors
+  progress. `harness.sh status` now prints a per-plan **workboard line**
+  (`status · n/m pass · current · next passes:false` slice) parsed with awk only
+  (no jq); `doctor` warns — never fails — on a missing or unparseable twin.
+  Templates document the schema (`docs/templates/full-plan.md`,
+  `full-plan-twin.json`), plans gain a `## Session Context Handoff` section the
+  `checkpoint` skill refreshes, and `to-issues` emits the twin. `passes` flips
+  to `true` only via the main agent **after an evaluator verdict** (anti-self-praise);
+  `steps` are test conditions and are never altered.
 - **Accessibility statement** — root `ACCESSIBILITY.md` + a README Community
   link: plain-text/`NO_COLOR` commitments for the CLI, Markdown a11y rules
   (heading order, descriptive links, prose beside diagrams), supported
@@ -15,6 +27,16 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   `accessibility` label.
 
 ### Changed
+- **Routing gate v2 — status-first (#52).** `init.sh` injects a
+  `HARNESS_ROUTING_GATE_BEGIN/END`-marked block ([CRITICAL AGENT INSTRUCTION]:
+  run `bin/harness.sh status` first, pick the highest-priority `passes: false`
+  slice, one slice per session, progressive exposure, never alter JSON `steps`)
+  into `CLAUDE.md`, and **upgrades v1 installs** (the old
+  `harness-mini:start/end` block is stripped and the v2 gate appended — exactly
+  one gate, ever). The `.cursor/rules/harness-mini.mdc` gate is regenerated
+  status-first. `AGENTS.md` carries a single merged routing-gate section
+  (mandatory `status` first, quick repository map, no full-history loads) and
+  documents the twin contract.
 - **First-screen & navigation upgrade (docs-nav-001).** README leads with a
   committed SVG banner (`docs/assets/banner.svg`) + shields.io badges and states
   the five-invariant **Core Architecture Contract**; `ARCHITECTURE.md` opens with

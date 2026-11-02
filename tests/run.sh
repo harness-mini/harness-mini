@@ -178,21 +178,22 @@ GNEW="$(mktemp -d)"
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GNEW" >/dev/null 2>&1
 assert_eq "true" "$([ -f "$GNEW/CLAUDE.md" ] && echo true || echo false)" "seeds CLAUDE.md"
 assert_contains "$(cat "$GNEW/CLAUDE.md")" "harness-mini" "CLAUDE.md carries the routing gate"
-assert_contains "$(cat "$GNEW/CLAUDE.md")" "stage-viewer" "CLAUDE.md gate routes through stage-viewer"
+assert_contains "$(cat "$GNEW/CLAUDE.md")" "AGENTS.md" "CLAUDE.md gate points at the full map"
 assert_eq "true" "$([ -f "$GNEW/.cursor/rules/harness-mini.mdc" ] && echo true || echo false)" "seeds .cursor/rules/harness-mini.mdc"
 assert_contains "$(cat "$GNEW/.cursor/rules/harness-mini.mdc")" "alwaysApply: true" "cursor rule is always-applied"
+assert_contains "$(cat "$GNEW/.cursor/rules/harness-mini.mdc")" "stage-viewer" "cursor rule routes through stage-viewer"
 # idempotent: re-run does not duplicate the marker-guarded block
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GNEW" >/dev/null 2>&1
-n=$(grep -cF 'harness-mini:start' "$GNEW/CLAUDE.md")
+n=$(grep -cF 'HARNESS_ROUTING_GATE_BEGIN' "$GNEW/CLAUDE.md")
 assert_eq "1" "$n" "re-run does not duplicate the CLAUDE.md gate block"
 # additive: a pre-existing CLAUDE.md keeps its content; the gate is appended once
 GEX="$(mktemp -d)"
 printf 'MY MEMORY\n' > "$GEX/CLAUDE.md"
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GEX" >/dev/null 2>&1
 assert_contains "$(cat "$GEX/CLAUDE.md")" "MY MEMORY" "existing CLAUDE.md content is preserved"
-assert_contains "$(cat "$GEX/CLAUDE.md")" "harness-mini:start" "gate is appended to an existing CLAUDE.md"
+assert_contains "$(cat "$GEX/CLAUDE.md")" "HARNESS_ROUTING_GATE_BEGIN" "gate is appended to an existing CLAUDE.md"
 HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GEX" >/dev/null 2>&1
-n=$(grep -cF 'harness-mini:start' "$GEX/CLAUDE.md")
+n=$(grep -cF 'HARNESS_ROUTING_GATE_BEGIN' "$GEX/CLAUDE.md")
 assert_eq "1" "$n" "re-run appends the gate at most once"
 rm -rf "$GSRC" "$GNEW" "$GEX"
 
@@ -309,6 +310,45 @@ assert_contains "$lock" "$src_sha  AGENTS.md" "lock stores the pristine upstream
 code=0; HARNESS_SRC="$LSRC" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1 || code=$?
 assert_exit 0 "$code" "re-init with a lock present is idempotent"
 rm -rf "$LSRC" "$LDEST"
+
+# =============================================================================
+echo "init.sh — routing gate v2 (markers, idempotency, v1 migration)"
+GSRC="$(mktemp -d)"; mkdir -p "$GSRC/skills" "$GSRC/agents" "$GSRC/bin" "$GSRC/docs"
+printf 'gate-skill\n' > "$GSRC/skills/sample.md"
+printf 'agent\n'      > "$GSRC/agents/planner.md"
+printf 'echo hi\n'    > "$GSRC/bin/ctx.sh"
+printf 'map\n'        > "$GSRC/AGENTS.md"
+# fresh install: v2 markers + CRITICAL text + status-first
+GDST="$(mktemp -d)"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GDST" >/dev/null 2>&1
+gmc="$(cat "$GDST/CLAUDE.md" 2>/dev/null)"
+assert_contains "$gmc" "HARNESS_ROUTING_GATE_BEGIN" "fresh install seeds the v2 gate markers"
+assert_contains "$gmc" "CRITICAL AGENT INSTRUCTION" "gate carries the CRITICAL instruction"
+assert_contains "$gmc" "bin/harness.sh status" "gate is status-first"
+assert_contains "$gmc" "passes: false" "gate points at the next passes:false slice"
+assert_contains "$gmc" "AGENTS.md" "gate points at the full map (AGENTS.md)"
+# idempotent: re-run leaves exactly one gate block
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$GDST" >/dev/null 2>&1
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$GDST/CLAUDE.md")" "gate idempotent: still one block"
+# cursor rule seeded and status-first
+curs="$(cat "$GDST/.cursor/rules/harness-mini.mdc" 2>/dev/null)"
+assert_contains "$curs" "bin/harness.sh status" "cursor rule is status-first"
+rm -rf "$GDST"
+# v1 migration: old marker block is replaced in place; user content survives
+MDST="$(mktemp -d)"
+printf '# my project memory\nkeep me\n' > "$MDST/CLAUDE.md"
+printf '\n<!-- harness-mini:start -->\nv1 gate text\n<!-- harness-mini:end -->\n' >> "$MDST/CLAUDE.md"
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$MDST" >/dev/null 2>&1
+mgmc="$(cat "$MDST/CLAUDE.md")"
+assert_contains "$mgmc" "keep me" "migration preserves user content"
+assert_contains "$mgmc" "HARNESS_ROUTING_GATE_BEGIN" "migration installs the v2 gate"
+assert_eq "0" "$(grep -c 'harness-mini:start' "$MDST/CLAUDE.md")" "migration removes the v1 block"
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$MDST/CLAUDE.md")" "migration leaves one v2 block"
+# migration is also idempotent
+HARNESS_SRC="$GSRC" bash "$ROOT/init.sh" "$MDST" >/dev/null 2>&1
+assert_eq "1" "$(grep -c 'HARNESS_ROUTING_GATE_BEGIN' "$MDST/CLAUDE.md")" "post-migration re-run stays one block"
+assert_contains "$(cat "$MDST/CLAUDE.md")" "keep me" "post-migration re-run still keeps user content"
+rm -rf "$MDST" "$GSRC"
 
 # =============================================================================
 echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
@@ -439,6 +479,56 @@ assert_contains "$out" "$splan" "status lists the active plan"
 assert_contains "$out" "ctx_pct=42" "status surfaces last ctx_pct from the trace tail"
 assert_contains "$out" "resumable" "status reports resumability"
 rm -rf "$SDIR"
+
+# =============================================================================
+echo "harness.sh status/doctor — JSON twin workboard (dual-file plans)"
+WDIR="$(mktemp -d)"
+bash "$ROOT/init.sh" "$WDIR" >/dev/null 2>&1   # seeds 0001-intake.md (mode: new)
+WMD="$(ls "$WDIR"/docs/exec-plans/active/0001-*.md)"
+WTWIN="${WMD%.md}.json"
+# no twin yet -> status has no workboard line; doctor WARNs (never FAILs)
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
+assert_exit 0 "$code" "status fine when a plan has no JSON twin"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'workboard:')" "status: no workboard line without a twin"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: missing twin is a WARN, not a FAIL"
+assert_contains "$out" "no JSON twin" "doctor warns about the missing twin"
+# ragged-indentation twin: slice-001 passes, slice-002 next -> workboard line
+cat > "$WTWIN" <<'EOF'
+{
+  "plan_id": "0001-intake",
+    "title": "Intake — greenfield bootstrap",
+  "status": "in_progress",
+      "current_slice_id": "slice-002",
+  "slices": [
+    { "id": "slice-001", "category": "docs", "description": "d", "steps": ["s"], "passes": true },
+ { "id": "slice-002", "category": "api", "description": "d", "steps": ["s"], "passes": false }
+  ]
+}
+EOF
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "workboard: in_progress" "workboard shows the JSON status"
+assert_contains "$out" "1/2 pass" "workboard counts passing slices"
+assert_contains "$out" "current: slice-002" "workboard shows current_slice_id"
+assert_contains "$out" "next: slice-002" "workboard names the next passes:false slice"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 0 "$code" "doctor: healthy twin adds no FAIL"
+# all slices green -> next says so
+sed 's/"passes": false/"passes": true/' "$WTWIN" > "$WTWIN.tmp" && mv "$WTWIN.tmp" "$WTWIN"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "2/2 pass" "workboard counts all-green slices"
+assert_contains "$out" "next: all green" "workboard: no next slice when all pass"
+# garbage twin -> status must not crash; doctor warns unparseable
+printf 'not json {{{\n' > "$WTWIN"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
+assert_exit 0 "$code" "status fine with an unparseable twin"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "unparseable" "doctor warns on an unparseable twin"
+# plan_id-only twin (no status) is not readable either — same bar as status
+printf '{ "plan_id": "0001-intake", "slices": [] }\n' > "$WTWIN"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "unparseable" "doctor warns on a twin without a status field"
+rm -rf "$WDIR"
 
 # =============================================================================
 echo "harness.sh status — garden trigger (cadence + smell backlog)"
@@ -584,6 +674,15 @@ assert_eq "0" "$(grep -c checkpoint "$errf2" 2>/dev/null | tr -d ' ')" "ctx-hook
 code=0; printf 'not json' | bash "$HK" >/dev/null 2>&1 || code=$?
 assert_exit 0 "$code" "ctx-hook never fails the caller on a bad payload"
 rm -rf "$HKT"
+
+# =============================================================================
+echo "source repo — AGENTS.md gate contract (one gate, status-first)"
+am="$ROOT/AGENTS.md"
+assert_contains "$(cat "$am")" "MUST FIRST** run \`bin/harness.sh status\`" "AGENTS.md gate is status-first (mandatory)"
+assert_eq "1" "$(grep -ic '^## .*routing gate' "$am")" "AGENTS.md has exactly one routing-gate section"
+assert_eq "0" "$(grep -c 'harness.sh version' "$am")" "AGENTS.md gate no longer says version-first"
+assert_contains "$(cat "$am")" "Do NOT load the full historical" "AGENTS.md map forbids loading full plan history"
+assert_contains "$(cat "$am")" "current_slice_id" "AGENTS.md documents the JSON twin fields"
 
 # =============================================================================
 echo ""

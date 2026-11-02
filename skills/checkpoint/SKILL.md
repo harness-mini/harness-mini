@@ -43,7 +43,12 @@ prev: <plan>-<seq-1 or none>
 - <or "none">
 ```
 
-3. Update the active exec-plan's `Now`/`Next` to match.
+3. Update the active exec-plan's `Now`/`Next` to match, and refresh its
+   **`## Session Context Handoff`** section (Last Updated / Completed Work /
+   Current Blockers / Risks) — that is the three-line summary a cold session
+   reads first. If the plan has a JSON twin, update `current_slice_id` to the
+   slice now in flight (never flip `passes` — that needs an evaluator verdict,
+   see `evaluate`).
 4. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
    scope? Don't fix it inline (that breaks slice discipline) and don't lose it —
    append it to `.trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>

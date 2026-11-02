@@ -5,12 +5,13 @@ description: View and advance the lifecycle stage of every requirement. Main-age
 
 You are the main agent holding the tiller. Only you advance the FSM.
 
-## On entry — check for a newer harness (first thing)
-Before routing work in a fresh session, run `bin/harness.sh version` (or read the
-`update:` line `status` prints). If a newer harness-mini is published, **tell the
-user and offer `bin/harness.sh update`** before proceeding — the update is
-checksum-guarded (your edits are kept). It's best-effort: skip silently if
-offline. Then continue.
+## On entry — workboard first (first thing)
+In a fresh session, run `bin/harness.sh status` **first**. It prints the active
+plans, each plan's JSON-twin workboard line (`status · n/m pass · current ·
+next passes:false` slice), resumability, and — best-effort, silent offline — an
+`update:` line when a newer harness-mini exists (tell the user and offer
+`bin/harness.sh update`; checksum-guarded, edits kept). The `next:` slice is
+your default answer to "what now?".
 
 ## View
 1. List `docs/exec-plans/active/*.md`. For each, read the `stage:` frontmatter.
@@ -67,6 +68,11 @@ You may move a plan forward only when the stage's exit condition is met:
 
 To advance: edit the plan's `stage:` field, append a line to the plan's
 Decisions log, and `bin/trace.sh main <new-stage> stage_advance plan=<plan>`.
+If the plan has a JSON twin, keep it in sync in the same edit: `status`
+(`planned|in_progress|done` — mirrors, never overrides, the MD `stage:`) and
+`current_slice_id`. **Only you** flip a slice's `passes` to `true` — and only
+after the eval tier passed it (anti-self-praise); a builder's "done" claim is
+routed to the evaluator first.
 
 ## Garden gate (orthogonal, you dispatch it)
 When a plan reaches `done` (and as a release pre-flight), run `bin/harness.sh
