@@ -92,10 +92,14 @@ repo and run shell can drive the same files.
 So the agent **prefers the harness by default** (rather than waiting to be told),
 `init.sh` also seeds a short **routing gate** into each host's always-on file —
 `CLAUDE.md`, `.cursor/rules/harness-mini.mdc` (Cursor), and the top of
-`AGENTS.md` (Codex). The gate says: route non-trivial work through
-`stage-viewer` first and, when a harness skill and another tool both fit, *the
-harness skill wins*. Seeding is additive + idempotent — an existing `CLAUDE.md`
-keeps its content (the gate is appended once, marker-guarded).
+`AGENTS.md` (Codex). The gate is **status-first and path-aware**: run
+`bin/harness.sh status`, read its `path:` line, and open the matching session
+skill (`session-init` for plan work, `session-coding` for slice work) — see
+[The session path](#the-session-path) below. Non-trivial work still routes
+through `stage-viewer` first, and when a harness skill and another tool both
+fit, *the harness skill wins*. Seeding is additive + idempotent — an existing
+`CLAUDE.md` keeps its content, and older gate versions are upgraded in place
+(marker-guarded, exactly one gate ever).
 
 ### How a host picks it up
 
@@ -104,9 +108,10 @@ install layout in its own way:
 
 | | On disk | How a host uses it |
 |---|---|---|
-| Skills (15) | `.claude/skills/<name>/SKILL.md` | Read the file. **Cursor** also gets an agent-requested `.cursor/rules/<skill>.mdc` (written by `init.sh`). **Codex** reads the file on demand. |
+| Skills (17) | `.claude/skills/<name>/SKILL.md` | Read the file. **Cursor** also gets an agent-requested `.cursor/rules/<skill>.mdc` (written by `init.sh`). **Codex** reads the file on demand. |
 | Sub-agents (5) | `.claude/agents/<name>.md` | A separate context window where the host can spawn one; otherwise a separate chat or session. |
-| Routing gate | `CLAUDE.md`, `.cursor/rules/harness-mini.mdc`, top of `AGENTS.md` | Seeded once, additive. |
+| Routing gate (v3, path-aware) | `CLAUDE.md`, `.cursor/rules/harness-mini.mdc`, top of `AGENTS.md` | Seeded once, additive; older gate versions upgraded in place. |
+| Session playbooks | `session-init` / `session-coding` skills | Selected by the `path:` line `status` prints; `bin/session.sh` can force one into a fresh context for unattended runs. |
 | 40%-line teeth | `bin/ctx-hook.sh` | Optional PostToolUse hook, wired from `.claude/settings.json`. Hosts without that hook use `bin/ctx.sh` by hand. |
 
 The harness is plain Markdown + shell, so any agent can use it by reading the
@@ -134,6 +139,40 @@ harness-mini does **not** force ceremony onto every change. Route first:
 The `stage-viewer` skill makes this call; the templates are its two shapes. **New
 to the loop? Watch one run end-to-end: [`docs/walkthrough.md`](docs/walkthrough.md).**
 
+## The session path
+
+Every session starts from **file truth**, not memory. `bin/harness.sh status`
+distills the board into machine lines:
+
+```console
+$ bin/harness.sh status
+active plans:
+  demo-auth                stage: implement
+     workboard: in_progress · 1/3 pass · current: slice-002 · next: slice-002
+path: coding
+path_reason: next slice ready
+ready: ready — slice-002: write the failing 401 test, then bcrypt verification
+```
+
+The `path:` line picks the playbook:
+
+- **`path: init`** → the **`session-init`** skill: plan-layer work only
+  (founder funnel, PRD, issues, the JSON twin) — **no product code** on this path.
+- **`path: coding`** → the **`session-coding`** skill: a mandatory five-step
+  **Getting Bearings** first turn (`pwd` · `status` + recent commits + latest
+  checkpoint · open the twin and select the `next:` slice · app baseline green ·
+  report the selected slice), then exactly **one slice**, test-first, verified
+  against the twin's `steps` and routed through `evaluate` — the builder never
+  flips `passes` (anti-self-praise).
+
+Each plan is a **dual file**: `<NNN-slug>.md` (narrative; frontmatter `stage:`
+is the lifecycle authority) + a same-basename `.json` twin (the machine
+workboard: `status` · `current_slice_id` · `slices[].passes`). A
+`## Session Context Handoff` section gives a cold session its three-line
+memory. For unattended runs, `bin/session.sh` forces the matching playbook
+into a fresh context (`bin/session.sh -- <your-host-cli> …`); it is optional
+P2 glue, not part of the core.
+
 ## Versioning & updates
 
 The install is versioned. `bin/harness.sh` is the front door:
@@ -142,7 +181,7 @@ The install is versioned. `bin/harness.sh` is the front door:
 bin/harness.sh version              # installed version (+ latest, best-effort)
 bin/harness.sh update               # pull a newer harness into this project
 bin/harness.sh doctor               # install health: ok/warn/fail (exit 1 on fail)
-bin/harness.sh status               # current work state (plans, checkpoints, resumable)
+bin/harness.sh status               # work state: plans, workboard, session path, resumable
 bin/harness.sh report               # aggregate .trace metrics (stages, context, evals)
 bin/harness.sh release <x.y.z>      # (source repo) bump + tag + GitHub release
 ```
@@ -155,11 +194,11 @@ Hosts that speak a PostToolUse hook can give the 40% rule teeth with the
 opt-in `bin/ctx-hook.sh` (see `docs/smart-dumb.md`). Wire it from
 `.claude/settings.json`.
 
-On entering a fresh session the agent checks for a newer release first (the
-routing gate + `stage-viewer` run `harness.sh version`); `version`, `status`, and
-`doctor` all surface an **update reminder** when one is available, so you're
-prompted to `update` rather than drifting behind. The check is best-effort and
-silent offline (`HARNESS_NO_NET`); `HARNESS_LATEST` pins it.
+On entering a fresh session the agent runs `harness.sh status` first (the
+routing gate is status-first); when a newer release exists, `version`, `status`,
+and `doctor` all surface an **update reminder**, so you're prompted to `update`
+rather than drifting behind. The check is best-effort and silent offline
+(`HARNESS_NO_NET`); `HARNESS_LATEST` pins it.
 
 `init.sh` records the version and a checksum of every harness-owned file in
 `harness/harness.lock`. `update` is **checksum-guarded**: files you never touched
@@ -209,14 +248,15 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
 | `bin/harness.sh` | front-door CLI: `version`·`update`·`doctor`·`status`·`report`·`release` |
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
+| `bin/session.sh` | Outer session runner (optional P2): force the matching session playbook into a fresh context |
 | `bin/model.sh` | resolve a role's model alias (builder → the highest-available frontier model tier when enabled) |
 | `bin/ctx-hook.sh` | opt-in PostToolUse hook (auto ctx_pct + 40% nudge) |
 | `harness/harness.lock` | installed version + managed-file checksums |
-| `skills/<name>/SKILL.md` → `.claude/skills/` | 15 skills (one folder each) |
+| `skills/<name>/SKILL.md` → `.claude/skills/` | 17 skills (one folder each) |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
 | `docs/principles.md` | golden principles + the Mini delete-first constraint |
 | `docs/smart-dumb.md` | the 40% contract |
-| `docs/exec-plans/{active,completed}/` | plans + decision logs (committed) |
+| `docs/exec-plans/{active,completed}/` | dual-file plans (`.md` narrative + `.json` workboard twin) + decision logs (committed) |
 | `docs/references/*-llms.txt` | the 5 source distillates |
 | `.trace/checkpoints/` | committed handoffs (institutional memory) |
 | `.trace/evals/` | committed evaluation verdicts (the `done`-gate `doctor` enforces) |
@@ -250,7 +290,7 @@ model override. Set `HARNESS_TOP_MODEL=1` to force the upgrade;
 ## Develop
 
 ```bash
-bash tests/run.sh   # 148 assertions, zero dependencies
+bash tests/run.sh   # 299 assertions, zero dependencies
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
