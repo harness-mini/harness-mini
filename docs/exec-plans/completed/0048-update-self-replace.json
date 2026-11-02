@@ -1,0 +1,20 @@
+{
+  "plan_id": "0048-update-self-replace",
+  "title": "harness.sh update: defer self-replacement to exit (fix crash)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "cmd_update never swaps the running script mid-flight; regression test with bin/-bearing fixtures",
+      "steps": [
+        "tests/run.sh: update fixture whose upstream includes bin/harness.sh that changes between old and new; assert exit 0, no 'unbound' diagnostic, installed checksum == new upstream, harness.sh version still runs",
+        "cmd_update: read pairs via herestring (no pipe subshell); when dst is the running script, defer the copy",
+        "after lockfile move + log + tmpclone cleanup: copy deferred script last, then exit 0",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
