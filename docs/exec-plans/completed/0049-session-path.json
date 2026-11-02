@@ -1,0 +1,21 @@
+{
+  "plan_id": "0049-session-path",
+  "title": "path: init|coding (+ path_reason) in harness.sh status",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "backend",
+      "description": "status derives and prints path/path_reason from stage + twin; matrix tests; docs note",
+      "steps": [
+        "tests/run.sh: path matrix — empty board, planning stage, implement+next, all-green wrap-up, missing twin, unparseable twin, multi-plan priority",
+        "cmd_status: per-plan priority class (next-ready > wrap-up > twin-missing > planning); print path: + path_reason: after the plans block",
+        "conservative init when coding cannot be proven (missing/unparseable twin)",
+        "AGENTS.md gate gains a brief path: note; status usage line updated; CHANGELOG entry",
+        "bash tests/run.sh fully green"
+      ],
+      "passes": true
+    }
+  ]
+}
