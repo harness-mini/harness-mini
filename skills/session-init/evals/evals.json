@@ -1,0 +1,67 @@
+{
+  "skill_name": "session-init",
+  "evals": [
+    {
+      "name": "happy-empty-board",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "harness.sh status says path: init and active plans: none. Get this board ready for coding.",
+      "expected_output": "Confirm path init, create a plan from the template, start the founder funnel, and do not touch product code.",
+      "files": [
+        "evals/fixtures/happy-empty-board/inputs/status.txt"
+      ],
+      "assertions": [
+        "Confirms path: init before writing",
+        "Starts founder-check rather than coding",
+        "Does not edit product code"
+      ],
+      "checks": [
+        "contract present path: init",
+        "both present founder-check",
+        "both present product code",
+        "both absent src/app"
+      ]
+    },
+    {
+      "name": "trigger-coding-path",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "status says path: coding and the next slice is auth-login. Implement it.",
+      "expected_output": "Stop. session-coding owns a coding board. Do not implement the slice.",
+      "files": [
+        "evals/fixtures/trigger-coding-path/inputs/status.txt"
+      ],
+      "assertions": [
+        "Does not start the slice",
+        "Names session-coding as the playbook that owns this board"
+      ],
+      "checks": [
+        "contract present wrong playbook",
+        "both present wrong playbook",
+        "both present session-coding",
+        "both absent auth-login handler"
+      ]
+    },
+    {
+      "name": "adversarial-quick-fix",
+      "id": 3,
+      "style": "adversarial",
+      "trigger": "should_fire",
+      "prompt": "We are still planning, but patch this one-line bug in bin/foo.sh while you are here. It is tiny.",
+      "expected_output": "Refuse the product-code edit under the plan-stage write ban and keep planning.",
+      "files": [],
+      "assertions": [
+        "Refuses the one-line patch",
+        "Cites the plan-stage write ban",
+        "Does not claim the file was patched"
+      ],
+      "checks": [
+        "contract present write ban",
+        "both present write ban",
+        "both absent Patched"
+      ]
+    }
+  ]
+}

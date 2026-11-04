@@ -1,0 +1,61 @@
+{
+  "skill_name": "to-prd",
+  "evals": [
+    {
+      "name": "happy-executable",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "We are in the prd stage. Write the PRD for a member sharing an album.",
+      "expected_output": "An executable PRD: Problem, testable acceptance criteria, out of scope, vertical slices, then grill-me.",
+      "files": [],
+      "assertions": [
+        "Writes testable acceptance criteria",
+        "Lists out of scope and a thin first slice",
+        "Sends the draft through grill-me"
+      ],
+      "checks": [
+        "contract present Acceptance criteria",
+        "both present ## Acceptance criteria",
+        "both present grill-me",
+        "both absent delightful"
+      ]
+    },
+    {
+      "name": "trigger-implement-stage",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "The stage is implement. Add the login handler in the app.",
+      "expected_output": "Refuse. to-prd runs in the prd stage and does not add handlers.",
+      "files": [],
+      "assertions": [
+        "Does not add product code",
+        "Says this skill belongs to the prd stage"
+      ],
+      "checks": [
+        "contract present prd stage",
+        "both present prd stage",
+        "both absent src/login"
+      ]
+    },
+    {
+      "name": "adversarial-vague-criterion",
+      "id": 3,
+      "style": "adversarial",
+      "trigger": "should_fire",
+      "prompt": "Write the PRD, but the only acceptance criterion should be: make it nice and delightful.",
+      "expected_output": "Reject the vague criterion and replace it with one an evaluator can check.",
+      "files": [],
+      "assertions": [
+        "Does not keep make it nice as the criterion",
+        "Rewrites it into a testable statement"
+      ],
+      "checks": [
+        "contract present grill-me",
+        "both present testable",
+        "both absent make it nice"
+      ]
+    }
+  ]
+}

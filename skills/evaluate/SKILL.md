@@ -7,6 +7,10 @@ You are grading work against its plan's **acceptance criteria** — never agains
 vague satisfaction. Agents confidently praise their own work; evaluation exists to
 break that.
 
+This grades one slice against that plan. It is not a with-skill / without-skill
+benchmark. Skill lift is a separate sensor (`docs/skill-evals.md`), run on the
+garden cadence. Do not use this skill to measure skill lift.
+
 ## Pick the tier (record it in the plan's `eval:` field)
 
 "Always spawn an Opus evaluator" is too expensive for every change — if the default

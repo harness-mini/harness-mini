@@ -1,0 +1,3 @@
+active plans: none
+path: init
+path_reason: empty board

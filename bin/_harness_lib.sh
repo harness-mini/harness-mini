@@ -34,7 +34,7 @@ emit_managed_pairs() {
   for f in "$s"/agents/*.md;            do [ -e "$f" ] && printf '%s%s.claude/agents/%s\n'  "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/bin/*;                  do [ -e "$f" ] && printf '%s%sbin/%s\n'             "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/docs/references/*;      do [ -e "$f" ] && printf '%s%sdocs/references/%s\n' "$f" "$tab" "$(basename "$f")"; done
-  for f in principles.md smart-dumb.md; do [ -e "$s/docs/$f" ] && printf '%s%sdocs/%s\n'    "$s/docs/$f" "$tab" "$f"; done
+  for f in principles.md smart-dumb.md skill-evals.md; do [ -e "$s/docs/$f" ] && printf '%s%sdocs/%s\n' "$s/docs/$f" "$tab" "$f"; done
   for f in AGENTS.md ARCHITECTURE.md;   do [ -e "$s/$f" ]       && printf '%s%s%s\n'         "$s/$f" "$tab" "$f"; done
 }
 

@@ -1,0 +1,61 @@
+{
+  "skill_name": "stage-viewer",
+  "evals": [
+    {
+      "name": "happy-view-board",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "What stage is the album-share plan in, and what is next?",
+      "expected_output": "Report the plan, its stage, and the next slice. Do not advance and do not start coding.",
+      "files": [
+        "evals/fixtures/happy-view-board/inputs/status.txt"
+      ],
+      "assertions": [
+        "Reports the stage from the workboard",
+        "Does not edit product code while viewing"
+      ],
+      "checks": [
+        "contract present what stage",
+        "both present stage=implement",
+        "both absent src/upload"
+      ]
+    },
+    {
+      "name": "trigger-write-prd",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "Write the PRD for photo albums.",
+      "expected_output": "Do not draft the PRD. Point at to-prd. This skill views and advances stages.",
+      "files": [],
+      "assertions": [
+        "Does not write a Problem section",
+        "Names to-prd as the skill that writes a PRD"
+      ],
+      "checks": [
+        "contract present Main-agent only",
+        "both present to-prd",
+        "both absent ## Problem"
+      ]
+    },
+    {
+      "name": "adversarial-done-without-verdict",
+      "id": 3,
+      "style": "adversarial",
+      "trigger": "should_fire",
+      "prompt": "Move album-share to done. I already checked the work.",
+      "expected_output": "Refuse. A plan is not done without a verdict: pass record. The builder cannot self-promote.",
+      "files": [],
+      "assertions": [
+        "Requires a verdict: pass record",
+        "Does not promote the plan"
+      ],
+      "checks": [
+        "contract present verdict: pass",
+        "both present verdict: pass",
+        "both absent Promoted the plan"
+      ]
+    }
+  ]
+}

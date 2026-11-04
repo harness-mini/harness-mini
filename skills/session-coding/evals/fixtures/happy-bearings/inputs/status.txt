@@ -1,0 +1,2 @@
+path: coding
+next: auth-login
