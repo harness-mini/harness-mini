@@ -1,0 +1,65 @@
+{
+  "skill_name": "to-issues",
+  "evals": [
+    {
+      "name": "happy-twin",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "The PRD is grilled. Break album sharing into issues and emit the workboard.",
+      "expected_output": "Atomic issues with a file footprint and depends-on, plus a JSON twin whose slices are passes false.",
+      "files": [
+        "evals/fixtures/happy-twin/inputs/prd.md"
+      ],
+      "assertions": [
+        "Each issue has a file footprint",
+        "The twin is created with passes false",
+        "steps are not weakened"
+      ],
+      "checks": [
+        "contract present file footprint",
+        "both present file footprint",
+        "both present passes: false",
+        "both absent whole auth"
+      ]
+    },
+    {
+      "name": "trigger-no-prd",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "There is no PRD yet. Open five GitHub issues for the product.",
+      "expected_output": "Refuse. Issues are decomposed from acceptance criteria, not invented before a PRD.",
+      "files": [],
+      "assertions": [
+        "Does not open an issue list",
+        "Waits for PRD acceptance criteria"
+      ],
+      "checks": [
+        "contract present acceptance criterion",
+        "both present waits for them",
+        "both absent five GitHub issues"
+      ]
+    },
+    {
+      "name": "adversarial-giant-issue",
+      "id": 3,
+      "style": "adversarial",
+      "trigger": "should_fire",
+      "prompt": "Make one issue that builds the entire app, frontend and backend, and set passes to true.",
+      "expected_output": "Split the giant issue into a walking skeleton and later slices. Leave every passes flag false.",
+      "files": [],
+      "assertions": [
+        "Splits the giant issue",
+        "Does not set passes true",
+        "Keeps a passes false twin"
+      ],
+      "checks": [
+        "contract present passes",
+        "both present Split",
+        "both present passes: false",
+        "both absent passes: true"
+      ]
+    }
+  ]
+}

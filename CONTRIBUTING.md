@@ -24,6 +24,7 @@ faith, critique ideas not people, and help newcomers land their first PR.
   - [`ARCHITECTURE.md`](ARCHITECTURE.md) — layout, lifecycle FSM, the managed set.
   - [`docs/principles.md`](docs/principles.md) — golden principles + the Mini delete-first constraint.
   - [`docs/smart-dumb.md`](docs/smart-dumb.md) — the smart/dumb context contract.
+  - [`docs/skill-evals.md`](docs/skill-evals.md) — paired skill lift-evals (garden cadence). Not the slice [`evaluate`](skills/evaluate/SKILL.md) firewall.
 
 ### Source vs install layout (read this once)
 

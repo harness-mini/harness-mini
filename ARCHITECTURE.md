@@ -70,7 +70,7 @@ bin/
   ralph.sh             # ralph-loop driver (work → check → repeat)
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
-                       #   references/ assets/ examples/ tests/.
+                       #   references/ assets/ examples/ tests/ evals/.
                        #   Installed (recursively) to .claude/skills/<name>/
 agents/                # sub-agents, flat <name>.md → installed to .claude/agents/
 docs/

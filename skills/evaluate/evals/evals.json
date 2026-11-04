@@ -1,0 +1,62 @@
+{
+  "skill_name": "evaluate",
+  "evals": [
+    {
+      "name": "happy-separate-context",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "Grade the login slice against its acceptance criteria. The builder says it is done.",
+      "expected_output": "An independent grader returns PASS or FAIL per criterion with evidence it produced, and does not flip passes.",
+      "files": [],
+      "assertions": [
+        "Uses a separate context from the builder",
+        "Marks a criterion FAIL when evidence is missing",
+        "Does not accept the builder's own claim"
+      ],
+      "checks": [
+        "contract present separate context",
+        "both present separate context",
+        "both present FAIL",
+        "both absent Looks done"
+      ]
+    },
+    {
+      "name": "trigger-skill-lift",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "Measure lift for the tdd skill: same prompts with the skill and without it.",
+      "expected_output": "Refuse. This skill grades a slice against plan criteria. Skill lift is a different sensor.",
+      "files": [],
+      "assertions": [
+        "Does not report a with-skill versus without-skill lift number",
+        "Points skill lift at the sensor doc, not this firewall"
+      ],
+      "checks": [
+        "contract present docs/skill-evals.md",
+        "both present acceptance criteria",
+        "both present docs/skill-evals.md",
+        "both absent +0.40"
+      ]
+    },
+    {
+      "name": "saturated-tests-green",
+      "id": 3,
+      "style": "saturated",
+      "trigger": "should_fire",
+      "prompt": "The tests passed. Grade the slice.",
+      "expected_output": "A rubric that only looks for the word PASS is saturated: the baseline says it too, so the case shows no lift.",
+      "files": [],
+      "assertions": [
+        "Both arms can say PASS because the tests passed",
+        "That agreement is a saturated baseline, not evidence the skill helped"
+      ],
+      "checks": [
+        "contract present acceptance criteria",
+        "saturated both present PASS",
+        "saturated both present tests passed"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "skill_name": "tdd",
+  "evals": [
+    {
+      "name": "happy-red-green",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "Implement the parser issue in the implement stage. Acceptance: empty input returns an empty list.",
+      "expected_output": "A failing test first, confirmed red for the right reason, then the minimum code to pass. Refactor only after green.",
+      "files": [],
+      "assertions": [
+        "Writes a failing test before production code",
+        "Confirms the failure reason",
+        "Does not refactor on red"
+      ],
+      "checks": [
+        "contract present failing test",
+        "both present RED:",
+        "both absent Wrote the parser"
+      ]
+    },
+    {
+      "name": "trigger-prd-stage",
+      "id": 2,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "The stage is prd. Write the PRD acceptance criteria. Do not write tests yet.",
+      "expected_output": "Refuse. tdd is the implement-stage loop, not PRD writing.",
+      "files": [],
+      "assertions": [
+        "Does not start a red-green cycle",
+        "Says the skill belongs to the implement stage"
+      ],
+      "checks": [
+        "contract present implement stage",
+        "both present implement stage",
+        "both absent acceptance criteria"
+      ]
+    },
+    {
+      "name": "adversarial-refactor-on-red",
+      "id": 3,
+      "style": "adversarial",
+      "trigger": "should_fire",
+      "prompt": "The new test is red. Refactor the module names before you make it pass. The rename is obvious.",
+      "expected_output": "Refuse the refactor. Stay on red until the test is green.",
+      "files": [],
+      "assertions": [
+        "Does not rename modules while the test is red",
+        "Keeps refactor behind a green test"
+      ],
+      "checks": [
+        "contract present refactor while",
+        "both present will not refactor",
+        "both absent Renamed the modules"
+      ]
+    }
+  ]
+}

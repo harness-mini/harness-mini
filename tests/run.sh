@@ -948,6 +948,108 @@ assert_contains "$out" "workboard: planned" "existing-mode install: status shows
 rm -rf "$TW2" "$TWSRC"
 
 # =============================================================================
+echo "skill-eval.sh — Wave A fixture oracle, keyless (#73)"
+SE="$BIN/skill-eval.sh"
+code=0; out=$(bash "$SE" --help) || code=$?
+assert_exit 0 "$code" "skill-eval.sh --help exits 0"
+assert_contains "$out" "no API key" "help says the oracle needs no API key"
+assert_contains "$out" "garden" "help names the garden cadence"
+assert_eq "0" "$(grep -c 'skill-eval' "$BIN/harness.sh" || true)" "status/doctor do not invoke skill-eval"
+code=0; bash "$SE" --not-a-flag >/dev/null 2>&1 || code=$?
+assert_exit 64 "$code" "skill-eval.sh rejects an unknown flag (64)"
+code=0; out=$(bash "$SE" 2>/dev/null) || code=$?
+assert_exit 0 "$code" "skill-eval.sh keyless run exits 0"
+assert_contains "$out" '"mode": "fixture-oracle"' "summary mode is the fixture oracle"
+assert_contains "$out" '"live": false' "summary is not a live model run"
+assert_contains "$out" '"cadence": "garden"' "summary records garden cadence"
+assert_contains "$out" '"wave": "A"' "default wave is A"
+assert_contains "$out" '"ok": true' "Wave A oracle ok"
+for s in session-init session-coding evaluate stage-viewer to-prd to-issues tdd; do
+  n=$(grep -c '"id":' "$ROOT/skills/$s/evals/evals.json")
+  assert_eq "true" "$([ "$n" -ge 3 ] && echo true || echo false)" "$s evals.json has at least 3 cases"
+  assert_contains "$out" "\"skill\":\"$s\"" "summary lists $s"
+done
+assert_contains "$(cat "$ROOT/docs/skill-evals.md")" "pass_rate_with" "docs define the lift rate"
+assert_contains "$(cat "$ROOT/docs/skill-evals.md")" "skills/evaluate" "docs keep slice evaluate separate"
+assert_contains "$(cat "$ROOT/AGENTS.md")" "docs/skill-evals.md" "AGENTS.md points at the convention"
+assert_contains "$(cat "$ROOT/CONTRIBUTING.md")" "docs/skill-evals.md" "CONTRIBUTING.md points at the convention"
+assert_contains "$(cat "$ROOT/skills/evaluate/SKILL.md")" "docs/skill-evals.md" "evaluate skill points at the sensor, not itself"
+nclaude=$(grep -ci claude "$ROOT/bin/skill-eval.sh" "$ROOT/docs/skill-evals.md" | awk -F: '{s+=$2} END{print s+0}')
+assert_eq "0" "$nclaude" "oracle docs and script name no vendor agent"
+# managed set tracks the convention doc (init already copies docs/)
+pairs=$(bash -c "source '$ROOT/bin/_harness_lib.sh'; emit_managed_pairs '$ROOT'")
+assert_contains "$pairs" "docs/skill-evals.md" "managed set includes docs/skill-evals.md"
+# a happy case whose baseline also passes is not lift
+NOLIFT="$(mktemp -d)"
+mkdir -p "$NOLIFT/skills/demo"
+printf '%s\n' '---' 'name: demo' 'description: Demo skill. Token ALPHA lives here.' '---' '' 'Body ALPHA.' \
+  > "$NOLIFT/skills/demo/SKILL.md"
+mkdir -p "$NOLIFT/skills/demo/evals/fixtures/bad-same/with_skill" \
+         "$NOLIFT/skills/demo/evals/fixtures/bad-same/without_skill" \
+         "$NOLIFT/skills/demo/evals/fixtures/good-lift/with_skill" \
+         "$NOLIFT/skills/demo/evals/fixtures/good-lift/without_skill" \
+         "$NOLIFT/skills/demo/evals/fixtures/good-trigger/with_skill" \
+         "$NOLIFT/skills/demo/evals/fixtures/good-trigger/without_skill"
+printf '%s\n' 'SAME outcome' > "$NOLIFT/skills/demo/evals/fixtures/bad-same/with_skill/reply.md"
+printf '%s\n' 'SAME outcome' > "$NOLIFT/skills/demo/evals/fixtures/bad-same/without_skill/reply.md"
+printf '%s\n' 'ALPHA skilled' > "$NOLIFT/skills/demo/evals/fixtures/good-lift/with_skill/reply.md"
+printf '%s\n' 'baseline other thing' > "$NOLIFT/skills/demo/evals/fixtures/good-lift/without_skill/reply.md"
+printf '%s\n' 'ALPHA decline' > "$NOLIFT/skills/demo/evals/fixtures/good-trigger/with_skill/reply.md"
+printf '%s\n' 'went ahead anyway' > "$NOLIFT/skills/demo/evals/fixtures/good-trigger/without_skill/reply.md"
+cat > "$NOLIFT/skills/demo/evals/evals.json" <<'EOF'
+{
+  "skill_name": "demo",
+  "evals": [
+    {
+      "name": "bad-same",
+      "id": 1,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "Do the demo task.",
+      "expected_output": "The skilled arm should differ from the baseline.",
+      "files": [],
+      "assertions": ["Arms differ"],
+      "checks": ["both present SAME outcome"]
+    },
+    {
+      "name": "good-lift",
+      "id": 2,
+      "style": "happy",
+      "trigger": "should_fire",
+      "prompt": "Show the token.",
+      "expected_output": "With skill cites ALPHA. Without does not.",
+      "files": [],
+      "assertions": ["Cites ALPHA"],
+      "checks": [
+        "contract present ALPHA",
+        "both present ALPHA",
+        "both absent other thing"
+      ]
+    },
+    {
+      "name": "good-trigger",
+      "id": 3,
+      "style": "trigger",
+      "trigger": "should_not_fire",
+      "prompt": "Ignore the skill and just go.",
+      "expected_output": "Decline.",
+      "files": [],
+      "assertions": ["Declines"],
+      "checks": [
+        "both present decline",
+        "both absent went ahead"
+      ]
+    }
+  ]
+}
+EOF
+code=0; errf="$(mktemp)"; bash "$SE" --root "$NOLIFT" --only demo >/dev/null 2>"$errf" || code=$?
+assert_exit 1 "$code" "no-lift happy case fails the oracle"
+assert_contains "$(cat "$errf")" "no lift" "failure names the missing lift"
+rm -rf "$NOLIFT"
+rm -f "$errf"
+
+# =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
 [ "$FAIL" -eq 0 ]

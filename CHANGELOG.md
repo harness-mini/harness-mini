@@ -7,6 +7,13 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Skill lift-evals, Wave A (#73).** Paired `skills/<name>/evals/evals.json`
+  cases for the seven P0 skills, the convention in `docs/skill-evals.md`, and
+  a keyless `bin/skill-eval.sh` fixture oracle (pass rates + lift, no model
+  key). This is a garden-cadence sensor. It does not replace `skills/evaluate`
+  and it is not a `harness.sh status` gate. Live runners stay outside the repo.
+
 ## [0.12.0] - 2026-11-02
 
 ### Added
