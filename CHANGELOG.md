@@ -7,6 +7,16 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Checkpoint hardening (#76, #77; Discussion #75).** Checkpoints can record
+  structured Footprint entries, validate them with the checkpoint skill's
+  linter, capture exact source-line snapshots with boundary checks, and skip
+  redundant writes when no tracked files changed. The helpers ship inside
+  `skills/checkpoint/scripts/` with their owning skill.
+- **Last-green test evidence.** When `HARNESS_TEST_SCRIPT` is configured, the
+  context hook records the timestamp and revision of its latest passing run;
+  the checkpoint skill can use that record instead of relying on agent memory.
+
 ## [0.12.0] - 2026-11-02
 
 ### Added
