@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-06
+
 ### Added
 - **Checkpoint hardening (#76, #77; Discussion #75).** Checkpoints can record
   structured Footprint entries, validate them with the checkpoint skill's
