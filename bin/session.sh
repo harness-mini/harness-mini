@@ -18,11 +18,11 @@
 #                                  — a fresh process per invocation, so every
 #                                  session starts from a clean context.
 #
-# Env: HARNESS_ROOT  project root (default: parent of this script's dir)
+# Env: HARNESS_ROOT  project root (default: current working directory)
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="${HARNESS_ROOT:-$(cd "$HERE/.." && pwd)}"
+ROOT="${HARNESS_ROOT:-$PWD}"
 
 # 1. session path from the workboard (file truth; offline; default init)
 path="$(HARNESS_NO_NET=1 bash "$HERE/harness.sh" status 2>/dev/null \
@@ -34,7 +34,7 @@ esac
 
 # 2. the skill body — installed layout first, source layout second
 SKILL_MD=""
-for f in "$ROOT/.claude/skills/$skill/SKILL.md" "$ROOT/skills/$skill/SKILL.md"; do
+for f in "$ROOT/.agents/skills/$skill/SKILL.md" "$ROOT/skills/$skill/SKILL.md"; do
   [ -f "$f" ] && { SKILL_MD="$f"; break; }
 done
 [ -n "$SKILL_MD" ] || { echo "session.sh: skill not found: $skill" >&2; exit 1; }

@@ -9,46 +9,46 @@ eval: L2
 # Host-neutral install and project-isolated runtime
 
 ## Intake
-- Delete-first: stop copying executable harness scripts into project `bin/`; remove Cursor rule generation and remove clean legacy harness scripts during migration.
+- Delete-first: stop copying executable harness scripts into project bin/; remove host-specific skill/rule generation; remove clean legacy host-specific artifacts during migration.
 - Riskiest assumption: a user-level runtime under `$HOME/.harness-mini` can serve multiple projects while the global runtime lock and project-specific host/layout locks remain isolated and deterministic.
 
 ## Problem
-`init.sh` currently copies harness executables into each project's `bin/`, fixes installed skills and agents under `.claude/`, and emits Cursor rules that point back to `.claude/skills`. The result is project pollution and tooling-specific coupling. The user wants the shell runtime centralized at `~/.harness-mini`, explicit host adapters (`claude` and `cursor`), Cursor skills at `.cursor/skills`, and lock/update/doctor/status behavior tied to the chosen project layout.
+init.sh currently copies harness executables into each project's bin/, fixes skills under .claude/, and emits Cursor rules that point back to .claude/skills. The result is project pollution and host-specific coupling. The user wants the runtime centralized at ~/.harness-mini and all skills managed at the shared, open-compatible .agents/skills path without detecting or selecting an agent host.
 
 ## PRD
-- Goal: install the harness runtime once per user at `$HOME/.harness-mini`; leave no harness-owned executables in project `bin/`; install skills using the explicitly selected agent's native project layout; keep update and diagnostics project-aware.
+- Goal: install the harness runtime once per user at $HOME/.harness-mini; leave no harness-owned executables in project bin/; install all skills into one shared .agents/skills directory for every agent; keep update and diagnostics project-aware.
 - Out of scope:
-  - Automatically identifying every agent product from shell environment variables; unknown or absent identity must never be guessed.
-  - Adding support for hosts other than Claude and Cursor in this change.
+  - Detecting, prompting for, or branching on the current agent host.
+  - Generating host-specific skill mirrors or rules such as .claude/skills, .cursor/skills, or .cursor/rules.
   - Removing user-authored project files or user-edited legacy harness scripts.
   - Changing the lifecycle, workboard schema, or the content of skills except path references needed for the new layout.
-- Chosen behavior: `init.sh --agent claude|cursor`; if omitted, prompt only on an interactive terminal; otherwise fail before project mutation and print valid options. An agent may choose the host and pass it explicitly. `$HOME/.harness-mini` is the default runtime location; `HARNESS_HOME` is an override for tests and nonstandard installations. The global runtime lock records executable/source files and version. Each project lock separately records its selected host and checksums for files projected into that project. `update --root <project>` refreshes the central runtime and then syncs that project's files through its recorded adapter; two lock scopes must not overwrite each other. The runtime command receives an explicit project root (with `HARNESS_ROOT` override); project routing examples use the user-level executable.
-- Layout: Claude gets `.claude/skills/` and `.claude/agents/`; Cursor gets `.cursor/skills/` and no generated `.cursor/rules/`. Project-level docs, plans, manifest, and trace remain project data. Cursor receives only skills unless an established native agent-file layout is verified separately.
+- Chosen behavior: init.sh has no agent argument and performs no host detection or prompt. Every skill installs recursively to .agents/skills/. Sub-agent role descriptions install as neutral project data under harness/agents/. The installer does not generate CLAUDE.md or .cursor/rules; shared instructions come from AGENTS.md. $HOME/.harness-mini is the default runtime location; HARNESS_HOME is an override for tests and nonstandard installations. The global runtime lock records executable/source files and version. Each project lock records checksums for the shared project layout; no host field is needed. update --root <project> refreshes the central runtime and syncs that project's common files; two lock scopes must not overwrite each other. The runtime command receives an explicit project root (with HARNESS_ROOT override).
+- Layout: source skills map to .agents/skills/; role descriptions map to harness/agents/. No generated host-specific skill or routing files are written. Project-level docs, plans, manifest, and trace remain project data.
 
 ## Acceptance criteria
-- [ ] `init.sh --agent claude|cursor` installs/refreshes executable runtime files under `$HOME/.harness-mini` (or `HARNESS_HOME` in tests); no fresh install creates project `bin/` for harness scripts.
-- [ ] Missing/unknown agent selection never mutates project files: TTY prompts with supported choices; non-TTY exits with usage naming `--agent claude|cursor`.
-- [ ] Claude skills/agents land under `.claude/skills` and `.claude/agents`; Cursor skills land under `.cursor/skills`; Cursor install does not generate `.cursor/rules`.
-- [ ] Each project's lock records host/layout and checksums for that project's managed files; update uses that project's selected adapter, preserves edited files as `.new`, and cannot redirect another project's update.
+- [ ] init.sh installs/refreshes executable runtime files under $HOME/.harness-mini (or HARNESS_HOME in tests); no fresh install creates project bin/ for harness scripts.
+- [ ] All skills and nested resources install under .agents/skills for every invocation, without host arguments, prompts, or detection.
+- [ ] Fresh installs do not generate .claude/skills, .cursor/skills, .cursor/rules, or CLAUDE.md; role descriptions are available under harness/agents.
+- [ ] Each project's lock records checksums for the common managed files and no host identity; update preserves edited files as .new and cannot redirect another project's update.
 - [ ] The global runtime lock and each project lock have distinct ownership; runtime self-update does not write runtime checksums into a project lock, and project update cannot overwrite another project's adapter state.
-- [ ] `doctor` and `status` work when invoked from the centralized runtime with an explicit project root; skill count/readiness checks use the selected host layout and report missing/invalid selection clearly.
+- [ ] doctor and status work when invoked from the centralized runtime with an explicit project root; skill count/readiness checks use .agents/skills and report missing skills clearly.
 - [ ] Upgrade migration removes only legacy project `bin/` files whose current checksum matches the old lock baseline; modified files are preserved and no longer treated as centrally managed executable files.
-- [ ] Regression coverage exercises Claude, Cursor, unknown host, two independent project roots, clean/edited legacy migration, update conflict behavior, doctor, and status; `bash tests/run.sh` passes.
-- [ ] README, getting-started docs, routing gates, walkthrough, manifest wording, and changelog no longer instruct users to run `bin/harness.sh` from project `bin/` or describe Cursor skills as rules.
+- [ ] Regression coverage exercises the common layout, two independent project roots, clean/edited legacy migration, update conflict behavior, doctor, and status; bash tests/run.sh passes.
+- [ ] README, getting-started docs, routing instructions, walkthrough, manifest wording, and changelog no longer instruct users to run bin/harness.sh from project bin/ or describe skills as host-specific.
 
 ## Issues
 1. **Central runtime and project-root contract** — Add a stable `$HOME/.harness-mini` runtime install/update path, a user-level runtime lock, and make commands operate on an explicit project root. No project `bin/` creation on fresh installs. Files: `init.sh`, `bin/harness.sh`, `bin/_harness_lib.sh`, tests. Depends-on: none. Done = failing tests prove centralized execution and project isolation; tests pass.
-2. **Explicit host selection and adapters** — Add `--agent claude|cursor`, interactive-only selection when omitted, and no-mutation failure for unknown/noninteractive ambiguity. Map Claude skills/agents and Cursor skills; remove Cursor rule generation. Files: `init.sh`, `bin/_harness_lib.sh`, tests. Depends-on: #1. Done = adapter layout and selection tests pass.
-3. **Separate lock scopes and update routing** — Keep runtime version/checksums in the user-level lock; record selected host/layout and project-file checksums in each project lock. Use matching target maps for project install/update and retain guarded conflict semantics. Files: `bin/_harness_lib.sh`, `bin/harness.sh`, tests. Depends-on: #2. Done = two different project roots update independently, runtime self-update does not alter project lock ownership, and edited files produce `.new`.
-4. **Centralized doctor/status behavior** — Resolve project root without relying on the executable's parent directory; use selected adapter for skills readiness, counts, manifest checks, and update-conflict discovery. Files: `bin/harness.sh`, `bin/_harness_lib.sh`, tests. Depends-on: #3. Done = doctor/status pass for both layouts and fail/warn usefully for missing metadata.
-5. **Safe migration from project `bin/`** — Read the prior lock, remove only checksum-clean harness-owned scripts, preserve modified files, and migrate lock/layout metadata idempotently. Files: `init.sh`, `bin/harness.sh`, `bin/_harness_lib.sh`, tests. Depends-on: #3. Done = clean legacy scripts removed, edited files retained, repeated migration is harmless.
-6. **Docs and release-facing cleanup** — Update host setup, command examples, routing gates, manifest and changelog to reflect centralized runtime and native skill paths; remove stale Cursor-rules advice. Files: `README.md`, `docs/*getting-started.md`, `docs/walkthrough.md`, `init.sh`, `CHANGELOG.md`, tests. Depends-on: #4, #5. Done = focused searches find no active instructions for project `bin/harness.sh` or `.cursor/rules` skills.
+2. **Shared skill installation path** — Install source skills at .agents/skills without host selection or detection; put role descriptions at harness/agents; remove host-specific skill/routing generation. Make doctor/status and the optional session runner recognize the shared skill directory. Files: init.sh, bin/_harness_lib.sh, bin/harness.sh, bin/session.sh, AGENTS.md, tests. Depends-on: #1. Done = tests prove common paths and no host-specific generated files.
+3. **Separate lock scopes and common-path update routing** — Keep runtime version/checksums in the user-level lock; track common project files in each project lock. Retain guarded conflict semantics. Files: bin/_harness_lib.sh, bin/harness.sh, tests. Depends-on: #2. Done = two roots update independently, runtime self-update does not alter project lock ownership, and edited files produce .new.
+4. **Diagnostic hardening** — Resolve project root consistently and report shared skills readiness, manifest health, and runtime/project versions without host metadata. Files: bin/harness.sh, bin/_harness_lib.sh, tests. Depends-on: #3. Done = doctor/status report the same common layout and handle missing skills clearly.
+5. **Safe migration from legacy project files** — Read the prior lock; remove only checksum-clean harness-owned bin scripts, skills under .claude/skills, and generated .cursor/rules; preserve modified files; migrate to the common layout idempotently. Files: init.sh, bin/harness.sh, bin/_harness_lib.sh, tests. Depends-on: #3. Done = clean legacy files removed, edited files retained, repeated migration harmless.
+6. **Docs and release-facing cleanup** — Update command examples, routing instructions, manifest, and changelog for centralized runtime and common .agents/skills; remove stale host-specific skill guidance. Files: README.md, docs/*getting-started.md, docs/walkthrough.md, init.sh, CHANGELOG.md, tests. Depends-on: #4, #5. Done = focused searches find no active project-bin commands or host-specific skills/rules instructions.
 
 ## Vertical slices (build order)
 1. Establish the central runtime + explicit project-root walking skeleton (#1).
-2. Install one agent adapter end-to-end and select it explicitly (#2).
-3. Persist host-specific managed-file mapping and update safely (#3).
-4. Route diagnostics through the same selected mapping (#4).
+2. Install the common .agents/skills layout end-to-end without host selection (#2).
+3. Persist common managed-file mapping and update safely (#3).
+4. Harden diagnostics around the common project layout (#4).
 5. Migrate legacy installs without deleting edited user files (#5).
 6. Update all user-facing docs and run integration evaluation (#6).
 
@@ -62,20 +62,21 @@ eval: L2
 - Separate evaluator checks all acceptance criteria after implementation.
 
 ## Now (resume here)
-- Begin issue-002 in a coding session: test explicit Claude/Cursor selection, unknown-agent no-mutation behavior, and native skill destination mapping before changing the installer.
+- Begin issue-003: test project/runtime lock separation during updates and preserve checksum-guarded `.new` conflicts.
 
 ## Next
-- Implement #1 through #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
+- Implement #3 through #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
 
 ## Session Context Handoff
-**Last Updated**: 2026-11-06 (Session #2)
-**Completed Work**: issue-001 passed L2. Runtime scripts install under $HOME/.harness-mini, project installs no longer create bin/, independent runtime/project locks are written, and centralized CLI root selection is covered. Full suite: 350 passed, 0 failed.
-**Current Blockers / Risks**: Runtime refresh is intentionally deferred to issue-003; explicit agent adapters and layout-specific diagnostics remain open.
+**Last Updated**: 2026-11-06 (Session #3)
+**Completed Work**: issue-001 and issue-002 passed L2. Runtime scripts install under $HOME/.harness-mini; fresh projects have no harness bin/; skills and nested assets use .agents/skills, role descriptions use harness/agents, and installer/doctor/status/session runner no longer require a host-specific layout. Full suite: 324 passed, 0 failed.
+**Current Blockers / Risks**: Runtime refresh and independent project update behavior are next in issue-003; legacy host-specific files remain for the migration issue.
 
 ## Decisions log
 - 2026-11-06: Advanced intake → PRD → issues → implement after confirming install scope, host selection behavior, and checksum-safe legacy migration; implementation order is captured in issues #1–#6.
 - 2026-11-06: Runtime lives at `$HOME/.harness-mini` (`HARNESS_HOME` test/installation override); global runtime version/checksums and project-specific host/file checksums use separate lock scopes.
-- 2026-11-06: Host selection is explicit (`--agent`); prompt only on TTY, and fail before mutation in noninteractive unknown cases.
-- 2026-11-06: Cursor uses `.cursor/skills` and receives no generated rules; only Claude receives `.claude/agents` until a Cursor-native agent-file layout is established.
+- 2026-11-06: User replaced the unstarted host-adapter issue with one shared .agents/skills layout; no host detection, prompt, or adapter argument.
+- 2026-11-06: All skills use .agents/skills; role descriptions are ordinary harness project data at harness/agents; no host-specific routing or skill files are generated.
 - 2026-11-06: Migration removes only legacy harness scripts verified unchanged by the old lock; user-edited files are retained.
 - 2026-11-06: issue-001 passed L2; runtime refresh remains in the later update slice so this slice only establishes the central install and root/lock boundaries.
+- 2026-11-06: issue-002 passed L2; the central session runner defaults project root to the invoking working directory, and shared skill discovery uses .agents/skills.

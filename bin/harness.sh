@@ -280,11 +280,10 @@ cmd_doctor() {
       || emit ok "harness-mini up to date ($(installed_version))"
   fi
 
-  # Installed projects keep skills under .claude/skills/. The source repo
-  # commits only skills/ — it does not carry a .claude/ mirror.
+  # Installed projects and the source repo share the .agents/skills path.
   local skill_root="" skill_label=""
-  if [ -d "$root/.claude/skills" ]; then
-    skill_root="$root/.claude/skills"; skill_label=".claude/skills"
+  if [ -d "$root/.agents/skills" ]; then
+    skill_root="$root/.agents/skills"; skill_label=".agents/skills"
   elif [ -d "$root/skills" ]; then
     skill_root="$root/skills"; skill_label="skills"
   fi
@@ -296,7 +295,7 @@ cmd_doctor() {
                           || emit fail "$skill_label has no <name>/SKILL.md"
     [ "$nflat" -gt 0 ] && emit warn "$nflat flat .md skill(s) in $skill_label (old shape)"
   else
-    emit fail ".claude/skills missing"
+    emit fail ".agents/skills missing"
   fi
 
   if [ -f "$root/harness/manifest.md" ]; then
@@ -342,15 +341,15 @@ cmd_doctor() {
   fi
 
   # #9 source<->mirror divergence (only meaningful when the source trees exist)
-  if [ -d "$root/skills" ] && [ -d "$root/.claude/skills" ]; then
-    diff -r "$root/skills" "$root/.claude/skills" >/dev/null 2>&1 \
-      && emit ok "skills source == .claude mirror" \
-      || emit warn "skills/ and .claude/skills/ diverge — regen: cp -R skills/. .claude/skills/"
+  if [ -d "$root/skills" ] && [ -d "$root/.agents/skills" ]; then
+    diff -r "$root/skills" "$root/.agents/skills" >/dev/null 2>&1 \
+      && emit ok "skills source == .agents mirror" \
+      || emit warn "skills/ and .agents/skills/ diverge — regen: cp -R skills/. .agents/skills/"
   fi
-  if [ -d "$root/agents" ] && [ -d "$root/.claude/agents" ]; then
-    diff -r "$root/agents" "$root/.claude/agents" >/dev/null 2>&1 \
-      && emit ok "agents source == .claude mirror" \
-      || emit warn "agents/ and .claude/agents/ diverge — regen: cp -R agents/. .claude/agents/"
+  if [ -d "$root/agents" ] && [ -d "$root/harness/agents" ]; then
+    diff -r "$root/agents" "$root/harness/agents" >/dev/null 2>&1 \
+      && emit ok "role descriptions source == harness mirror" \
+      || emit warn "agents/ and harness/agents/ diverge — regen: cp -R agents/. harness/agents/"
   fi
 
   # eval-gate (anti-self-praise teeth): an active plan that reached `done` must
@@ -518,7 +517,7 @@ cmd_status() {
 
   # readiness verdict — one line; blocked > warning > ready (grill #1 → A)
   local level=ready next="" nskills done_plan="" r
-  nskills=$(find "$root/.claude/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+  nskills=$(find "$root/.agents/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
   [ -z "$nskills" ] && nskills=0
   if [ "$nskills" -eq 0 ] && [ -d "$root/skills" ]; then
     nskills=$(find "$root/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')

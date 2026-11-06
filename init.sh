@@ -9,9 +9,9 @@
 #   existing project   -> recon graft: seed a RECON plan that maps the codebase
 #                         into ARCHITECTURE.md via the Explorer; no founder funnel.
 #
-# Install layout (host-specific project assets; shared runtime is user-level):
-#   skills/  -> .claude/skills/
-#   agents/  -> .claude/agents/
+# Install layout (shared skill path; no agent host selection):
+#   skills/  -> .agents/skills/
+#   agents/  -> harness/agents/
 #   bin/     -> $HARNESS_HOME/bin/ (not into projects)
 #   docs/ AGENTS.md ARCHITECTURE.md -> copied as-is
 #   harness/manifest.md            -> pointer list of those files
@@ -45,72 +45,6 @@ mkdir -p "$DEST" || { echo "init.sh: cannot create target $DEST" >&2; exit 1; }
 DEST="$(cd "$DEST" && pwd)"
 
 say() { printf '  %s\n' "$1"; }
-
-# Routing-gate v3 text (see "routing gate" below). Marker-guarded with
-# HARNESS_ROUTING_GATE_BEGIN/END; the markers are version-stable, the CONTENT
-# is the version. An install seeded with an older gate — v1
-# (harness-mini:start/end markers) or a v2 block (markers present but the
-# path-aware content absent) — has it REMOVED and the v3 gate appended: there
-# is ever exactly one gate.
-# Status-first AND path-aware: a cold session runs `bin/harness.sh status`,
-# reads its `path:` line, and opens the matching session skill. Only the
-# `path: coding` branch picks a `passes: false` slice — planning boards are
-# never pushed into product code.
-GATE_BEGIN='<!-- HARNESS_ROUTING_GATE_BEGIN -->'
-GATE_END='<!-- HARNESS_ROUTING_GATE_END -->'
-V1_BEGIN='<!-- harness-mini:start -->'
-V1_END='<!-- harness-mini:end -->'
-
-emit_claude_gate() {
-  printf '%s\n' "$GATE_BEGIN"
-  cat <<'EOF'
-[CRITICAL AGENT INSTRUCTION]
-You are inside a project managed by harness-mini.
-
-1. Do NOT modify code directly before starting any task. You **MUST** first run the command: `bin/harness.sh status`
-2. Read the `path:` line it prints, then open the matching session skill and follow it:
-   - `path: init` → open `session-init` — plan-layer work only (founder funnel, PRD, issues, JSON twin). Do NOT edit product code on this path.
-   - `path: coding` → open `session-coding` — complete its **Getting Bearings** first turn before any product edit; then implement exactly ONE slice: the highest-priority slice with `passes: false` (prefer the `next:` id from status).
-3. Follow the principle of progressive exposure strictly: only read code relevant to the current slice. Complete only one Slice per Session.
-4. Do NOT alter or delete the test conditions defined in `steps` inside JSON files.
-
-Full map & lifecycle: AGENTS.md · Workboard: `bin/harness.sh status` · 40% rule: `docs/smart-dumb.md`
-EOF
-  printf '%s\n' "$GATE_END"
-}
-emit_cursor_rule() {
-  cat <<'EOF'
----
-description: harness-mini routing gate — status-first, path-aware, prefer the harness lifecycle and skills
-alwaysApply: true
----
-
-This project runs on **harness-mini**. On a fresh session, first run
-`bin/harness.sh status`, read its `path:` line, and open the matching skill:
-`session-init` (path: init — plan work only, no product code) or
-`session-coding` (path: coding — Getting Bearings first, then one
-`passes: false` slice from the JSON twins in `docs/exec-plans/active/`).
-For non-trivial work — a feature, a multi-step or ambiguous change, anything
-cross-cutting — route it through the `stage-viewer` skill first and prefer
-harness-mini's lifecycle, skills, and sub-agents (read
-`.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other installed
-plugins. When a harness skill and another tool both fit, the harness skill
-wins. Trivial one-line fixes may skip the ceremony (quick mode).
-
-Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
-EOF
-}
-
-# skill_description — print the `description:` value from a SKILL.md's frontmatter
-# (the YAML block between the first two `---`). Empty if absent. Used to label the
-# generated Cursor rules so Cursor's agent can decide when to pull each skill.
-skill_description() { # <skill_md>
-  awk '
-    NR==1 && $0=="---" { fm=1; next }
-    fm && $0=="---"    { exit }
-    fm && /^description:/ { sub(/^description:[ \t]*/, ""); print; exit }
-  ' "$1"
-}
 
 # --- detect project type -----------------------------------------------------
 detect_mode() {
@@ -166,14 +100,14 @@ install_runtime() {
 install_runtime || { echo "init.sh: cannot install runtime at $HARNESS_HOME" >&2; exit 1; }
 
 # --- scaffold standard directories ------------------------------------------
-mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" \
+mkdir -p "$DEST/.agents/skills" "$DEST/harness/agents" \
          "$DEST/docs/exec-plans/active" "$DEST/docs/exec-plans/completed" \
          "$DEST/docs/references" "$DEST/harness" \
          "$DEST/.trace/checkpoints" "$DEST/.trace/runtime"
 
-# --- install assets (native .claude/ layout) --------------------------------
-copy_tree "$SRC/skills" "$DEST/.claude/skills"
-copy_tree "$SRC/agents" "$DEST/.claude/agents"
+# --- install shared skills and neutral role descriptions ---------------------
+copy_tree "$SRC/skills" "$DEST/.agents/skills"
+copy_tree "$SRC/agents" "$DEST/harness/agents"
 # docs/ rides along EXCEPT exec-plans — that is user space; the source repo's
 # own active plans must never seed a fresh install.
 ( cd "$SRC/docs" 2>/dev/null && find . -type f -not -path './exec-plans/*' ) \
@@ -186,103 +120,21 @@ if [ ! -f "$DEST/harness/manifest.md" ]; then
   {
     echo "# harness-mini manifest"
     echo
-    echo "Skills and agents are files under .claude/skills/ and .claude/agents/."
+    echo "Skills are under .agents/skills/; role descriptions are under harness/agents/."
     echo "Any coding agent that can read the repo should open the paths below."
     echo
-    echo "## Skills (.claude/skills/)"
-    ( cd "$DEST/.claude/skills" 2>/dev/null && {
+    echo "## Skills (.agents/skills/)"
+    ( cd "$DEST/.agents/skills" 2>/dev/null && {
         for d in */; do [ -f "${d}SKILL.md" ] && printf -- '- %sSKILL.md\n' "$d"; done
         for m in *.md; do [ -f "$m" ] && printf -- '- %s\n' "$m"; done
       } )
     echo
-    echo "## Agents (.claude/agents/)"
-    ( cd "$DEST/.claude/agents" 2>/dev/null && ls *.md 2>/dev/null ) | sed 's/^/- /'
+    echo "## Role descriptions (harness/agents/)"
+    ( cd "$DEST/harness/agents" 2>/dev/null && ls *.md 2>/dev/null ) | sed 's/^/- /'
     echo
     echo "## Map: AGENTS.md   Architecture: ARCHITECTURE.md"
   } > "$DEST/harness/manifest.md"
   say "add   harness/manifest.md"
-fi
-
-# --- routing gate: seed each CLI's native always-on entry file ---------------
-# Additive + idempotent + upgradeable. CLAUDE.md is user space: only the
-# marker-guarded gate block is ever written. Older gates are replaced: a v1
-# block (harness-mini:start/end) or a v2 block (markers present but no
-# `session-coding` — i.e. path-blind) is stripped and the v3 gate appended
-# (exactly one gate). .cursor/rules/harness-mini.mdc is harness-owned: created
-# if absent; regenerated whenever it predates the path-aware wording.
-# strip_block <begin_marker> <end_marker> <file> — drop marker-to-marker lines.
-strip_block() {
-  awk -v b="$1" -v e="$2" '
-    $0 == b { skip=1 }
-    !skip   { print }
-    $0 == e { skip=0 }
-  ' "$3"
-}
-# swap_gate <from-label> — strip any older gate shape, append v3, keep one gate.
-swap_gate() {
-  if strip_block "$V1_BEGIN" "$V1_END" "$DEST/CLAUDE.md" \
-     | strip_block "$GATE_BEGIN" "$GATE_END" /dev/stdin > "$DEST/CLAUDE.md.gate.tmp"; then
-    mv "$DEST/CLAUDE.md.gate.tmp" "$DEST/CLAUDE.md"
-    { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
-    say "upgr  CLAUDE.md routing gate $1 -> v3 (old stripped, v3 appended)"
-  else
-    rm -f "$DEST/CLAUDE.md.gate.tmp"
-    say "warn  CLAUDE.md gate strip failed — left untouched"
-  fi
-}
-if [ ! -f "$DEST/CLAUDE.md" ]; then
-  emit_claude_gate > "$DEST/CLAUDE.md"
-  say "add   CLAUDE.md (routing gate v3)"
-elif grep -qF "$GATE_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
-  if grep -q 'session-coding' "$DEST/CLAUDE.md" 2>/dev/null; then
-    say "skip  CLAUDE.md routing gate (v3 present)"
-  else
-    swap_gate v2
-  fi
-elif grep -qF "$V1_BEGIN" "$DEST/CLAUDE.md" 2>/dev/null; then
-  swap_gate v1
-else
-  { printf '\n'; emit_claude_gate; } >> "$DEST/CLAUDE.md"
-  say "add   CLAUDE.md routing gate v3 (appended)"
-fi
-if [ ! -f "$DEST/.cursor/rules/harness-mini.mdc" ]; then
-  mkdir -p "$DEST/.cursor/rules"
-  emit_cursor_rule > "$DEST/.cursor/rules/harness-mini.mdc"
-  say "add   .cursor/rules/harness-mini.mdc"
-elif grep -q 'session-coding' "$DEST/.cursor/rules/harness-mini.mdc" 2>/dev/null; then
-  say "skip  .cursor/rules/harness-mini.mdc (path-aware)"
-else
-  # harness-owned file still carrying pre-v3 (path-blind) wording -> regenerate
-  emit_cursor_rule > "$DEST/.cursor/rules/harness-mini.mdc"
-  say "upgr  .cursor/rules/harness-mini.mdc (v3, path-aware)"
-fi
-
-# --- Cursor skill mirror: one agent-requestable rule per skill (#23) ---------
-# Cursor does not read .claude/skills/ on its own. Emit a
-# thin .cursor/rules/<name>.mdc per skill — `alwaysApply: false` + the skill's
-# `description:` — so Cursor's agent can pull a skill on demand by its description
-# (progressive-disclosure parity). Each rule points at the canonical SKILL.md
-# rather than copying its body: single source of truth, no drift. Additive +
-# idempotent + harness-owned like the gate: created only if absent, never in the
-# checksum-managed set, so a user's edits and `update` are both safe.
-if [ -d "$DEST/.claude/skills" ]; then
-  mkdir -p "$DEST/.cursor/rules"
-  for skdir in "$DEST/.claude/skills"/*/; do
-    [ -f "${skdir}SKILL.md" ] || continue
-    name="$(basename "$skdir")"
-    rule="$DEST/.cursor/rules/$name.mdc"
-    if [ -e "$rule" ]; then say "skip  .cursor/rules/$name.mdc (exists)"; continue; fi
-    desc="$(skill_description "${skdir}SKILL.md")"
-    [ -n "$desc" ] || desc="harness-mini skill: $name"
-    {
-      printf -- '---\n'
-      printf 'description: %s\n' "$desc"
-      printf 'alwaysApply: false\n'
-      printf -- '---\n\n'
-      printf 'harness-mini skill **%s**. Read `.claude/skills/%s/SKILL.md` and follow it for this task.\n' "$name" "$name"
-    } > "$rule"
-    say "add   .cursor/rules/$name.mdc"
-  done
 fi
 
 # --- version lockfile (additive: only on first install) ----------------------

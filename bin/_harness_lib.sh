@@ -16,20 +16,18 @@ cksum_file() {
 }
 
 # emit_managed_pairs <src_root> — print project assets as
-# "<src_abs><TAB><target_relpath>". Executables live in the user runtime and
-# are recorded by write_runtime_lock, never in a project's managed set.
+# "<src_abs><TAB><target_relpath>". Skills and roles use agent-neutral project
+# paths; executables live in the user runtime.
 emit_managed_pairs() {
   local s="$1" f rel tab; tab="$(printf '\t')"
-  # Skills are folders (<name>/SKILL.md plus optional scripts/ references/ …), so
-  # recurse and mirror the whole tree into .claude/skills/. (Flat <name>.md is
-  # still handled — it just maps to .claude/skills/<name>.md.)
+  # Recurse through each skill so nested resources share the same managed path.
   if [ -d "$s/skills" ]; then
     find "$s/skills" -type f 2>/dev/null | LC_ALL=C sort | while IFS= read -r f; do
       rel="${f#"$s"/skills/}"
-      printf '%s%s.claude/skills/%s\n' "$f" "$tab" "$rel"
+      printf '%s%s.agents/skills/%s\n' "$f" "$tab" "$rel"
     done
   fi
-  for f in "$s"/agents/*.md;            do [ -e "$f" ] && printf '%s%s.claude/agents/%s\n'  "$f" "$tab" "$(basename "$f")"; done
+  for f in "$s"/agents/*.md;            do [ -e "$f" ] && printf '%s%sharness/agents/%s\n' "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/docs/references/*;      do [ -e "$f" ] && printf '%s%sdocs/references/%s\n' "$f" "$tab" "$(basename "$f")"; done
   for f in principles.md smart-dumb.md; do [ -e "$s/docs/$f" ] && printf '%s%sdocs/%s\n'    "$s/docs/$f" "$tab" "$f"; done
   for f in AGENTS.md ARCHITECTURE.md;   do [ -e "$s/$f" ]       && printf '%s%s%s\n'         "$s/$f" "$tab" "$f"; done

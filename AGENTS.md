@@ -101,8 +101,8 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 | Lifecycle FSM diagram + layer stack | `ARCHITECTURE.md#lifecycle-at-a-glance` |
 | Active work + decision logs | `docs/exec-plans/active/` |
 | Source-blog distillates | `docs/references/*-llms.txt` |
-| Skills (how to do a task) | `skills/<name>/SKILL.md` here; `.claude/skills/<name>/SKILL.md` after install |
-| Sub-agents (who does the work) | `agents/<name>.md` here; `.claude/agents/<name>.md` after install |
+| Skills (how to do a task) | `skills/<name>/SKILL.md` here; `.agents/skills/<name>/SKILL.md` after install |
+| Sub-agents (who does the work) | `agents/<name>.md` here; `harness/agents/<name>.md` after install |
 | Committed checkpoints (institutional memory) | `.trace/checkpoints/` |
 | Committed evaluation verdicts (the `done`-gate) | `.trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
