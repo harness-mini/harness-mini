@@ -15,11 +15,9 @@ cksum_file() {
   fi
 }
 
-# emit_managed_pairs <src_root> — print "<src_abs><TAB><target_relpath>" for
-# every file harness-mini manages. The source layout (skills/, agents/) maps to
-# the installed layout (.claude/skills/, .claude/agents/). This is THE managed
-# set: user space (docs/exec-plans/, .trace/, project code) is deliberately
-# absent, so update/lock never touch it.
+# emit_managed_pairs <src_root> — print project assets as
+# "<src_abs><TAB><target_relpath>". Executables live in the user runtime and
+# are recorded by write_runtime_lock, never in a project's managed set.
 emit_managed_pairs() {
   local s="$1" f rel tab; tab="$(printf '\t')"
   # Skills are folders (<name>/SKILL.md plus optional scripts/ references/ …), so
@@ -32,10 +30,23 @@ emit_managed_pairs() {
     done
   fi
   for f in "$s"/agents/*.md;            do [ -e "$f" ] && printf '%s%s.claude/agents/%s\n'  "$f" "$tab" "$(basename "$f")"; done
-  for f in "$s"/bin/*;                  do [ -e "$f" ] && printf '%s%sbin/%s\n'             "$f" "$tab" "$(basename "$f")"; done
   for f in "$s"/docs/references/*;      do [ -e "$f" ] && printf '%s%sdocs/references/%s\n' "$f" "$tab" "$(basename "$f")"; done
   for f in principles.md smart-dumb.md; do [ -e "$s/docs/$f" ] && printf '%s%sdocs/%s\n'    "$s/docs/$f" "$tab" "$f"; done
   for f in AGENTS.md ARCHITECTURE.md;   do [ -e "$s/$f" ]       && printf '%s%s%s\n'         "$s/$f" "$tab" "$f"; done
+}
+
+# write_runtime_lock <src_root> <runtime_root> <version> — checksum the
+# centralized executable set independently from each project's file lock.
+write_runtime_lock() {
+  local src="$1" runtime="$2" ver="$3" f out="$2/harness/runtime.lock"
+  mkdir -p "$runtime/harness" || return 1
+  {
+    printf 'version: %s\n' "$ver"
+    for f in "$src"/bin/*; do
+      [ -f "$f" ] || continue
+      printf '%s  bin/%s\n' "$(cksum_file "$f")" "$(basename "$f")"
+    done
+  } > "$out"
 }
 
 # write_lock <src_root> <dest_root> <version> — (re)write dest/harness/harness.lock

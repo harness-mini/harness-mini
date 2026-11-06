@@ -62,15 +62,15 @@ eval: L2
 - Separate evaluator checks all acceptance criteria after implementation.
 
 ## Now (resume here)
-- Begin slice #1 in a coding session: write regression tests for runtime placement and explicit project-root operation before changing implementation.
+- Begin issue-002 in a coding session: test explicit Claude/Cursor selection, unknown-agent no-mutation behavior, and native skill destination mapping before changing the installer.
 
 ## Next
 - Implement #1 through #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
 
 ## Session Context Handoff
-**Last Updated**: 2026-11-06 (Session #1)
-**Completed Work**: Feasibility and impact review completed; six implementation issues and their dependencies are recorded. No product code changed.
-**Current Blockers / Risks**: Runtime install/update under `$HOME/.harness-mini` needs careful separation from project locks; legacy edited scripts must remain untouched. Implementation begins only after the plan is coding-ready.
+**Last Updated**: 2026-11-06 (Session #2)
+**Completed Work**: issue-001 passed L2. Runtime scripts install under $HOME/.harness-mini, project installs no longer create bin/, independent runtime/project locks are written, and centralized CLI root selection is covered. Full suite: 350 passed, 0 failed.
+**Current Blockers / Risks**: Runtime refresh is intentionally deferred to issue-003; explicit agent adapters and layout-specific diagnostics remain open.
 
 ## Decisions log
 - 2026-11-06: Advanced intake → PRD → issues → implement after confirming install scope, host selection behavior, and checksum-safe legacy migration; implementation order is captured in issues #1–#6.
@@ -78,3 +78,4 @@ eval: L2
 - 2026-11-06: Host selection is explicit (`--agent`); prompt only on TTY, and fail before mutation in noninteractive unknown cases.
 - 2026-11-06: Cursor uses `.cursor/skills` and receives no generated rules; only Claude receives `.claude/agents` until a Cursor-native agent-file layout is established.
 - 2026-11-06: Migration removes only legacy harness scripts verified unchanged by the old lock; user-edited files are retained.
+- 2026-11-06: issue-001 passed L2; runtime refresh remains in the later update slice so this slice only establishes the central install and root/lock boundaries.

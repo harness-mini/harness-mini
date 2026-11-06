@@ -9,14 +9,16 @@
 #   existing project   -> recon graft: seed a RECON plan that maps the codebase
 #                         into ARCHITECTURE.md via the Explorer; no founder funnel.
 #
-# Install layout (on-disk paths stay .claude/; any host reads the files):
+# Install layout (host-specific project assets; shared runtime is user-level):
 #   skills/  -> .claude/skills/
 #   agents/  -> .claude/agents/
-#   bin/ docs/ AGENTS.md ARCHITECTURE.md  -> copied as-is
+#   bin/     -> $HARNESS_HOME/bin/ (not into projects)
+#   docs/ AGENTS.md ARCHITECTURE.md -> copied as-is
 #   harness/manifest.md            -> pointer list of those files
 #
 # Usage:  init.sh [target_dir] [--mode new|existing]
 # Env:    HARNESS_SRC   source root (default: directory containing this script)
+#         HARNESS_HOME  runtime root (default: $HOME/.harness-mini)
 #         HARNESS_MODE  force "new" or "existing" (default: auto-detect)
 set -u
 
@@ -24,6 +26,7 @@ SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC="${HARNESS_SRC:-$SELF_DIR}"
 DEST="$PWD"
 MODE="${HARNESS_MODE:-}"
+HARNESS_HOME="${HARNESS_HOME:-${HOME:?HOME must be set}/.harness-mini}"
 
 # shared helpers (managed-set + lockfile); sourced from this installer's own bin/
 # so it works even when HARNESS_SRC points at a stripped-down asset tree.
@@ -136,8 +139,34 @@ copy_tree() { # <src_dir> <dest_dir>  — additive, recursive
   done
 }
 
+install_runtime() {
+  local runtime_lock="$HARNESS_HOME/harness/runtime.lock" version f target
+  version="$(tr -d ' \t\r\n' < "$SRC/VERSION" 2>/dev/null)"
+  [ -n "$version" ] || version=unknown
+  if [ -f "$runtime_lock" ]; then
+    say "skip  user runtime (already initialized at $HARNESS_HOME)"
+    return 0
+  fi
+  mkdir -p "$HARNESS_HOME/bin" || return 1
+  for f in "$SRC"/bin/*; do
+    [ -f "$f" ] || continue
+    target="$HARNESS_HOME/bin/$(basename "$f")"
+    if [ ! -e "$target" ]; then
+      cp "$f" "$target" || return 1
+      chmod +x "$target" 2>/dev/null || true
+    fi
+  done
+  if [ -f "$SRC/VERSION" ] && [ ! -e "$HARNESS_HOME/VERSION" ]; then
+    cp "$SRC/VERSION" "$HARNESS_HOME/VERSION" || return 1
+  fi
+  write_runtime_lock "$SRC" "$HARNESS_HOME" "$version" || return 1
+  say "add   user runtime ($HARNESS_HOME, v$version)"
+}
+
+install_runtime || { echo "init.sh: cannot install runtime at $HARNESS_HOME" >&2; exit 1; }
+
 # --- scaffold standard directories ------------------------------------------
-mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/bin" \
+mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" \
          "$DEST/docs/exec-plans/active" "$DEST/docs/exec-plans/completed" \
          "$DEST/docs/references" "$DEST/harness" \
          "$DEST/.trace/checkpoints" "$DEST/.trace/runtime"
@@ -145,14 +174,12 @@ mkdir -p "$DEST/.claude/skills" "$DEST/.claude/agents" "$DEST/bin" \
 # --- install assets (native .claude/ layout) --------------------------------
 copy_tree "$SRC/skills" "$DEST/.claude/skills"
 copy_tree "$SRC/agents" "$DEST/.claude/agents"
-copy_tree "$SRC/bin"    "$DEST/bin"
 # docs/ rides along EXCEPT exec-plans — that is user space; the source repo's
 # own active plans must never seed a fresh install.
 ( cd "$SRC/docs" 2>/dev/null && find . -type f -not -path './exec-plans/*' ) \
   | while read -r rel; do copy_file "$SRC/docs/${rel#./}" "$DEST/docs/${rel#./}"; done
 copy_file "$SRC/AGENTS.md"       "$DEST/AGENTS.md"
 copy_file "$SRC/ARCHITECTURE.md" "$DEST/ARCHITECTURE.md"
-chmod +x "$DEST"/bin/*.sh 2>/dev/null || true
 
 # --- manifest: pointer list of the installed skill and agent files ----------
 if [ ! -f "$DEST/harness/manifest.md" ]; then

@@ -9,16 +9,17 @@
 #   harness.sh release <x.y.z> [opts]  bump + tag + GitHub release (source repo only)
 #
 # Env:
-#   HARNESS_ROOT   the installed project root (default: parent of bin/)
+#   HARNESS_ROOT   project root (default: current directory; override with --root)
 #   HARNESS_REPO   owner/repo for latest-version checks (default harness-mini/harness-mini)
 #   HARNESS_NO_NET if set, skip all network (offline; tests)
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
+RUNTIME_ROOT="$(cd "$HERE/.." && pwd)"
 # shellcheck source=bin/_harness_lib.sh
 . "$HERE/_harness_lib.sh"
 
-HARNESS_ROOT="${HARNESS_ROOT:-$(cd "$HERE/.." && pwd)}"
+HARNESS_ROOT="${HARNESS_ROOT:-$PWD}"
 LOCK="$HARNESS_ROOT/harness/harness.lock"
 
 say()  { printf '  %s\n' "$1"; }
@@ -28,6 +29,8 @@ die()  { echo "harness.sh: $1" >&2; exit "${2:-1}"; }
 installed_version() {
   if [ -f "$LOCK" ]; then
     lock_version "$LOCK"
+  elif [ -f "$RUNTIME_ROOT/VERSION" ]; then
+    tr -d ' \t\r\n' < "$RUNTIME_ROOT/VERSION"
   elif [ -f "$HARNESS_ROOT/VERSION" ]; then
     tr -d ' \t\r\n' < "$HARNESS_ROOT/VERSION"
   else
@@ -626,9 +629,9 @@ cmd_report() {
 
 usage() {
   cat >&2 <<'EOF'
-usage: harness.sh <command>
+usage: harness.sh [--root DIR] <command> [--root DIR]
   version                 show installed version (+ latest, best-effort)
-  update [--src DIR]      pull a newer version into this project (checksum-guarded)
+  update [--src DIR]      sync this project's managed assets (checksum-guarded)
   doctor                  check install health (ok/warn/fail; exit 1 on a fail)
   status                  show work state (plans, workboard, session path, checkpoints)
   report [run]            aggregate .trace metrics (stages, context, evals, checkpoints)
@@ -637,7 +640,24 @@ EOF
 }
 
 # --- dispatch ----------------------------------------------------------------
-[ $# -ge 1 ] || { usage; exit 64; }
+args=()
+root_override=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --root)
+      [ "$#" -ge 2 ] && [ -n "$2" ] || die "--root needs a directory" 64
+      root_override="$2"
+      shift 2
+      ;;
+    *) args+=("$1"); shift ;;
+  esac
+done
+[ "${#args[@]}" -gt 0 ] || { usage; exit 64; }
+set -- "${args[@]}"
+if [ -n "$root_override" ]; then HARNESS_ROOT="$root_override"; fi
+[ -d "$HARNESS_ROOT" ] || die "project root not found: $HARNESS_ROOT" 64
+HARNESS_ROOT="$(cd "$HARNESS_ROOT" && pwd)"
+LOCK="$HARNESS_ROOT/harness/harness.lock"
 sub="$1"; shift
 case "$sub" in
   version) cmd_version "$@" ;;

@@ -13,6 +13,9 @@ FAIL=0
 # inject a latest version via HARNESS_LATEST (which short-circuits before the
 # network path), so this stays in force even for them.
 export HARNESS_NO_NET=1
+unset HARNESS_ROOT
+HARNESS_HOME="$(mktemp -d)"
+export HARNESS_HOME
 
 # --- assertion helpers -------------------------------------------------------
 assert_eq() { # <expected> <actual> <msg>
@@ -119,6 +122,37 @@ FLAG="$(mktemp)"
 code=0; HARNESS_HUMAN_FLAG="$FLAG" bash "$BIN/ralph.sh" --max 9 --until "false" --cmd "true" >/dev/null 2>&1 || code=$?
 assert_exit 4 "$code" "ralph exits 4 when human-judgment flag is set"
 rm -f "$FLAG"
+
+# =============================================================================
+echo "central runtime — install executables outside projects and select project root"
+RUNTIME_PROJECT="$(mktemp -d)"
+HARNESS_SRC="$ROOT" bash "$ROOT/init.sh" "$RUNTIME_PROJECT" >/dev/null 2>&1
+assert_eq "true" "$([ -x "$HARNESS_HOME/bin/harness.sh" ] && echo true || echo false)" "runtime harness.sh installs under HARNESS_HOME"
+assert_eq "false" "$([ -e "$RUNTIME_PROJECT/bin" ] && echo true || echo false)" "fresh project install creates no bin directory"
+assert_eq "true" "$([ -f "$HARNESS_HOME/harness/runtime.lock" ] && echo true || echo false)" "runtime gets its own lock"
+runtime_lock="$(cat "$HARNESS_HOME/harness/runtime.lock" 2>/dev/null)"
+project_lock="$(cat "$RUNTIME_PROJECT/harness/harness.lock" 2>/dev/null)"
+assert_contains "$runtime_lock" "bin/harness.sh" "runtime lock tracks the centralized executable"
+assert_contains "$runtime_lock" "version:" "runtime lock records the runtime version"
+runtime_sha="$(printf '%s\n' "$runtime_lock" | awk '$2 == "bin/harness.sh" { print $1; exit }')"
+source_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$ROOT/bin/harness.sh")"
+installed_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$HARNESS_HOME/bin/harness.sh")"
+assert_eq "$source_sha" "$runtime_sha" "runtime lock records the source executable checksum"
+assert_eq "$installed_sha" "$runtime_sha" "runtime lock checksum matches the installed executable"
+assert_eq "false" "$(printf '%s' "$project_lock" | grep -q 'bin/' && echo true || echo false)" "project lock excludes centralized executables"
+
+# The same central executable must use the requested project's workboard, not
+# its own installation directory or another project's state.
+mkdir -p "$RUNTIME_PROJECT/docs/exec-plans/active"
+printf '%s\n' '---' 'plan: project-a' 'stage: implement' '---' > "$RUNTIME_PROJECT/docs/exec-plans/active/project-a.md"
+printf '%s\n' '{' '  "plan_id": "project-a",' '  "status": "in_progress",' '  "current_slice_id": "slice-a",' '  "slices": [{"id":"slice-a","passes":false}]' '}' > "$RUNTIME_PROJECT/docs/exec-plans/active/project-a.json"
+PROJECT_B="$(mktemp -d)"
+out="$(bash "$HARNESS_HOME/bin/harness.sh" --root "$RUNTIME_PROJECT" status 2>&1)"
+assert_contains "$out" "project-a" "central status reads the explicitly selected project"
+out="$(bash "$HARNESS_HOME/bin/harness.sh" --root "$PROJECT_B" status 2>&1)"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'project-a')" "central status does not leak another project's workboard"
+assert_contains "$out" "path_reason: empty board" "central status uses the second project's root"
+rm -rf "$PROJECT_B" "$RUNTIME_PROJECT"
 
 # =============================================================================
 echo "init.sh — additive, idempotent installer with new/existing asymmetry"
@@ -422,10 +456,7 @@ assert_contains "$(cat "$UDEST/harness/harness.lock")" "version: 0.2.0" "update 
 rm -rf "$UOLD" "$UDEST" "$UNEW"
 
 # =============================================================================
-echo "harness.sh update — replacing the RUNNING script is deferred to exit (#62)"
-# bash reads scripts lazily: overwriting the executing harness.sh mid-run makes
-# the interpreter resume the NEW file at the OLD byte offset (crash). Fix:
-# the self-copy is the final action, followed by an immediate exit 0.
+echo "harness.sh update — project updates do not install centralized executables"
 SOOLD="$(mktemp -d)"; SONEW="$(mktemp -d)"
 for d in "$SOOLD" "$SONEW"; do
   mkdir -p "$d/bin" "$d/skills" "$d/agents" "$d/docs"
@@ -447,14 +478,11 @@ cp "$ROOT/bin/_harness_lib.sh" "$SONEW/bin/_harness_lib.sh"
 printf '0.2.0\n' > "$SONEW/VERSION"
 SODST="$(mktemp -d)"
 HARNESS_SRC="$SOOLD" bash "$ROOT/init.sh" "$SODST" >/dev/null 2>&1
-upout="$(HARNESS_ROOT="$SODST" HARNESS_NO_NET=1 bash "$SODST/bin/harness.sh" update --src "$SONEW" 2>&1)"; code=$?
-assert_exit 0 "$code" "update over a changed bin/harness.sh exits 0 (self-replace deferred)"
-assert_eq "0" "$(printf '%s' "$upout" | grep -ciE 'unbound|syntax error|unexpected')" "no desync diagnostic while swapping the running script"
-assert_contains "$upout" "update bin/harness.sh" "log still reports the harness.sh update"
-assert_eq "$(cat "$SONEW/bin/harness.sh")" "$(cat "$SODST/bin/harness.sh")" "installed harness.sh matches the new upstream"
+upout="$(HARNESS_NO_NET=1 bash "$HARNESS_HOME/bin/harness.sh" --root "$SODST" update --src "$SONEW" 2>&1)"; code=$?
+assert_exit 0 "$code" "project update accepts an explicit project root"
+assert_eq "false" "$([ -e "$SODST/bin/harness.sh" ] && echo true || echo false)" "project update does not install a harness executable"
+assert_eq "false" "$(printf '%s' "$upout" | grep -q 'update bin/harness.sh' && echo true || echo false)" "project update skips runtime executables"
 assert_contains "$(cat "$SODST/harness/harness.lock")" "version: 0.2.0" "lock advanced by the self-updating run"
-code=0; HARNESS_ROOT="$SODST" HARNESS_NO_NET=1 bash "$SODST/bin/harness.sh" version >/dev/null 2>&1 || code=$?
-assert_exit 0 "$code" "replaced harness.sh still executes"
 rm -rf "$SOOLD" "$SONEW" "$SODST"
 
 # =============================================================================
@@ -1190,6 +1218,7 @@ HARNESS_TEST_SCRIPT="/tmp/no_such_script_xyz.sh" HARNESS_TRACE_DIR="$TMPH/trace3
 assert_exit 0 "$?" "ctx-hook: missing test script still exits 0 (best-effort)"
 
 rm -rf "$TMPH"
+rm -rf "$HARNESS_HOME"
 
 # =============================================================================
 echo ""
