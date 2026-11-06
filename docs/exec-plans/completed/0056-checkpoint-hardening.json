@@ -1,0 +1,73 @@
+{
+  "plan_id": "0056-checkpoint-hardening",
+  "title": "Checkpoint Hardening — structured footprint, auto last-green, guard",
+  "status": "done",
+  "current_slice_id": "slice-005",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "harness-tooling",
+      "description": "bin/checkpoint-lint.sh — validate Footprint notation",
+      "steps": [
+        "checkpoint-lint.sh exits 0 on a clean checkpoint with no Footprint entries",
+        "checkpoint-lint.sh exits 0 when Footprint entry is 'none'",
+        "checkpoint-lint.sh exits 0 for a valid file:start-end::STATUS entry",
+        "checkpoint-lint.sh exits 1 and prints a message for a prose Footprint entry",
+        "checkpoint-lint.sh exits 1 for a missing :: delimiter",
+        "checkpoint-lint.sh exits 1 for an unknown STATUS token",
+        "checkpoint-lint.sh accepts all three status tokens: WIP, DONE, REVIEW"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-002",
+      "category": "harness-tooling",
+      "description": "bin/checkpoint-snapshot.sh — deterministic line-range snapshot with boundary defense",
+      "steps": [
+        "checkpoint-snapshot.sh exits 1 with a usage error when no argument is given",
+        "checkpoint-snapshot.sh exits 1 with 'file not found' for a missing file",
+        "checkpoint-snapshot.sh exits 1 with 'out of bounds' for a range exceeding file length",
+        "checkpoint-snapshot.sh exits 0 and writes a snapshot file for a valid entry",
+        "snapshot file content matches the exact lines from the source file",
+        "snapshot path is deterministic (same input → same path)"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-003",
+      "category": "harness-tooling",
+      "description": "bin/checkpoint-guard.sh — suppress no-op checkpoints",
+      "steps": [
+        "checkpoint-guard.sh exits 0 (proceed) when no previous checkpoint exists",
+        "checkpoint-guard.sh exits 0 when git diff reports changed files",
+        "checkpoint-guard.sh exits 1 (suppress) with a message when no files changed",
+        "checkpoint-guard.sh exits 0 when staged changes exist even if working tree is clean"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-004",
+      "category": "harness-tooling",
+      "description": "bin/ctx-hook.sh extension — auto-stamp last-green.txt when tests pass",
+      "steps": [
+        "ctx-hook.sh stamps last-green.txt with timestamp and rev when HARNESS_TEST_SCRIPT passes",
+        "ctx-hook.sh does not stamp last-green.txt when HARNESS_TEST_SCRIPT fails",
+        "ctx-hook.sh skips test stamp when HARNESS_TEST_SCRIPT is unset",
+        "ctx-hook.sh still exits 0 in all cases (best-effort contract)",
+        "last-green.txt content matches 'YYYY-MM-DDTHH:MM:SSZ rev=<sha>' format"
+      ],
+      "passes": true
+    },
+    {
+      "id": "slice-005",
+      "category": "docs",
+      "description": "Tighten checkpoint/SKILL.md and update README.md",
+      "steps": [
+        "checkpoint SKILL.md Footprint field documents file:start-end::STATUS notation",
+        "checkpoint SKILL.md Last green field references .trace/runtime/last-green.txt",
+        "README.md bin/ reference table lists checkpoint-lint.sh, checkpoint-snapshot.sh, checkpoint-guard.sh"
+      ],
+      "passes": true
+    }
+  ]
+}

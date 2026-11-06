@@ -1,0 +1,19 @@
+{
+  "plan_id": "0057-checkpoint-skill-scripts",
+  "title": "Checkpoint scripts belong to the checkpoint skill",
+  "status": "done",
+  "current_slice_id": "slice-001",
+  "slices": [
+    {
+      "id": "slice-001",
+      "category": "tooling",
+      "description": "Move checkpoint-only helpers under the skill, update references, and verify the full suite.",
+      "steps": [
+        "All three helpers reside in skills/checkpoint/scripts/ and no old bin copies remain.",
+        "Skill, tests, README, and architecture documentation reference the new paths.",
+        "bash tests/run.sh passes."
+      ],
+      "passes": true
+    }
+  ]
+}

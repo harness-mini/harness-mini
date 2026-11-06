@@ -4,6 +4,11 @@
 # ctx_pct trace event so `harness.sh report` can chart the trend, and (b) nudges
 # the agent to checkpoint when it crosses the smart/dumb line.
 #
+# Additionally, when HARNESS_TEST_SCRIPT is set and the script passes, this hook
+# stamps .trace/runtime/last-green.txt with a trusted timestamp and git revision.
+# The checkpoint skill reads that file for the "Last green:" field, eliminating
+# LLM hallucination of test status. (Discussion #75 / plan 0001-checkpoint-hardening)
+#
 # Protocol: JSON on stdin with a `transcript_path`. OPT-IN — wire it from
 # .claude/settings.json (see docs/smart-dumb.md). Hosts that don't emit that
 # payload ignore it. Behavior of the script is unchanged either way.
@@ -13,7 +18,11 @@
 # and fire a checkpoint reminder — exactly what docs/smart-dumb.md asks of it.
 #
 # Best-effort: it must NEVER fail the tool call, so every path exits 0.
-# Env: HARNESS_CTX_WINDOW (default 200000) · HARNESS_CTX_THRESHOLD (default 40)
+# Env: HARNESS_CTX_WINDOW    (default 200000)
+#      HARNESS_CTX_THRESHOLD  (default 40)
+#      HARNESS_TEST_SCRIPT    (optional) path to test runner; when set and green,
+#                             stamps .trace/runtime/last-green.txt
+#      HARNESS_TRACE_DIR      (default .trace/runtime)
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -40,6 +49,20 @@ if [ -n "$tpath" ] && [ -f "$tpath" ]; then
   if [ "$pct" -ge "$threshold" ]; then
     printf '⚠ harness-mini: ~%s%% context (est) — at/over the %s%% line; checkpoint & reset while still sharp (docs/smart-dumb.md).\n' \
       "$pct" "$threshold" >&2
+  fi
+fi
+
+# --- last-green stamp (best-effort; never blocks the tool call) --------------
+# When HARNESS_TEST_SCRIPT is set and exits 0, record a trusted snapshot of
+# "tests passed at this git revision" so the checkpoint skill can report it
+# without relying on LLM memory.
+if [ -n "${HARNESS_TEST_SCRIPT:-}" ] && [ -f "${HARNESS_TEST_SCRIPT:-}" ]; then
+  if bash "$HARNESS_TEST_SCRIPT" >/dev/null 2>&1; then
+    rev="$(git -C "$HERE/.." rev-parse --short HEAD 2>/dev/null || echo unknown)"
+    ts="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)"
+    snap_dir="${HARNESS_TRACE_DIR:-.trace/runtime}"
+    { mkdir -p "$snap_dir" && printf '%s rev=%s\n' "$ts" "$rev" > "$snap_dir/last-green.txt"; } \
+      2>/dev/null || true
   fi
 fi
 

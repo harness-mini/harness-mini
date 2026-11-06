@@ -66,12 +66,16 @@ bin/
   harness.sh           # front-door CLI: version·update·doctor·status·release
   _harness_lib.sh      # shared helpers: managed-set, checksums, lockfile
   ctx.sh               # context % estimate vs the 40% threshold
+  ctx-hook.sh          # opt-in PostToolUse hook (ctx estimate + auto last-green)
   trace.sh             # append runtime JSONL (best-effort, never blocks)
   ralph.sh             # ralph-loop driver (work → check → repeat)
+  model.sh             # resolve role model tiers
+  session.sh           # fresh-context session playbook runner
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
                        #   references/ assets/ examples/ tests/.
                        #   Installed (recursively) to .claude/skills/<name>/
+  checkpoint/scripts/   # checkpoint-only lint, snapshot, and guard helpers
 agents/                # sub-agents, flat <name>.md → installed to .claude/agents/
 docs/
   principles.md        # golden principles + the Mini delete-first constraint
@@ -80,7 +84,7 @@ docs/
     active/            # in-flight plans + decision logs (committed)
     completed/         # archived plans (committed)
   references/          # *-llms.txt distillates of the source blogs
-tests/run.sh           # zero-dep TDD suite for bin/* and init.sh
+tests/run.sh           # zero-dep TDD suite for bin/*, skill scripts, and init.sh
 harness/
   manifest.md          # pointer list of installed skill and agent files
   harness.lock         # installed version + pristine checksums of managed files

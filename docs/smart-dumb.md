@@ -123,6 +123,11 @@ hook from `.claude/settings.json`:
 Honest caveat: `bytes(transcript)/4` is a heuristic proxy for tokens, not a true
 count — good enough to see the trend and fire a reminder, which is all this asks.
 
+When `HARNESS_TEST_SCRIPT` is set in the environment (e.g., `tests/run.sh`),
+`bin/ctx-hook.sh` also automatically records `.trace/runtime/last-green.txt` with
+the current timestamp and git revision whenever tests pass. The `checkpoint` skill
+reads that file to populate `Last green:` deterministically without hallucination.
+
 ## Entropy: smart context decays
 Smart context is **append-rarely, prune-aggressively.** Over time, once-useful
 "always-loaded" facts rot. The **gardener** agent periodically demotes stale
