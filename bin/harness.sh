@@ -93,6 +93,45 @@ json_wb() {
 #   cur == base     -> UPDATE     upstream changed, user untouched -> overwrite
 #   otherwise       -> CONFLICT   user-edited & diverged -> keep, write <file>.new
 # User space (docs/exec-plans/, .trace/, project code) is never iterated.
+update_runtime() { # <source_root> <version> <log_file>
+  local src_root="$1" version="$2" log="$3" runtime_lock="$RUNTIME_ROOT/harness/runtime.lock"
+  local source target name new base current self
+  [ -f "$runtime_lock" ] || return 0 # source checkouts are not installed runtimes
+  self="$(cd "$(dirname "$0")" 2>/dev/null && pwd)/$(basename "$0")"
+  for source in "$src_root"/bin/*; do
+    [ -f "$source" ] || continue
+    name="$(basename "$source")"
+    target="$RUNTIME_ROOT/bin/$name"
+    new="$(cksum_file "$source")"
+    base="$(lock_sha "$runtime_lock" "bin/$name")"
+    if [ -f "$target" ]; then current="$(cksum_file "$target")"; else current=""; fi
+
+    if [ "$new" = "$current" ]; then
+      continue
+    elif [ ! -e "$target" ]; then
+      mkdir -p "$(dirname "$target")" && cp "$source" "$target" || return 1
+      printf 'runtime add bin/%s\n' "$name" >> "$log"
+    elif [ -n "$base" ] && [ "$current" = "$base" ]; then
+      if [ "$target" -ef "$self" ]; then
+        deferred_runtime_src="$source"
+        deferred_runtime_dst="$target"
+      else
+        mkdir -p "$(dirname "$target")" && cp "$source" "$target" || return 1
+      fi
+      printf 'runtime update bin/%s\n' "$name" >> "$log"
+    else
+      if [ "$new" != "$base" ] || [ ! -f "$target.new" ]; then
+        mkdir -p "$(dirname "$target")" && cp "$source" "$target.new" || return 1
+        printf 'runtime keep bin/%s (edited) -> wrote bin/%s.new\n' "$name" "$name" >> "$log"
+      else
+        printf 'runtime keep bin/%s (already flagged)\n' "$name" >> "$log"
+      fi
+    fi
+  done
+  [ ! -f "$src_root/VERSION" ] || cp "$src_root/VERSION" "$RUNTIME_ROOT/VERSION" || return 1
+  write_runtime_lock "$src_root" "$RUNTIME_ROOT" "$version" || return 1
+}
+
 cmd_update() {
   local src=""
   while [ $# -gt 0 ]; do
@@ -120,8 +159,10 @@ cmd_update() {
   echo "updating harness-mini $(installed_version) -> $src_ver"
 
   local newlock log pairs self deferred_src="" deferred_dst=""
+  local deferred_runtime_src="" deferred_runtime_dst=""
   newlock="$(mktemp)"; log="$(mktemp)"
   printf 'version: %s\n' "$src_ver" > "$newlock"
+  update_runtime "$src" "$src_ver" "$log" || die "update: runtime refresh failed" 1
   # Absolute path of THIS running script. If the update set includes it, its
   # copy is deferred: bash reads scripts lazily, so overwriting the executing
   # file mid-run makes the interpreter resume the NEW file at the OLD byte
@@ -167,6 +208,10 @@ cmd_update() {
   [ -n "$tmpclone" ] && rm -rf "$tmpclone"
   if [ -n "$deferred_src" ]; then
     cp "$deferred_src" "$deferred_dst"              # self-swap, then die here
+    exit 0
+  fi
+  if [ -n "$deferred_runtime_src" ]; then
+    cp "$deferred_runtime_src" "$deferred_runtime_dst" # replace the running runtime last
     exit 0
   fi
   return 0

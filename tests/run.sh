@@ -377,7 +377,7 @@ rm -rf "$UOLD" "$UDEST" "$UNEW"
 
 # =============================================================================
 echo "harness.sh update — project updates do not install centralized executables"
-SOOLD="$(mktemp -d)"; SONEW="$(mktemp -d)"
+SOOLD="$(mktemp -d)"; SONEW="$(mktemp -d)"; SOHOME="$(mktemp -d)"
 for d in "$SOOLD" "$SONEW"; do
   mkdir -p "$d/bin" "$d/skills" "$d/agents" "$d/docs"
   printf 'agent\n'    > "$d/agents/planner.md"
@@ -397,13 +397,48 @@ printf '0.1.0\n' > "$SOOLD/VERSION"
 cp "$ROOT/bin/_harness_lib.sh" "$SONEW/bin/_harness_lib.sh"
 printf '0.2.0\n' > "$SONEW/VERSION"
 SODST="$(mktemp -d)"
-HARNESS_SRC="$SOOLD" bash "$ROOT/init.sh" "$SODST" >/dev/null 2>&1
-upout="$(HARNESS_NO_NET=1 bash "$HARNESS_HOME/bin/harness.sh" --root "$SODST" update --src "$SONEW" 2>&1)"; code=$?
+HARNESS_SRC="$SOOLD" HARNESS_HOME="$SOHOME" bash "$ROOT/init.sh" "$SODST" >/dev/null 2>&1
+upout="$(HARNESS_HOME="$SOHOME" HARNESS_NO_NET=1 bash "$SOHOME/bin/harness.sh" --root "$SODST" update --src "$SONEW" 2>&1)"; code=$?
 assert_exit 0 "$code" "project update accepts an explicit project root"
 assert_eq "false" "$([ -e "$SODST/bin/harness.sh" ] && echo true || echo false)" "project update does not install a harness executable"
-assert_eq "false" "$(printf '%s' "$upout" | grep -q 'update bin/harness.sh' && echo true || echo false)" "project update skips runtime executables"
+assert_eq "false" "$(grep -q 'bin/' "$SODST/harness/harness.lock" && echo true || echo false)" "project lock excludes runtime executable checksums"
+assert_contains "$(cat "$SOHOME/harness/runtime.lock")" "bin/harness.sh" "runtime executable checksums stay in the runtime lock"
+assert_eq "0.2.0" "$(awk -F': *' '/^version:/{print $2; exit}' "$SOHOME/harness/runtime.lock")" "runtime lock advances with its executable update"
+assert_eq "$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$SONEW/bin/harness.sh")" "$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$SOHOME/bin/harness.sh")" "deferred runtime self-update installs the source executable"
 assert_contains "$(cat "$SODST/harness/harness.lock")" "version: 0.2.0" "lock advanced by the self-updating run"
 rm -rf "$SOOLD" "$SONEW" "$SODST"
+rm -rf "$SOHOME"
+
+# =============================================================================
+echo "harness.sh update — runtime and project locks advance independently"
+RTSRC_OLD="$(mktemp -d)"; RTSRC_NEW="$(mktemp -d)"; RT_HOME="$(mktemp -d)"
+cp -R "$ROOT/bin" "$ROOT/skills" "$ROOT/agents" "$ROOT/docs" "$RTSRC_OLD/"
+cp "$ROOT/AGENTS.md" "$ROOT/ARCHITECTURE.md" "$RTSRC_OLD/"
+printf '0.1.0\n' > "$RTSRC_OLD/VERSION"
+cp -R "$RTSRC_OLD/." "$RTSRC_NEW/"
+printf '0.2.0\n' > "$RTSRC_NEW/VERSION"
+printf 'changed runtime helper\n' >> "$RTSRC_NEW/bin/ctx.sh"
+printf 'updated runtime model helper\n' >> "$RTSRC_NEW/bin/model.sh"
+printf '\nupdated for runtime lock test\n' >> "$RTSRC_NEW/skills/clean-code/SKILL.md"
+RT_A="$(mktemp -d)"; RT_B="$(mktemp -d)"
+HARNESS_SRC="$RTSRC_OLD" HARNESS_HOME="$RT_HOME" bash "$ROOT/init.sh" "$RT_A" >/dev/null 2>&1
+HARNESS_SRC="$RTSRC_OLD" HARNESS_HOME="$RT_HOME" bash "$ROOT/init.sh" "$RT_B" >/dev/null 2>&1
+runtime_old_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$RT_HOME/bin/ctx.sh")"
+runtime_new_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$RTSRC_NEW/bin/ctx.sh")"
+printf 'user runtime edit\n' >> "$RT_HOME/bin/model.sh"
+HARNESS_HOME="$RT_HOME" bash "$RT_HOME/bin/harness.sh" --root "$RT_A" update --src "$RTSRC_NEW" >/dev/null 2>&1
+assert_eq "updated for runtime lock test" "$(tail -n 1 "$RT_A/.agents/skills/clean-code/SKILL.md")" "first project update uses shared skill target"
+assert_eq "0.1.0" "$(awk -F': *' '/^version:/{print $2; exit}' "$RT_B/harness/harness.lock")" "updating one project leaves the other project lock unchanged"
+assert_eq "$runtime_new_sha" "$(awk '$2=="bin/ctx.sh"{print $1}' "$RT_HOME/harness/runtime.lock")" "runtime executable checksums advance in the runtime lock"
+assert_eq "$runtime_new_sha" "$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$RT_HOME/bin/ctx.sh")" "runtime executable on disk matches the upstream source"
+assert_eq "user runtime edit" "$(tail -n 1 "$RT_HOME/bin/model.sh")" "edited runtime executable is preserved"
+assert_eq "updated runtime model helper" "$(tail -n 1 "$RT_HOME/bin/model.sh.new")" "edited runtime executable receives upstream .new"
+assert_eq "false" "$(grep -q 'bin/' "$RT_A/harness/harness.lock" && echo true || echo false)" "project lock contains no runtime executable checksums"
+assert_eq "false" "$(test -e "$RT_B/harness/runtime.lock" && echo true || echo false)" "project update does not create a project-local runtime lock"
+HARNESS_HOME="$RT_HOME" bash "$RT_HOME/bin/harness.sh" --root "$RT_B" update --src "$RTSRC_NEW" >/dev/null 2>&1
+assert_eq "updated for runtime lock test" "$(tail -n 1 "$RT_B/.agents/skills/clean-code/SKILL.md")" "second project updates independently through shared skills"
+assert_contains "$(cat "$RT_B/harness/harness.lock")" "version: 0.2.0" "second project lock advances when that project updates"
+rm -rf "$RTSRC_OLD" "$RTSRC_NEW" "$RT_HOME" "$RT_A" "$RT_B"
 
 # =============================================================================
 echo "harness.sh release — guarded bump + tag (throwaway repos; --no-push/--no-gh)"

@@ -62,15 +62,15 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - Separate evaluator checks all acceptance criteria after implementation.
 
 ## Now (resume here)
-- Begin issue-003: test project/runtime lock separation during updates and preserve checksum-guarded `.new` conflicts.
+- Begin issue-004: harden doctor/status around explicit project roots, shared skill health, and runtime/project versions.
 
 ## Next
-- Implement #3 through #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
+- Implement #4 through #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
 
 ## Session Context Handoff
-**Last Updated**: 2026-11-06 (Session #3)
-**Completed Work**: issue-001 and issue-002 passed L2. Runtime scripts install under $HOME/.harness-mini; fresh projects have no harness bin/; skills and nested assets use .agents/skills, role descriptions use harness/agents, and installer/doctor/status/session runner no longer require a host-specific layout. Full suite: 324 passed, 0 failed.
-**Current Blockers / Risks**: Runtime refresh and independent project update behavior are next in issue-003; legacy host-specific files remain for the migration issue.
+**Last Updated**: 2026-11-06 (Session #4)
+**Completed Work**: Issues 001–003 passed L2. Runtime and project updates use independent locks; runtime executable refresh is checksum-guarded and self-replacement is deferred safely, while project skills update independently at .agents/skills. Edited runtime/project files are preserved with upstream copies at .new. Full suite: 337 passed, 0 failed.
+**Current Blockers / Risks**: Doctor/status version reporting and shared skill readiness remain for issue-004; legacy host-specific files remain for migration issue-005.
 
 ## Decisions log
 - 2026-11-06: Advanced intake → PRD → issues → implement after confirming install scope, host selection behavior, and checksum-safe legacy migration; implementation order is captured in issues #1–#6.
@@ -80,3 +80,4 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - 2026-11-06: Migration removes only legacy harness scripts verified unchanged by the old lock; user-edited files are retained.
 - 2026-11-06: issue-001 passed L2; runtime refresh remains in the later update slice so this slice only establishes the central install and root/lock boundaries.
 - 2026-11-06: issue-002 passed L2; the central session runner defaults project root to the invoking working directory, and shared skill discovery uses .agents/skills.
+- 2026-11-06: issue-003 passed L2; project locks track only managed project data, runtime lock owns executable checksums/version, and self-update defers replacing the running script until the final step.
