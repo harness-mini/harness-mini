@@ -29,4 +29,4 @@ the proof behavior didn't change.
 - Gardener: continuous small installments (golden principle #7) — scan for
   smells, open targeted, green, one-move PRs. Pay debt before it compounds.
 
-Trace: `bin/trace.sh <agent> <stage> refactor move=<name>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" <agent> <stage> refactor move=<name>`.

@@ -64,4 +64,4 @@ to the current total checkpoint count (resetting the cadence counter).
 - Don't refactor on red; don't bundle unrelated changes.
 - Record demotions in the plan/commit so the next gardener knows why.
 
-Trace: `bin/trace.sh gardener maintain garden fixes=<n>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" gardener maintain garden fixes=<n>`.

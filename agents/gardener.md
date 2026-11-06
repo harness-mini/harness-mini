@@ -36,4 +36,4 @@ threshold). See the `garden` skill for the trigger policy.
 
 ## Output
 A list of fixes made/opened with one-line rationales. Trace via
-`bin/trace.sh gardener maintain garden fixes=<n>`.
+`"$HOME/.harness-mini/bin/trace.sh" gardener maintain garden fixes=<n>`.

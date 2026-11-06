@@ -56,4 +56,4 @@ do not isolate with worktrees; the footprint is the contract.
 - The issues can't be made footprint-disjoint (serialize them).
 - It's quick mode (≤1 slice) — there's nothing to parallelize.
 
-Trace: `bin/trace.sh main implement fanout group=<n> slices=<count>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" main implement fanout group=<n> slices=<count>`.

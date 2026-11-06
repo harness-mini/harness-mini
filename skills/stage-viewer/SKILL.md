@@ -6,11 +6,11 @@ description: View and advance the lifecycle stage of every requirement. Main-age
 You are the main agent holding the tiller. Only you advance the FSM.
 
 ## On entry — workboard first (first thing)
-In a fresh session, run `bin/harness.sh status` **first**. It prints the active
+In a fresh session, run `"$HOME/.harness-mini/bin/harness.sh" status` **first**. It prints the active
 plans, each plan's JSON-twin workboard line (`status · n/m pass · current ·
 next passes:false` slice), resumability, and — best-effort, silent offline — an
 `update:` line when a newer harness-mini exists (tell the user and offer
-`bin/harness.sh update`; checksum-guarded, edits kept). The `next:` slice is
+`"$HOME/.harness-mini/bin/harness.sh" update`; checksum-guarded, edits kept). The `next:` slice is
 your default answer to "what now?".
 
 ## View
@@ -42,7 +42,7 @@ agents **MUST NOT** modify product code. Allowed edits in those stages:
 Product code (application source, and for harness-mini itself: `bin/` behavior
 changes unrelated to the plan's stated issues) waits until `stage: implement`.
 This is a **convention** enforced by the main agent / planner — Mini does not
-ship a git dirty-tree checker. Cold sessions: prefer `bin/harness.sh status`
+ship a git dirty-tree checker. Cold sessions: prefer `"$HOME/.harness-mini/bin/harness.sh" status`
 (`ready:` line) before acting.
 
 ## Fan out the implement stage (full mode)
@@ -67,7 +67,7 @@ You may move a plan forward only when the stage's exit condition is met:
 | done | plan moved to `docs/exec-plans/completed/` |
 
 To advance: edit the plan's `stage:` field, append a line to the plan's
-Decisions log, and `bin/trace.sh main <new-stage> stage_advance plan=<plan>`.
+Decisions log, and `"$HOME/.harness-mini/bin/trace.sh" main <new-stage> stage_advance plan=<plan>`.
 If the plan has a JSON twin, keep it in sync in the same edit: `status`
 (`planned|in_progress|done` — mirrors, never overrides, the MD `stage:`) and
 `current_slice_id`. **Only you** flip a slice's `passes` to `true` — and only
@@ -75,7 +75,7 @@ after the eval tier passed it (anti-self-praise); a builder's "done" claim is
 routed to the evaluator first.
 
 ## Garden gate (orthogonal, you dispatch it)
-When a plan reaches `done` (and as a release pre-flight), run `bin/harness.sh
+When a plan reaches `done` (and as a release pre-flight), run `"$HOME/.harness-mini/bin/harness.sh"
 status` and read the `garden:` line. If it says **DUE** — ≥5 checkpoints since the
 last sweep, or the smell backlog crossed its threshold — **dispatch the gardener**
 before opening the next plan. It's non-blocking and small; the gardener never

@@ -1,6 +1,6 @@
 ---
 name: ralph-loop
-description: Drive a long-running "work → check → repeat" loop until an exit condition is met, max iterations hit, or a human-judgment flag is raised. Use for autonomous long tasks where an agent does work and an evaluator decides whether it passes (e.g. "keep fixing until all reviewers pass"). Backed by bin/ralph.sh.
+description: Drive a long-running "work → check → repeat" loop until an exit condition is met, max iterations hit, or a human-judgment flag is raised. Use for autonomous long tasks where an agent does work and an evaluator decides whether it passes (e.g. "keep fixing until all reviewers pass"). Backed by "$HOME/.harness-mini/bin/ralph.sh".
 ---
 
 The Ralph Wiggum loop: persist a task across context resets without a human
@@ -26,18 +26,18 @@ have an objective pass/fail check AND might it exceed one session?**
 
 ### Adapter table — one contract, one fallback, thin per-CLI bindings
 Don't fork per-host implementations (that is anti-Mini — N sources of truth).
-`bin/ralph.sh` runs `sh -c "$cmd"` and hardcodes no host. The `--cmd`
+`"$HOME/.harness-mini/bin/ralph.sh"` runs `sh -c "$cmd"` and hardcodes no host. The `--cmd`
 indirection is the seam that absorbs the difference.
 
 | Host / intent | native mechanism | when to prefer |
 |---|---|---|
-| any — autonomous work→check→repeat | `bin/ralph.sh --cmd … --until …` | the default |
+| any — autonomous work→check→repeat | `"$HOME/.harness-mini/bin/ralph.sh" --cmd … --until …` | the default |
 | Codex / Cursor | their `-p`/exec equivalent passed to `--cmd` | same default |
 | host with `/loop` or `ScheduleWakeup` | `/loop`, `ScheduleWakeup` | interval polling, harness-tracked |
 | host with cron routines | `schedule` | scheduled runs |
 
 ## Mechanism
-`bin/ralph.sh --max N --until '<predicate>' --cmd '<work>'`
+`"$HOME/.harness-mini/bin/ralph.sh" --max N --until '<predicate>' --cmd '<work>'`
 - `--cmd` runs each iteration (the work — e.g. invoke a generator agent).
 - `--until` is checked after each iteration; exit 0 = done, stop.
 - `--max` caps iterations (default 10).
@@ -56,12 +56,12 @@ indirection is the seam that absorbs the difference.
   nothing.
 - The predicate should be a *separate* check (ideally the evaluator agent), not
   the worker grading itself.
-- Trace every iteration: `bin/trace.sh main <stage> ralph_iter n=<i>`.
+- Trace every iteration: `"$HOME/.harness-mini/bin/trace.sh" main <stage> ralph_iter n=<i>`.
 
 ## Example
 ```
 HARNESS_HUMAN_FLAG=.trace/needs-human \
-bin/ralph.sh --max 6 \
+"$HOME/.harness-mini/bin/ralph.sh" --max 6 \
   --until '<agent> -p "run evaluator on plan auth; exit 0 iff all criteria pass"' \
   --cmd   '<agent> -p "advance plan auth one slice via tdd + slice-coding"'
 ```

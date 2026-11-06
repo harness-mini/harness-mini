@@ -38,9 +38,9 @@ is **not** sacred. Set `HARNESS_CTX_THRESHOLD` to the number that matches your
 risk tolerance and task:
 
 ```bash
-HARNESS_CTX_THRESHOLD=30 bash bin/ctx.sh 60000 200000   # 30% → 2 (checkpoint)
-HARNESS_CTX_THRESHOLD=40 bash bin/ctx.sh 60000 200000   # 40% → 0 (smart) [default]
-HARNESS_CTX_THRESHOLD=60 bash bin/ctx.sh 60000 200000   # 60% → 0 (smart)
+HARNESS_CTX_THRESHOLD=30 bash "$HOME/.harness-mini/bin/ctx.sh" 60000 200000   # 30% → 2 (checkpoint)
+HARNESS_CTX_THRESHOLD=40 bash "$HOME/.harness-mini/bin/ctx.sh" 60000 200000   # 40% → 0 (smart) [default]
+HARNESS_CTX_THRESHOLD=60 bash "$HOME/.harness-mini/bin/ctx.sh" 60000 200000   # 60% → 0 (smart)
 ```
 
 | Threshold | When | Trade-off |
@@ -83,10 +83,10 @@ Waiting until 90% is fatal — the handoff itself would be written by a degraded
 agent.
 
 ### 3. Measurement — best-effort, to *see* drift
-`bin/ctx.sh <used_tokens> [window]` prints `N%` and exits 2 at/over threshold.
+`"$HOME/.harness-mini/bin/ctx.sh" <used_tokens> [window]` prints `N%` and exits 2 at/over threshold.
 You cannot portably read a model's internal token counter, so this is an
 estimate. It is good enough to watch trends in `.trace/runtime/`, not a hard
-interrupt — and `bin/harness.sh report` charts those trends (max ctx%, how often
+interrupt — and `"$HOME/.harness-mini/bin/harness.sh" report` charts those trends (max ctx%, how often
 the 40% line was crossed) so the threshold is tuned by data, not guesswork.
 
 ### 4. Progressive disclosure keeps the baseline low
@@ -103,28 +103,19 @@ everything, so it naturally stays under budget.
 protocol and the explorer firewall does the heavy lifting.
 
 ### Give the 40% line teeth (opt-in hook)
-The rule only bites if something *watches*. `bin/ctx-hook.sh` is a PostToolUse
+The rule only bites if something *watches*. `~/.harness-mini/bin/ctx-hook.sh` is a PostToolUse
 adapter that, after every tool call, estimates context from the transcript size,
 records a `ctx_pct` sample (so `harness.sh report` has real data), and nudges you
 to checkpoint once you cross the line. It is **opt-in**. Hosts that don't emit
-the hook payload ignore it; everyone else can run `bin/ctx.sh` by hand. Wire the
-hook from `.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      { "matcher": "*", "hooks": [ { "type": "command", "command": "bash bin/ctx-hook.sh" } ] }
-    ]
-  }
-}
-```
+the hook payload can skip it; anyone can run `~/.harness-mini/bin/ctx.sh` by hand.
+If your agent supports tool-call hooks, configure its hook mechanism to run
+`bash "$HOME/.harness-mini/bin/ctx-hook.sh"` after tool calls.
 
 Honest caveat: `bytes(transcript)/4` is a heuristic proxy for tokens, not a true
 count — good enough to see the trend and fire a reminder, which is all this asks.
 
 When `HARNESS_TEST_SCRIPT` is set in the environment (e.g., `tests/run.sh`),
-`bin/ctx-hook.sh` also automatically records `.trace/runtime/last-green.txt` with
+`~/.harness-mini/bin/ctx-hook.sh` also automatically records `.trace/runtime/last-green.txt` with
 the current timestamp and git revision whenever tests pass. The `checkpoint` skill
 reads that file to populate `Last green:` deterministically without hallucination.
 

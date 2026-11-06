@@ -19,9 +19,11 @@
 
 <!-- ANCHOR: gate -->
 
-When a new session starts, **MUST FIRST** run `bin/harness.sh status` to check
+When a new session starts, **MUST FIRST** run
+`"$HOME/.harness-mini/bin/harness.sh" status` from the project root to check
 the active workboard and its session `path:` line, then open the matching
-session skill and follow it:
+session skill and follow it. Harness executables live in the user's runtime,
+not in the project:
 
 - `path: init` → **`session-init`** — plan-layer work only (founder funnel,
   PRD, issues, JSON twin). **No product code on this path.**
@@ -59,7 +61,8 @@ anxiety"). Keep yourself smart:
 3. **One bounded task per session.** A session scoped to a single plan-step never
    needs to hold everything.
 
-Estimate occupancy any time with `bin/ctx.sh <used_tokens> [window]`.
+Estimate occupancy any time with
+`"$HOME/.harness-mini/bin/ctx.sh" <used_tokens> [window]`.
 Full contract: `docs/smart-dumb.md`.
 
 ## Core constraint: Mini (when changing the harness itself)
@@ -107,13 +110,15 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 | Committed evaluation verdicts (the `done`-gate) | `.trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.trace/runtime/` |
 
-## Versioning — `bin/harness.sh` (the front door)
+## Versioning — `~/.harness-mini/bin/harness.sh` (the front door)
 
 <!-- ANCHOR: versioning -->
 
-`bin/harness.sh help` lists the commands (`version` · `update` · `doctor` ·
-`status` · `report` · `release`); installed version + checksums live in
-`harness/harness.lock` (canonical source: `VERSION`). Non-obvious semantics:
+`"$HOME/.harness-mini/bin/harness.sh" help` lists the commands (`version` ·
+`update` · `doctor` · `status` · `report` · `release`); runtime checksums live
+in `~/.harness-mini/harness/runtime.lock`, and project checksums live in
+`harness/harness.lock` (canonical version source: `VERSION`). Non-obvious
+semantics:
 `update` is **checksum-guarded** (your edits kept, upstream lands as `<file>.new`;
 `docs/exec-plans/` + `.trace/` never touched); `doctor` enforces the **eval-gate**
 (`done` needs a `verdict: pass` in `.trace/evals/`); `status` ends with a
@@ -145,12 +150,12 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 Model = capability **tier** (CLI maps it), not a pinned version. The generator
 auto-upgrades to the top tier (`opus`) when `HARNESS_TOP_MODEL` is set; every
 other role keeps its static tier. Resolve at spawn time with
-`bin/model.sh builder` (`HARNESS_MODEL_BUILDER=<alias>` pins an exact model).
+`"$HOME/.harness-mini/bin/model.sh" builder` (`HARNESS_MODEL_BUILDER=<alias>` pins an exact model).
 
 ## Tracing (best-effort, never blocks work)
 
 <!-- ANCHOR: trace -->
 
-Log events with `bin/trace.sh <agent> <stage> <event> [k=v ...]` → appends JSONL
+Log events with `"$HOME/.harness-mini/bin/trace.sh" <agent> <stage> <event> [k=v ...]` → appends JSONL
 to `.trace/runtime/`. Include `ctx_pct=<n>` so the 40% line is observable.
 Commit milestones as checkpoints in `.trace/checkpoints/` (the `checkpoint` skill).

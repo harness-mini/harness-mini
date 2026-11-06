@@ -29,4 +29,4 @@ acceptance criteria — not prose for humans to admire.
    decomposition. Resolve the branches.
 4. Advance to `issues` (via `stage-viewer`) and run `to-issues`.
 
-Trace: `bin/trace.sh planner prd to_prd criteria=<count>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" planner prd to_prd criteria=<count>`.

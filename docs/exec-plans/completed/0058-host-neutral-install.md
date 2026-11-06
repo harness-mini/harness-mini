@@ -1,7 +1,7 @@
 ---
 plan: host-neutral-install
 seq: 0058
-stage: implement
+stage: done
 owner: main
 mode: full
 eval: L2
@@ -62,15 +62,15 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - Separate evaluator checks all acceptance criteria after implementation.
 
 ## Now (resume here)
-- Begin issue-006: update docs, getting-started guides, routing instructions, manifest, and changelog for the shared layout and centralized runtime.
+- Issue-006 passed its separate L2 evaluation; write the final checkpoint, then archive this completed plan.
 
 ## Next
-- Implement #6 and complete the full acceptance search/evaluation; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
+- Move the completed plan pair to `docs/exec-plans/completed/` after the checkpoint; no implementation work remains.
 
 ## Session Context Handoff
-**Last Updated**: 2026-11-06 (Session #6)
-**Completed Work**: Issues 001–005 passed L2. Runtime is centralized; skills share .agents/skills; diagnostics report explicit project/runtime state; upgrade migration removes only lock-clean legacy files, moves clean skills, preserves edits/no-lock files/symlinks, and deletes only exact generated Cursor rules. Repeated installs are covered; full suite: 370 passed, 0 failed.
-**Current Blockers / Risks**: User-facing docs and source manifest still need issue-006 updates; source doctor currently warns on the old manifest wording.
+**Last Updated**: 2026-11-06 (Session #7)
+**Completed Work**: Issues 001–006 passed L2. Runtime is centralized; every agent shares .agents/skills and harness/agents; docs, manifest, routing instructions, and changelog reflect the common layout. Legacy migration remains checksum guarded. Full suite: 372 passed, 0 failed; focused active-doc searches and git diff --check pass.
+**Current Blockers / Risks**: The checkout's ignored .agents/skills mirror predates issue-006 and lacks parallel-slices; source status therefore reports blocked readiness until that local mirror is refreshed. This does not affect the source manifest or clean install behavior.
 
 ## Decisions log
 - 2026-11-06: Advanced intake → PRD → issues → implement after confirming install scope, host selection behavior, and checksum-safe legacy migration; implementation order is captured in issues #1–#6.
@@ -83,3 +83,4 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - 2026-11-06: issue-003 passed L2; project locks track only managed project data, runtime lock owns executable checksums/version, and self-update defers replacing the running script until the final step.
 - 2026-11-06: issue-004 passed L2; doctor/status use the selected project root and report shared skill inventory, manifest completeness, and separate runtime/project versions. Missing manifest-listed files block status readiness.
 - 2026-11-06: issue-005 passed L2; migration trusts prior lock checksums for bin/Claude skill files, compares generated Cursor rules byte-for-byte, and preserves edited, untracked, and symlinked files.
+- 2026-11-06: issue-006 passed L2; active docs and manifest use the shared layout and centralized runtime, and the full suite passes 372 assertions.

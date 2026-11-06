@@ -7,7 +7,7 @@ You are running a **plan session**. The board is not ready for code, and this
 session's whole job is to make it ready — or to reach a precise blocker.
 
 ## 1. Confirm the path
-Run `bin/harness.sh status`. It must print `path: init` (reason: `empty board`,
+Run `"$HOME/.harness-mini/bin/harness.sh" status`. It must print `path: init` (reason: `empty board`,
 `still planning`, `twin missing`, or `twin unparseable`). If it prints
 `path: coding`, stop — this is the wrong playbook; the session belongs to the
 slices (`session-coding` handles that).
@@ -38,7 +38,7 @@ you never flip a slice's `passes` (that is the main agent's job after an
 evaluator verdict).
 
 ## 5. Done when
-- `bin/harness.sh status` prints `path: coding` with a meaningful `next:`
+- `"$HOME/.harness-mini/bin/harness.sh" status` prints `path: coding` with a meaningful `next:`
   slice — the board is ready; or
 - you are blocked on a human decision — say exactly what you need, in one
   sentence.

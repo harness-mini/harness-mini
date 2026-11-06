@@ -28,4 +28,4 @@ Funnel order: **founder-check → to-prd → to-issues**.
 
 ## Output
 A "Founder check" block at the top of the intake plan with the four answers.
-Trace: `bin/trace.sh main intake founder_check user='<persona>'`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" main intake founder_check user='<persona>'`.

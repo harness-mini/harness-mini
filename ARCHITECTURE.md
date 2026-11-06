@@ -59,10 +59,10 @@ agent (via `stage-viewer`) advances a state; sub-agents never do.**
 ```
 AGENTS.md              # context navigation map injected every run (anchor index)
 ARCHITECTURE.md        # this file
-VERSION                # canonical version (SemVer); bumped by `harness.sh release`
+VERSION                # canonical version (SemVer); bumped by the release command
 CHANGELOG.md           # Keep-a-Changelog; rolled on release
 init.sh                # additive, idempotent installer (new vs existing)
-bin/
+bin/                   # runtime script sources; installed under ~/.harness-mini/bin/
   harness.sh           # front-door CLI: version·update·doctor·status·release
   _harness_lib.sh      # shared helpers: managed-set, checksums, lockfile
   ctx.sh               # context % estimate vs the 40% threshold
@@ -74,9 +74,9 @@ bin/
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
                        #   references/ assets/ examples/ tests/.
-                       #   Installed (recursively) to .claude/skills/<name>/
+                       #   Installed (recursively) to .agents/skills/<name>/
   checkpoint/scripts/   # checkpoint-only lint, snapshot, and guard helpers
-agents/                # sub-agents, flat <name>.md → installed to .claude/agents/
+agents/                # role descriptions → installed to harness/agents/
 docs/
   principles.md        # golden principles + the Mini delete-first constraint
   smart-dumb.md        # the 40% occupancy contract
@@ -87,31 +87,35 @@ docs/
 tests/run.sh           # zero-dep TDD suite for bin/*, skill scripts, and init.sh
 harness/
   manifest.md          # pointer list of installed skill and agent files
-  harness.lock         # installed version + pristine checksums of managed files
+  harness.lock         # project version + checksums of project-managed files
 .trace/
   checkpoints/         # COMMITTED — decisions, milestones, handoffs
   evals/               # COMMITTED — <plan>-NNN.md verdicts (the done-gate)
   runtime/             # GITIGNORED — ephemeral per-run JSONL (report reads these)
 ```
 
+The per-user runtime is separate from this tree: `~/.harness-mini/bin/` holds
+the executables and `~/.harness-mini/harness/runtime.lock` tracks their version
+and checksums.
+
 ## Versioning & update model
 
-An install is a snapshot of the **managed set** — the files harness-mini owns
-(`bin/*`, `.claude/skills/**` recursively, `.claude/agents/*`,
-`docs/principles.md`, `docs/smart-dumb.md`, `docs/references/*`, `AGENTS.md`,
-`ARCHITECTURE.md`). The set is defined once, in `emit_managed_pairs()`
-(`bin/_harness_lib.sh`) — which recurses `skills/` so every file under a skill
-folder is tracked — and is the
-single boundary between "harness territory" and "user territory" (your
-exec-plans, `.trace/`, and project code are never in it).
+An install has two independent managed sets. The **project set** contains
+`.agents/skills/**` recursively, `harness/agents/*`, selected docs, `AGENTS.md`,
+and `ARCHITECTURE.md`; the **runtime set** contains executable `bin/*` sources
+installed under `~/.harness-mini/bin/`. The project set is defined in
+`emit_managed_pairs()` (`bin/_harness_lib.sh`); runtime checksums are stored in
+`~/.harness-mini/harness/runtime.lock`. Project checksums live in
+`harness/harness.lock`. Project plans, `.trace/`, and application files are not
+managed.
 
-`init.sh` writes `harness/harness.lock` recording the version and the **pristine
-upstream checksum** of each managed file. `harness.sh update` diffs three states
-per file — `base` (lock baseline), `cur` (on disk), `new` (upstream) — to decide
-ADD / UNCHANGED / UPDATE / CONFLICT, so a newer harness can be pulled in without
-ever clobbering a file you edited. `harness.sh release` is the inverse end: it
-stamps a new `VERSION`, rolls `CHANGELOG.md`, tags `v<x.y.z>`, and publishes a
-GitHub release (gated on green tests + a clean tree).
+`init.sh` writes both locks with the **pristine upstream checksum** of each
+managed file. `"$HOME/.harness-mini/bin/harness.sh" update` diffs `base` (lock
+baseline), `cur` (on disk), and `new` (upstream) independently for runtime and
+project files. It preserves edited files and writes upstream conflicts to
+`.new`. From this source repository, the release command stamps `VERSION`, rolls
+`CHANGELOG.md`, tags `v<x.y.z>`, and publishes a GitHub release (gated on green
+tests + a clean tree).
 
 ## Lifecycle FSM
 

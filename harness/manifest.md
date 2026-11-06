@@ -1,9 +1,10 @@
 # harness-mini manifest
 
-Skills and agents are files under `.claude/skills/` and `.claude/agents/`.
-Any coding agent that can read the repo should open the paths below.
+Every agent uses the same shared skill directory: `.agents/skills/`. Role
+descriptions are project data under `harness/agents/`. Runtime executables are
+installed per user under `$HOME/.harness-mini/bin/`.
 
-## Skills (.claude/skills/ — one folder per skill, instructions in SKILL.md)
+## Skills (.agents/skills/)
 - checkpoint/SKILL.md
 - clean-code/SKILL.md
 - evaluate/SKILL.md
@@ -14,13 +15,15 @@ Any coding agent that can read the repo should open the paths below.
 - ralph-loop/SKILL.md
 - refactor/SKILL.md
 - release/SKILL.md
+- session-coding/SKILL.md
+- session-init/SKILL.md
 - slice-coding/SKILL.md
 - stage-viewer/SKILL.md
 - tdd/SKILL.md
 - to-issues/SKILL.md
 - to-prd/SKILL.md
 
-## Agents (.claude/agents/)
+## Role descriptions (harness/agents/)
 - evaluator.md
 - explorer.md
 - gardener.md

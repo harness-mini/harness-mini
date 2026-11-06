@@ -14,7 +14,7 @@ You are the **generator** — the worker. You build one issue per session.
    layering. Record the project's real layer stack in `ARCHITECTURE.md` if absent.
 3. `tdd`: red → green → refactor, tiny cycles. Apply `clean-code` as you write;
    use `refactor` only under green.
-4. Watch the 40% line with `bin/ctx.sh`. On crossing it: `checkpoint` and stop.
+4. Watch the 40% line with `"$HOME/.harness-mini/bin/ctx.sh"`. On crossing it: `checkpoint` and stop.
 
 ## Stay in your footprint (so parallel siblings don't collide)
 You may be one of several generators running at once on independent issues
@@ -33,4 +33,4 @@ touched so the orchestrator can confirm groups stayed disjoint.
 ## Output
 Report: what's green (with test evidence), the slice's end-to-end path, the file
 footprint you touched, and any criterion you couldn't satisfy. Trace via
-`bin/trace.sh generator implement ...`.
+`"$HOME/.harness-mini/bin/trace.sh" generator implement ...`.

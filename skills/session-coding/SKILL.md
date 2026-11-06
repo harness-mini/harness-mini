@@ -5,7 +5,7 @@ description: Coding-session playbook for boards where status prints path: coding
 
 You are a coding agent in incremental mode with **no prior-session memory**.
 Your first turn is not code — it is the bearings below, reported to the user
-before you touch anything. Run `bin/harness.sh status` and confirm it prints
+before you touch anything. Run `"$HOME/.harness-mini/bin/harness.sh" status` and confirm it prints
 `path: coding`; on `path: init` stop — the plan session (`session-init`) owns
 that board.
 
@@ -14,7 +14,7 @@ that board.
 Execute in order and **report all five in your first turn**:
 
 1. Run `pwd` — confirm you are in the project root.
-2. Run `bin/harness.sh status` (workboard: active plans · JSON status ·
+2. Run `"$HOME/.harness-mini/bin/harness.sh" status` (workboard: active plans · JSON status ·
    current · next `passes: false`), `git log --oneline -5`, and read the
    latest checkpoint under `.trace/checkpoints/` for this plan.
 3. Open the active twin `docs/exec-plans/active/<plan>.json` that `status`

@@ -47,4 +47,4 @@ seam and pass typed values inward — never build on a guessed structure. Someti
 reimplementing a small typed helper beats importing an opaque package — it keeps
 invariants in-repo and testable.
 
-Trace: `bin/trace.sh generator implement slice axis=vertical|horizontal`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" generator implement slice axis=vertical|horizontal`.

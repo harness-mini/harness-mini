@@ -6,7 +6,7 @@
 #
 # Usage: checkpoint-guard.sh
 # Exit:  0 = proceed (write the checkpoint), 1 = suppress (nothing changed)
-# Env:   HARNESS_ROOT (default: nearest ancestor with bin/harness.sh)
+# Env:   HARNESS_ROOT (default: four levels above this skill's script directory)
 #        HARNESS_CHECKPOINT_DIR (default: $HARNESS_ROOT/.trace/checkpoints)
 #
 # Decision rules:
@@ -19,17 +19,7 @@
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-if [ -z "${HARNESS_ROOT:-}" ]; then
-  candidate="$HERE"
-  while [ "$candidate" != "/" ]; do
-    if [ -f "$candidate/bin/harness.sh" ]; then
-      HARNESS_ROOT="$candidate"
-      break
-    fi
-    candidate="$(dirname "$candidate")"
-  done
-  HARNESS_ROOT="${HARNESS_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
-fi
+HARNESS_ROOT="${HARNESS_ROOT:-$(cd "$HERE/../../../.." && pwd)}"
 CP_DIR="${HARNESS_CHECKPOINT_DIR:-$HARNESS_ROOT/.trace/checkpoints}"
 
 # No previous checkpoint → always proceed

@@ -7,6 +7,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- Skills and role descriptions now use shared project paths (`.agents/skills/`
+  and `harness/agents/`) across coding agents. Harness executables live in the
+  per-user `~/.harness-mini/bin/`; project and runtime files have separate
+  checksum locks, and updates retain checksum-modified legacy project scripts.
+
 ## [0.12.1] - 2026-11-06
 
 ### Added

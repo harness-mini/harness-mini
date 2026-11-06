@@ -26,4 +26,4 @@ You are the **planner**. You turn intent into an executable plan, then stop.
 
 ## Output
 A short report: plan path, the slice build-order, the riskiest assumption, and
-the first issue ready for the generator. Trace your steps via `bin/trace.sh`.
+the first issue ready for the generator. Trace your steps via `"$HOME/.harness-mini/bin/trace.sh"`.

@@ -903,7 +903,8 @@ rm -rf "$HKT"
 # =============================================================================
 echo "source repo — AGENTS.md gate contract (one gate, status-first)"
 am="$ROOT/AGENTS.md"
-assert_contains "$(cat "$am")" "MUST FIRST** run \`bin/harness.sh status\`" "AGENTS.md gate is status-first (mandatory)"
+assert_contains "$(cat "$am")" "MUST FIRST** run" "AGENTS.md gate is status-first (mandatory)"
+assert_contains "$(cat "$am")" '$HOME/.harness-mini/bin/harness.sh' "AGENTS.md uses the centralized runtime command"
 assert_eq "1" "$(grep -ic '^## .*routing gate' "$am")" "AGENTS.md has exactly one routing-gate section"
 assert_eq "0" "$(grep -c 'harness.sh version' "$am")" "AGENTS.md gate no longer says version-first"
 assert_contains "$(cat "$am")" "Do NOT load the full historical" "AGENTS.md map forbids loading full plan history"
@@ -919,7 +920,7 @@ si="$ROOT/skills/session-init/SKILL.md"
 assert_eq "true" "$([ -f "$si" ] && echo true || echo false)" "skills/session-init/SKILL.md exists"
 sib="$(cat "$si" 2>/dev/null)"
 assert_contains "$sib" "path: init" "skill opens by confirming path: init from status"
-assert_contains "$sib" "bin/harness.sh status" "skill names the status command"
+assert_contains "$sib" '$HOME/.harness-mini/bin/harness.sh' "skill names the centralized status command"
 assert_contains "$sib" "product code" "skill bans product-code edits explicitly"
 assert_contains "$sib" "founder-check" "greenfield branch composes founder-check"
 assert_contains "$sib" "to-prd" "skill composes to-prd"
@@ -940,7 +941,7 @@ first_sec="$(printf '%s' "$scb" | grep -m1 '^## ' )"
 assert_contains "$first_sec" "Getting Bearings" "first section is the mandatory Getting Bearings"
 assert_contains "$scb" "pwd" "bearings step 1: pwd / project root"
 assert_contains "$scb" "git log --oneline -5" "bearings step 2: git log -5"
-assert_contains "$scb" "bin/harness.sh status" "bearings step 2: status"
+assert_contains "$scb" '$HOME/.harness-mini/bin/harness.sh' "bearings step 2: centralized status command"
 assert_contains "$scb" "latest checkpoint" "bearings step 2: latest checkpoint"
 assert_contains "$scb" 'passes": false' "bearings step 3: select the passes:false slice"
 assert_contains "$scb" "baseline" "bearings step 4: app baseline green"
@@ -977,7 +978,7 @@ RB="$(mkboard)"; mkplan "$RB" 0001-coder implement next; mkskills "$RB"
 out="$(HARNESS_ROOT="$RB" HARNESS_NO_NET=1 bash "$SESS" 2>&1)"; code=$?
 assert_exit 0 "$code" "runner exits 0 on a coding board"
 assert_contains "$out" "Getting Bearings" "coding board injects session-coding body"
-assert_contains "$out" "bin/harness.sh status" "injected body still runs status first"
+assert_contains "$out" '$HOME/.harness-mini/bin/harness.sh' "injected body still runs status first"
 assert_contains "$out" "path: coding" "wrapper states the session path"
 # init board -> session-init body injected (never bearings)
 RB2="$(mkboard)"; mkplan "$RB2" 0001-idea prd none; mkskills "$RB2"
@@ -1241,20 +1242,20 @@ code=0
 HARNESS_ROOT="$GR" bash "$GUARD" 2>/dev/null || code=$?
 assert_exit 0 "$code" "guard: staged change → proceed (exit 0)"
 
-# installed skill path: infer the project root from the nearest bin/harness.sh
+# installed skill path: infer the project root from its shared-skill location
 IR="$TMPG/installed"
-mkdir -p "$IR/bin" "$IR/.agents/skills/checkpoint/scripts" "$IR/.trace/checkpoints"
-printf '# harness entry\n' > "$IR/bin/harness.sh"
+mkdir -p "$IR/.agents/skills/checkpoint/scripts" "$IR/.trace/checkpoints"
 cp "$GUARD" "$IR/.agents/skills/checkpoint/scripts/checkpoint-guard.sh"
 git -C "$IR" init -q
 git -C "$IR" config user.email "test@test"
 git -C "$IR" config user.name "Test"
-git -C "$IR" add bin/harness.sh .agents/skills/checkpoint/scripts/checkpoint-guard.sh
+git -C "$IR" add .agents/skills/checkpoint/scripts/checkpoint-guard.sh
 git -C "$IR" commit -q -m "init"
 { printf '%s\n' "---" "plan: test" "seq: 1" "---"; } > "$IR/.trace/checkpoints/test-001.md"
 code=0; msg="$(cd "$IR" && bash .agents/skills/checkpoint/scripts/checkpoint-guard.sh 2>&1)" || code=$?
 assert_exit 1 "$code" "guard: installed skill discovers project root and suppresses clean checkpoint"
 assert_contains "$msg" "suppress" "guard: installed skill root discovery checks project git state"
+assert_eq "0" "$(grep -c 'bin/harness.sh' "$GUARD")" "checkpoint guard does not require a project bin executable"
 
 rm -rf "$TMPG"
 

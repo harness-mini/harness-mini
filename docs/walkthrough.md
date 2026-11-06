@@ -5,8 +5,8 @@ happens after `init.sh`, end to end, through a single small feature — adding
 password login to a tiny `demo-api`.
 
 > **This is an illustrative guided example.** `demo-api` is hypothetical; the
-> `npm test` outputs are representative. The harness commands (`init.sh`,
-> `bin/*.sh`) are real. The committed artifacts the loop produces live under
+> `npm test` outputs are representative. The installer and user runtime commands
+> are real. The committed artifacts the loop produces live under
 > [`examples/demo-auth/`](examples/demo-auth/) — open them alongside this page.
 
 The loop:
@@ -23,14 +23,13 @@ install → recon → route → plan → implement(slice, TDD) ⇄ evaluate → 
 $ git clone https://github.com/harness-mini/harness-mini.git
 $ bash harness-mini/init.sh ~/demo-api
 harness-mini: installing into /Users/you/demo-api  (mode: existing)
-  add   .claude/skills/… (16 skills)
-  add   .claude/agents/… (5 agents)
-  add   bin/ctx.sh bin/trace.sh bin/ralph.sh bin/harness.sh …
+  add   user runtime ($HOME/.harness-mini, v0.12.1)
+  add   .agents/skills/… (17 skills)
+  add   harness/agents/… (5 role descriptions)
   add   AGENTS.md ARCHITECTURE.md
   add   harness/manifest.md
-  add   CLAUDE.md (routing gate v3, path-aware)
-  add   .cursor/rules/harness-mini.mdc
-  add   harness/harness.lock (v0.2.0)
+  add   harness/harness.lock (v0.12.1)
+  add   ~/.harness-mini/harness/runtime.lock (v0.12.1)
   add   docs/exec-plans/active/0001-recon.md (+ json twin)
 harness-mini: done.
 ```
@@ -104,7 +103,7 @@ $ npm test
 Log a runtime event so the loop is observable (best-effort, never blocks):
 
 ```console
-$ bash bin/trace.sh generator implement test result=green ctx_pct=34
+$ "$HOME/.harness-mini/bin/trace.sh" generator implement test result=green ctx_pct=34
 ```
 
 ## 5. Stay smart — the 40% line
@@ -113,7 +112,7 @@ Before any heavy read or broad search, check occupancy; delegate to the explorer
 if you'd blow the budget:
 
 ```console
-$ bash bin/ctx.sh 68000 200000
+$ "$HOME/.harness-mini/bin/ctx.sh" 68000 200000
 34%            # under 40 → smart zone, keep going
 ```
 
@@ -162,18 +161,17 @@ to `docs/exec-plans/completed/`.
 
 ## 9. Unattended runs — the Outer session runner (optional, P2)
 
-Interactive hosts rely on the agent noticing the gate and opening the right
+Interactive agents rely on the agent noticing the shared instructions and opening the right
 skill. Scripted long runs can instead **force** the playbook into a fresh
 context every session — no host hooks, no vendor lock-in, nothing required
 for core Mini:
 
 ```console
-$ bin/session.sh                  # print the first user message (path-aware)
-$ bin/session.sh -- claude -p     # or: your host CLI, message as final argument
-$ bin/session.sh -- codex exec -  # any host; each invocation = a fresh context
+$ "$HOME/.harness-mini/bin/session.sh"              # print the first user message
+$ "$HOME/.harness-mini/bin/session.sh" -- "$AGENT_COMMAND" --prompt
 ```
 
-The runner reads `bin/harness.sh status`, takes its `path:` line
+The runner reads project status through the centralized runtime, takes its `path:` line
 (`init` → `session-init`, `coding` → `session-coding`), and injects that
 skill's body **verbatim** under a short wrapper — the skill files stay the
 single source of truth. It persists nothing: every invocation starts clean.
@@ -190,6 +188,6 @@ straight to implement; everything else flows exactly like this.
 
 Next: read [`AGENTS.md`](../AGENTS.md) (the map), then
 [`docs/principles.md`](principles.md) (the Mini delete-first constraint and golden principles).
-Another host? See
+More usage notes: see
 [`docs/codex-getting-started.md`](codex-getting-started.md) /
 [`docs/cursor-getting-started.md`](cursor-getting-started.md).

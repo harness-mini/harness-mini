@@ -65,7 +65,7 @@ grader: evaluator|reviewer|main
 `stage-viewer` may not promote a plan to `done` without a `verdict: pass` record,
 and `harness.sh doctor` **FAILs** a done plan that has none. Keep the ephemeral
 `trace.sh` verdict line too (it feeds `harness.sh report`):
-`bin/trace.sh <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.
+`"$HOME/.harness-mini/bin/trace.sh" <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.
 
 ## Calibration
 - Be specific and harsh on evidence; never accept "looks done."
