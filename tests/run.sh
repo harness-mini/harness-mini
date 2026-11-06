@@ -152,6 +152,18 @@ assert_contains "$out" "project-a" "central status reads the explicitly selected
 out="$(bash "$HARNESS_HOME/bin/harness.sh" --root "$PROJECT_B" status 2>&1)"
 assert_eq "0" "$(printf '%s' "$out" | grep -c 'project-a')" "central status does not leak another project's workboard"
 assert_contains "$out" "path_reason: empty board" "central status uses the second project's root"
+out="$(bash "$HARNESS_HOME/bin/harness.sh" --root "$RUNTIME_PROJECT" doctor 2>&1)"
+assert_contains "$out" "runtime:" "central doctor reports the runtime version"
+assert_contains "$out" "project:" "central doctor reports the selected project version"
+assert_contains "$out" "shared skills" "central doctor reports shared skill count"
+assert_contains "$out" "manifest healthy" "central doctor validates the project manifest"
+assert_contains "$out" "0 missing" "central doctor reports no missing manifest skills"
+out="$(bash "$HARNESS_HOME/bin/harness.sh" --root "$RUNTIME_PROJECT" status 2>&1)"
+assert_contains "$out" "runtime:" "central status reports the runtime version"
+assert_contains "$out" "project:" "central status reports the selected project version"
+assert_contains "$out" "shared skills" "central status reports shared skill count"
+assert_contains "$out" "manifest healthy" "central status validates the project manifest"
+assert_contains "$out" "0 missing" "central status reports no missing manifest skills"
 rm -rf "$PROJECT_B" "$RUNTIME_PROJECT"
 
 # =============================================================================
@@ -484,6 +496,29 @@ out="$(HARNESS_ROOT="$DDIR" bash "$HARN" doctor 2>&1)"; code=$?
 assert_exit 0 "$code" "doctor: healthy install exits 0"
 assert_contains "$out" "ok" "doctor reports ok checks"
 assert_contains "$out" "AGENTS.md" "doctor checks AGENTS.md"
+assert_contains "$out" "shared skills" "doctor reports the shared skills count"
+assert_contains "$out" "manifest healthy" "doctor reports a healthy shared-path manifest"
+assert_contains "$out" "0 missing" "doctor reports zero missing skills"
+# an empty shared-path section is not a healthy manifest
+EMPTY_MANIFEST="$(mktemp -d)"; mkdir -p "$EMPTY_MANIFEST/harness" "$EMPTY_MANIFEST/.agents/skills"
+printf 'version: 0.0.0\n' > "$EMPTY_MANIFEST/harness/harness.lock"
+printf 'AGENTS\n' > "$EMPTY_MANIFEST/AGENTS.md"
+printf '# Manifest\n\n## Skills (.agents/skills/)\n\n## Role descriptions\n' > "$EMPTY_MANIFEST/harness/manifest.md"
+printf 'skill\n' > "$EMPTY_MANIFEST/.agents/skills/x.md"
+out="$(HARNESS_ROOT="$EMPTY_MANIFEST" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"
+assert_contains "$out" "manifest lists no shared skills" "doctor flags an empty shared-skill manifest"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'manifest healthy')" "empty manifest is not reported healthy"
+out="$(HARNESS_ROOT="$EMPTY_MANIFEST" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "manifest: no shared skills listed" "status flags an empty shared-skill manifest"
+rm -rf "$EMPTY_MANIFEST"
+# a manifest-listed skill absent from .agents/skills must be named and block readiness
+rm -f "$DDIR/.agents/skills/tdd/SKILL.md"
+out="$(HARNESS_ROOT="$DDIR" HARNESS_NO_NET=1 bash "$HARN" doctor 2>&1)"; code=$?
+assert_exit 1 "$code" "doctor fails when a manifest-listed shared skill is missing"
+assert_contains "$out" "tdd/SKILL.md" "doctor names the missing shared skill"
+out="$(HARNESS_ROOT="$DDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "ready: blocked" "status readiness blocks on a manifest-listed missing skill"
+cp "$ROOT/skills/tdd/SKILL.md" "$DDIR/.agents/skills/tdd/SKILL.md"
 # a .new file is a WARN, not a FAIL → still exit 0
 touch "$DDIR/.agents/skills/tdd/SKILL.md.new"
 out="$(HARNESS_ROOT="$DDIR" bash "$HARN" doctor 2>&1)"; code=$?

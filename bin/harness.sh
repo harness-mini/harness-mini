@@ -38,6 +38,57 @@ installed_version() {
   fi
 }
 
+runtime_version() {
+  if [ -f "$RUNTIME_ROOT/harness/runtime.lock" ]; then
+    lock_version "$RUNTIME_ROOT/harness/runtime.lock"
+  elif [ -f "$RUNTIME_ROOT/VERSION" ]; then
+    tr -d ' \t\r\n' < "$RUNTIME_ROOT/VERSION"
+  else
+    echo "unknown"
+  fi
+}
+
+project_version() {
+  local root="$1" version=""
+  [ ! -f "$root/harness/harness.lock" ] || version="$(lock_version "$root/harness/harness.lock")"
+  if [ -z "$version" ] && [ -f "$root/VERSION" ]; then
+    version="$(tr -d ' \t\r\n' < "$root/VERSION")"
+  fi
+  printf '%s' "${version:-uninitialized}"
+}
+
+shared_skill_count() {
+  local root="$1" skill_root="$1/.agents/skills" folders=0 flat=0
+  [ -d "$skill_root" ] || skill_root="$root/skills"
+  [ -d "$skill_root" ] || { printf '0'; return; }
+  folders="$(find "$skill_root" -type f -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')"
+  flat="$(find "$skill_root" -maxdepth 1 -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+  printf '%s' "$((folders + flat))"
+}
+
+manifest_skill_entries() {
+  awk '
+    /^## Skills \(\.agents\/skills\/\)/ { in_skills=1; next }
+    /^## / { in_skills=0 }
+    in_skills && /^- / { sub(/^- /, ""); print }
+  ' "$1" 2>/dev/null
+}
+
+missing_manifest_skills() {
+  local root="$1" entry
+  [ -f "$root/harness/manifest.md" ] || return 0
+  while IFS= read -r entry; do
+    case "$entry" in
+      ""|/*|../*|*/../*|*/..)
+        printf '%s\n' "$entry (invalid path)"
+        ;;
+      *)
+        [ -f "$root/.agents/skills/$entry" ] || printf '%s\n' "$entry"
+        ;;
+    esac
+  done < <(manifest_skill_entries "$root/harness/manifest.md")
+}
+
 # latest_version — best-effort newest published tag for HARNESS_REPO (no "v").
 # HARNESS_LATEST overrides (explicit pin / offline tests); HARNESS_NO_NET
 # short-circuits so the caller never hangs offline-on-purpose.
@@ -309,10 +360,14 @@ cmd_doctor() {
   }
 
   [ -f "$root/AGENTS.md" ] && emit ok "AGENTS.md present" || emit fail "AGENTS.md missing"
+  emit ok "runtime: $(runtime_version)"
+  local pver; pver="$(project_version "$root")"
+  [ "$pver" = "uninitialized" ] && emit warn "project: uninitialized" \
+                                || emit ok "project: $pver"
   if [ -f "$LOCK" ]; then
-    emit ok "harness.lock present (v$(installed_version))"
+    emit ok "harness.lock present (v$pver)"
   elif [ -f "$root/VERSION" ] && [ -d "$root/skills" ]; then
-    emit ok "source repo (VERSION $(installed_version); no lock needed)"
+    emit ok "source repo (VERSION $pver; no lock needed)"
   else
     emit fail "harness/harness.lock missing (run init.sh)"
   fi
@@ -332,10 +387,12 @@ cmd_doctor() {
   elif [ -d "$root/skills" ]; then
     skill_root="$root/skills"; skill_label="skills"
   fi
+  local skill_total; skill_total="$(shared_skill_count "$root")"
   if [ -n "$skill_root" ]; then
     local nfolders nflat
     nfolders=$(find "$skill_root" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
     nflat=$(find "$skill_root" -maxdepth 1 -name '*.md' 2>/dev/null | wc -l | tr -d ' ')
+    emit ok "$skill_total shared skills in $skill_label"
     [ "$nfolders" -gt 0 ] && emit ok "$nfolders skills in <name>/SKILL.md shape" \
                           || emit fail "$skill_label has no <name>/SKILL.md"
     [ "$nflat" -gt 0 ] && emit warn "$nflat flat .md skill(s) in $skill_label (old shape)"
@@ -344,8 +401,21 @@ cmd_doctor() {
   fi
 
   if [ -f "$root/harness/manifest.md" ]; then
-    grep -q '\.md' "$root/harness/manifest.md" && emit ok "manifest lists skills" \
-                                               || emit warn "harness/manifest.md lists no skills"
+    if grep -q '^## Skills (\.agents/skills/)' "$root/harness/manifest.md"; then
+      local listed missing missing_count
+      listed="$(manifest_skill_entries "$root/harness/manifest.md" | wc -l | tr -d ' ')"
+      missing="$(missing_manifest_skills "$root")"
+      missing_count="$(printf '%s\n' "$missing" | awk 'NF {n++} END {print n+0}')"
+      if [ "$listed" -eq 0 ]; then
+        emit warn "manifest lists no shared skills"
+      elif [ "$missing_count" -eq 0 ]; then
+        emit ok "manifest healthy ($listed listed, 0 missing)"
+      else
+        emit fail "manifest missing $missing_count skill(s): $(printf '%s' "$missing" | tr '\n' ', ' | sed 's/, $//')"
+      fi
+    else
+      emit warn "harness/manifest.md has no .agents/skills section"
+    fi
   else
     emit warn "harness/manifest.md missing"
   fi
@@ -429,6 +499,25 @@ cmd_doctor() {
 cmd_status() {
   local root="$HARNESS_ROOT"
   echo "harness-mini $(installed_version)"
+  echo "runtime: $(runtime_version)"
+  local pver; pver="$(project_version "$root")"
+  echo "project: $pver"
+  local nskills; nskills="$(shared_skill_count "$root")"
+  echo "shared skills: $nskills"
+  local manifest_missing="" manifest_count=0
+  if [ -f "$root/harness/manifest.md" ] && grep -q '^## Skills (\.agents/skills/)' "$root/harness/manifest.md"; then
+    manifest_missing="$(missing_manifest_skills "$root")"
+    manifest_count="$(manifest_skill_entries "$root/harness/manifest.md" | wc -l | tr -d ' ')"
+    if [ "$manifest_count" -eq 0 ]; then
+      echo "manifest: no shared skills listed"
+    elif [ -z "$manifest_missing" ]; then
+      echo "manifest healthy: $manifest_count listed, 0 missing"
+    else
+      echo "manifest missing skills: $(printf '%s' "$manifest_missing" | tr '\n' ', ' | sed 's/, $//')"
+    fi
+  else
+    echo "manifest: missing .agents/skills section"
+  fi
 
   # update check (best-effort) — remind on entry if a newer harness-mini exists.
   # Silent when offline/unknown so the cold-resume view stays fast & quiet.
@@ -561,16 +650,12 @@ cmd_status() {
   fi
 
   # readiness verdict — one line; blocked > warning > ready (grill #1 → A)
-  local level=ready next="" nskills done_plan="" r
-  nskills=$(find "$root/.agents/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-  [ -z "$nskills" ] && nskills=0
-  if [ "$nskills" -eq 0 ] && [ -d "$root/skills" ]; then
-    nskills=$(find "$root/skills" -name SKILL.md 2>/dev/null | wc -l | tr -d ' ')
-    [ -z "$nskills" ] && nskills=0
-  fi
+  local level=ready next="" done_plan="" r
 
   if [ ! -f "$root/AGENTS.md" ]; then
     level=blocked; next="restore AGENTS.md (re-run init.sh)"
+  elif [ -n "$manifest_missing" ]; then
+    level=blocked; next="restore missing shared skill(s) from harness/manifest.md"
   elif [ "$nskills" -eq 0 ]; then
     level=blocked; next="install skills (re-run init.sh)"
   else
