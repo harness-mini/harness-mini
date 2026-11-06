@@ -20,6 +20,7 @@ prev: none
 - Open issues: issue-001, issue-002, issue-003, issue-004, issue-005, issue-006
 ## Decisions
 - Runtime lives at `$HOME/.harness-mini`, with `HARNESS_HOME` as an override.
+- Global runtime checksums/version and each project's selected adapter/file checksums use separate lock scopes.
 - Host selection is explicit (`claude` or `cursor`); interactive prompt only on TTY; fail before mutation otherwise.
 - Cursor gets `.cursor/skills` and no generated rules; Claude gets `.claude/skills` and `.claude/agents`.
 - Migration removes only old harness executables that match the legacy lock checksum; preserve edited files.
