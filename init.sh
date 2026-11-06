@@ -73,6 +73,119 @@ copy_tree() { # <src_dir> <dest_dir>  — additive, recursive
   done
 }
 
+legacy_skill_description() { # <skill_md>
+  awk '
+    NR==1 && $0=="---" { fm=1; next }
+    fm && $0=="---"    { exit }
+    fm && /^description:/ { sub(/^description:[ \t]*/, ""); print; exit }
+  ' "$1"
+}
+
+remove_generated_cursor_rules() {
+  local rules="$DEST/.cursor/rules" expected rule name skill desc
+  [ -d "$rules" ] || return 0
+  expected="$(mktemp)" || return 1
+  cat > "$expected" <<'EOF'
+---
+description: harness-mini routing gate — status-first, path-aware, prefer the harness lifecycle and skills
+alwaysApply: true
+---
+
+This project runs on **harness-mini**. On a fresh session, first run
+`bin/harness.sh status`, read its `path:` line, and open the matching skill:
+`session-init` (path: init — plan work only, no product code) or
+`session-coding` (path: coding — Getting Bearings first, then one
+`passes: false` slice from the JSON twins in `docs/exec-plans/active/`).
+For non-trivial work — a feature, a multi-step or ambiguous change, anything
+cross-cutting — route it through the `stage-viewer` skill first and prefer
+harness-mini's lifecycle, skills, and sub-agents (read
+`.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other installed
+plugins. When a harness skill and another tool both fit, the harness skill
+wins. Trivial one-line fixes may skip the ceremony (quick mode).
+
+Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
+EOF
+  if [ -f "$rules/harness-mini.mdc" ] && [ ! -L "$rules/harness-mini.mdc" ] \
+     && cmp -s "$expected" "$rules/harness-mini.mdc"; then
+    rm -f "$rules/harness-mini.mdc"
+    say "migr  removed unchanged generated .cursor/rules/harness-mini.mdc"
+  fi
+  rm -f "$expected"
+
+  for rule in "$rules"/*.mdc; do
+    [ -f "$rule" ] || continue
+    [ ! -L "$rule" ] || continue
+    name="$(basename "$rule" .mdc)"
+    [ "$name" = harness-mini ] && continue
+    skill="$DEST/.claude/skills/$name/SKILL.md"
+    [ -f "$skill" ] || continue
+    desc="$(legacy_skill_description "$skill")"
+    [ -n "$desc" ] || desc="harness-mini skill: $name"
+    expected="$(mktemp)" || return 1
+    {
+      printf '%s\n' '---'
+      printf 'description: %s\n' "$desc"
+      printf '%s\n' 'alwaysApply: false'
+      printf '%s\n\n' '---'
+      printf 'harness-mini skill **%s**. Read `.claude/skills/%s/SKILL.md` and follow it for this task.\n' "$name" "$name"
+    } > "$expected"
+    if cmp -s "$expected" "$rule"; then
+      rm -f "$rule"
+      say "migr  removed unchanged generated .cursor/rules/$name.mdc"
+    fi
+    rm -f "$expected"
+  done
+  rmdir "$rules" 2>/dev/null || true
+}
+
+migrate_lock_verified_legacy_files() {
+  local lock="$DEST/harness/harness.lock" legacy rel base current common
+  [ -f "$lock" ] || { say "skip  legacy bin/skills migration (no prior lock baseline)"; return 0; }
+
+  for legacy in "$DEST"/bin/*; do
+    [ -f "$legacy" ] || continue
+    [ ! -L "$legacy" ] || continue
+    rel="bin/$(basename "$legacy")"
+    base="$(lock_sha "$lock" "$rel")"
+    [ -n "$base" ] || continue
+    current="$(cksum_file "$legacy")"
+    if [ "$current" = "$base" ]; then
+      rm -f "$legacy"
+      say "migr  removed unchanged legacy $rel"
+    fi
+  done
+  rmdir "$DEST/bin" 2>/dev/null || true
+
+  if [ -d "$DEST/.claude/skills" ]; then
+    while IFS= read -r legacy; do
+      rel="${legacy#"$DEST/.claude/skills/"}"
+      base="$(lock_sha "$lock" ".claude/skills/$rel")"
+      [ -n "$base" ] || continue
+      current="$(cksum_file "$legacy")"
+      [ "$current" = "$base" ] || continue
+      common="$DEST/.agents/skills/$rel"
+      if [ -L "$common" ] && [ ! -e "$common" ]; then
+        say "keep  .claude/skills/$rel (shared target is a dangling symlink)"
+        continue
+      fi
+      if [ ! -e "$common" ]; then
+        mkdir -p "$(dirname "$common")" && mv "$legacy" "$common" || return 1
+        say "migr  moved unchanged .claude/skills/$rel to .agents/skills/$rel"
+      else
+        rm -f "$legacy"
+        say "migr  removed unchanged legacy .claude/skills/$rel"
+      fi
+    done < <(find "$DEST/.claude/skills" -type f -print 2>/dev/null)
+    find "$DEST/.claude/skills" -depth -type d -empty -exec rmdir {} \; 2>/dev/null || true
+    rmdir "$DEST/.claude" 2>/dev/null || true
+  fi
+}
+
+migrate_legacy_layout() {
+  remove_generated_cursor_rules || return 1
+  migrate_lock_verified_legacy_files || return 1
+}
+
 install_runtime() {
   local runtime_lock="$HARNESS_HOME/harness/runtime.lock" version f target
   version="$(tr -d ' \t\r\n' < "$SRC/VERSION" 2>/dev/null)"
@@ -114,6 +227,9 @@ copy_tree "$SRC/agents" "$DEST/harness/agents"
   | while read -r rel; do copy_file "$SRC/docs/${rel#./}" "$DEST/docs/${rel#./}"; done
 copy_file "$SRC/AGENTS.md"       "$DEST/AGENTS.md"
 copy_file "$SRC/ARCHITECTURE.md" "$DEST/ARCHITECTURE.md"
+
+# --- migrate only provably harness-owned legacy files -----------------------
+migrate_legacy_layout || { echo "init.sh: legacy migration failed" >&2; exit 1; }
 
 # --- manifest: pointer list of the installed skill and agent files ----------
 if [ ! -f "$DEST/harness/manifest.md" ]; then

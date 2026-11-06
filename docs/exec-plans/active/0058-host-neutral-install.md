@@ -62,15 +62,15 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - Separate evaluator checks all acceptance criteria after implementation.
 
 ## Now (resume here)
-- Begin issue-005: safely migrate lock-clean legacy project bin scripts, host-specific skill folders, and generated Cursor rules; preserve edits.
+- Begin issue-006: update docs, getting-started guides, routing instructions, manifest, and changelog for the shared layout and centralized runtime.
 
 ## Next
-- Implement #5 and #6 in listed order; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
+- Implement #6 and complete the full acceptance search/evaluation; keep the PRD decisions fixed unless code inspection disproves a stated assumption.
 
 ## Session Context Handoff
-**Last Updated**: 2026-11-06 (Session #5)
-**Completed Work**: Issues 001–004 passed L2. Runtime/project locks are separate; skills use .agents/skills; doctor/status accept explicit project roots and report runtime/project versions, shared skill count, manifest health, and named missing skills. Missing listed skills block readiness; empty manifests are reported as unhealthy. Full suite: 356 passed, 0 failed.
-**Current Blockers / Risks**: Checksum-safe migration of legacy project bin scripts and host-specific files remains for issue-005.
+**Last Updated**: 2026-11-06 (Session #6)
+**Completed Work**: Issues 001–005 passed L2. Runtime is centralized; skills share .agents/skills; diagnostics report explicit project/runtime state; upgrade migration removes only lock-clean legacy files, moves clean skills, preserves edits/no-lock files/symlinks, and deletes only exact generated Cursor rules. Repeated installs are covered; full suite: 370 passed, 0 failed.
+**Current Blockers / Risks**: User-facing docs and source manifest still need issue-006 updates; source doctor currently warns on the old manifest wording.
 
 ## Decisions log
 - 2026-11-06: Advanced intake → PRD → issues → implement after confirming install scope, host selection behavior, and checksum-safe legacy migration; implementation order is captured in issues #1–#6.
@@ -82,3 +82,4 @@ init.sh currently copies harness executables into each project's bin/, fixes ski
 - 2026-11-06: issue-002 passed L2; the central session runner defaults project root to the invoking working directory, and shared skill discovery uses .agents/skills.
 - 2026-11-06: issue-003 passed L2; project locks track only managed project data, runtime lock owns executable checksums/version, and self-update defers replacing the running script until the final step.
 - 2026-11-06: issue-004 passed L2; doctor/status use the selected project root and report shared skill inventory, manifest completeness, and separate runtime/project versions. Missing manifest-listed files block status readiness.
+- 2026-11-06: issue-005 passed L2; migration trusts prior lock checksums for bin/Claude skill files, compares generated Cursor rules byte-for-byte, and preserves edited, untracked, and symlinked files.

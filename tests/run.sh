@@ -348,6 +348,86 @@ assert_eq "map" "$(cat "$GNDST/AGENTS.md")" "shared AGENTS.md is installed when 
 assert_eq "false" "$([ -f "$GNDST/.cursor/rules/harness-mini.mdc" ] && echo true || echo false)" "installer adds no host-specific routing file"
 rm -rf "$GNSRC" "$GNDST"
 
+echo "init.sh — checksum-safe migration from legacy project layouts"
+MIGSRC="$(mktemp -d)"; MIG_HOME="$(mktemp -d)"; MIGDEST="$(mktemp -d)"
+mkdir -p "$MIGSRC/skills/fresh" "$MIGSRC/agents" "$MIGSRC/bin" "$MIGSRC/docs"
+printf '0.2.0\n' > "$MIGSRC/VERSION"
+printf 'fresh skill\n' > "$MIGSRC/skills/fresh/SKILL.md"
+printf 'map\n' > "$MIGSRC/AGENTS.md"; printf 'arch\n' > "$MIGSRC/ARCHITECTURE.md"
+mkdir -p "$MIGDEST/bin" "$MIGDEST/.claude/skills/legacy" "$MIGDEST/.claude/skills/edited" \
+  "$MIGDEST/.cursor/rules" "$MIGDEST/harness"
+printf 'legacy harness executable\n' > "$MIGDEST/bin/harness.sh"
+printf 'original harness executable\n' > "$MIGDEST/bin/edited.sh"
+printf 'linked binary content\n' > "$MIGDEST/user-owned-script"
+ln -s ../user-owned-script "$MIGDEST/bin/linked.sh"
+printf '%s\n' '---' 'description: legacy skill' '---' 'legacy skill body' > "$MIGDEST/.claude/skills/legacy/SKILL.md"
+printf 'description: edited skill\n' > "$MIGDEST/.claude/skills/edited/SKILL.md"
+legacy_bin_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$MIGDEST/bin/harness.sh")"
+edited_bin_base="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$MIGDEST/bin/edited.sh")"
+linked_bin_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$MIGDEST/bin/linked.sh")"
+legacy_skill_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$MIGDEST/.claude/skills/legacy/SKILL.md")"
+edited_skill_base="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$MIGDEST/.claude/skills/edited/SKILL.md")"
+printf 'user changed harness executable\n' >> "$MIGDEST/bin/edited.sh"
+printf 'edited by user\n' >> "$MIGDEST/.claude/skills/edited/SKILL.md"
+cat > "$MIGDEST/.cursor/rules/harness-mini.mdc" <<'EOF'
+---
+description: harness-mini routing gate — status-first, path-aware, prefer the harness lifecycle and skills
+alwaysApply: true
+---
+
+This project runs on **harness-mini**. On a fresh session, first run
+`bin/harness.sh status`, read its `path:` line, and open the matching skill:
+`session-init` (path: init — plan work only, no product code) or
+`session-coding` (path: coding — Getting Bearings first, then one
+`passes: false` slice from the JSON twins in `docs/exec-plans/active/`).
+For non-trivial work — a feature, a multi-step or ambiguous change, anything
+cross-cutting — route it through the `stage-viewer` skill first and prefer
+harness-mini's lifecycle, skills, and sub-agents (read
+`.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other installed
+plugins. When a harness skill and another tool both fit, the harness skill
+wins. Trivial one-line fixes may skip the ceremony (quick mode).
+
+Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
+EOF
+cat > "$MIGDEST/.cursor/rules/legacy.mdc" <<'EOF'
+---
+description: legacy skill
+alwaysApply: false
+---
+
+harness-mini skill **legacy**. Read `.claude/skills/legacy/SKILL.md` and follow it for this task.
+EOF
+cp "$MIGDEST/.cursor/rules/legacy.mdc" "$MIGDEST/.cursor/rules/edited.mdc"
+printf '\nuser rule edit\n' >> "$MIGDEST/.cursor/rules/edited.mdc"
+printf 'user cursor rule\n' > "$MIGDEST/.cursor/rules/user.mdc"
+printf 'version: 0.1.0\n%s  bin/harness.sh\n%s  bin/edited.sh\n%s  bin/linked.sh\n%s  .claude/skills/legacy/SKILL.md\n%s  .claude/skills/edited/SKILL.md\n' \
+  "$legacy_bin_sha" "$edited_bin_base" "$linked_bin_sha" "$legacy_skill_sha" "$edited_skill_base" > "$MIGDEST/harness/harness.lock"
+HARNESS_SRC="$MIGSRC" HARNESS_HOME="$MIG_HOME" bash "$ROOT/init.sh" "$MIGDEST" >/dev/null 2>&1
+assert_eq "false" "$([ -e "$MIGDEST/bin/harness.sh" ] && echo true || echo false)" "migration removes a lock-matching legacy harness executable"
+assert_contains "$(cat "$MIGDEST/bin/edited.sh")" "user changed" "migration preserves an edited legacy executable"
+assert_eq "true" "$([ -L "$MIGDEST/bin/linked.sh" ] && echo true || echo false)" "migration preserves a user symlink even when its checksum matches"
+assert_contains "$(cat "$MIGDEST/.agents/skills/legacy/SKILL.md")" "legacy skill body" "migration moves a lock-matching Claude skill to shared layout"
+assert_eq "false" "$([ -e "$MIGDEST/.claude/skills/legacy/SKILL.md" ] && echo true || echo false)" "migration removes the clean legacy skill source"
+assert_contains "$(cat "$MIGDEST/.claude/skills/edited/SKILL.md")" "edited by user" "migration preserves an edited legacy skill"
+assert_eq "false" "$([ -e "$MIGDEST/.cursor/rules/harness-mini.mdc" ] && echo true || echo false)" "migration removes the exact generated Cursor routing rule"
+assert_eq "false" "$([ -e "$MIGDEST/.cursor/rules/legacy.mdc" ] && echo true || echo false)" "migration removes the exact generated Cursor skill rule"
+assert_contains "$(cat "$MIGDEST/.cursor/rules/edited.mdc")" "user rule edit" "migration preserves an edited generated Cursor rule"
+assert_contains "$(cat "$MIGDEST/.cursor/rules/user.mdc")" "user cursor rule" "migration preserves unrelated Cursor rules"
+HARNESS_SRC="$MIGSRC" HARNESS_HOME="$MIG_HOME" bash "$ROOT/init.sh" "$MIGDEST" >/dev/null 2>&1
+assert_contains "$(cat "$MIGDEST/.agents/skills/legacy/SKILL.md")" "legacy skill body" "migration is idempotent on a repeated install"
+MIGCLEAN="$(mktemp -d)"; mkdir -p "$MIGCLEAN/bin" "$MIGCLEAN/harness"
+printf 'legacy harness executable\n' > "$MIGCLEAN/bin/harness.sh"
+printf 'version: 0.1.0\n%s  bin/harness.sh\n' "$legacy_bin_sha" > "$MIGCLEAN/harness/harness.lock"
+HARNESS_SRC="$MIGSRC" HARNESS_HOME="$MIG_HOME" bash "$ROOT/init.sh" "$MIGCLEAN" >/dev/null 2>&1
+assert_eq "false" "$([ -d "$MIGCLEAN/bin" ] && echo true || echo false)" "migration removes an empty legacy project bin directory"
+MIGNOLOCK="$(mktemp -d)"; mkdir -p "$MIGNOLOCK/bin" "$MIGNOLOCK/.claude/skills/keep"
+printf 'unknown executable\n' > "$MIGNOLOCK/bin/keep.sh"
+printf 'unknown skill\n' > "$MIGNOLOCK/.claude/skills/keep/SKILL.md"
+HARNESS_SRC="$MIGSRC" HARNESS_HOME="$MIG_HOME" bash "$ROOT/init.sh" "$MIGNOLOCK" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$MIGNOLOCK/bin/keep.sh" ] && echo true || echo false)" "migration preserves legacy executables without lock evidence"
+assert_eq "true" "$([ -f "$MIGNOLOCK/.claude/skills/keep/SKILL.md" ] && echo true || echo false)" "migration preserves legacy skills without lock evidence"
+rm -rf "$MIGSRC" "$MIG_HOME" "$MIGDEST" "$MIGCLEAN" "$MIGNOLOCK"
+
 # =============================================================================
 echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
 # old upstream -> install it (records baseline lock)
