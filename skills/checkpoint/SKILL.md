@@ -12,9 +12,16 @@ handoff authored by a degraded agent is worthless.
 3. Session end.
 
 ## Procedure
-1. Pick the next sequence number for this plan (look at existing
+The helpers live with this skill. In the harness-mini checkout, invoke them as
+`bash skills/checkpoint/scripts/<helper>.sh`; in an installed project, use
+`bash .claude/skills/checkpoint/scripts/<helper>.sh`.
+
+1. Run `checkpoint-guard.sh` — if it exits 1 (suppressed), skip writing
+   a redundant checkpoint (no tracked files changed).
+2. Pick the next sequence number for this plan (look at existing
    `.trace/checkpoints/<plan>-*.md`).
-2. Write `.trace/checkpoints/<plan>-<seq>.md`:
+3. Write `.trace/checkpoints/<plan>-<seq>.md` and validate it with
+   `checkpoint-lint.sh .trace/checkpoints/<plan>-<seq>.md`:
 
 ```markdown
 ---
@@ -34,8 +41,14 @@ prev: <plan>-<seq-1 or none>
 <!-- Compact-with-state payload (OpenHarness idea, Mini-shaped). Additive —
      older checkpoints without this section remain valid. -->
 - Acceptance: <which plan ACs / issues are met vs open — or "none yet">
-- Footprint: <files/dirs in flight for the current slice — or "none">
-- Last green: <exact test/command that was green — or "none">
+- Footprint: <file:start-end::STATUS entries, one per line — or "none">
+  <!-- Notation: file/path.ext:start-end::STATUS  where STATUS ∈ {WIP, DONE, REVIEW}
+       e.g.  - src/api.py:45-80::WIP
+       Do NOT use prose. Run checkpoint-lint.sh <this-file> to validate.
+       Run checkpoint-snapshot.sh "src/api.py:45-80::WIP" to record exact lines. -->
+- Last green: <cat .trace/runtime/last-green.txt  — or "none">
+  <!-- Populated automatically by bin/ctx-hook.sh when HARNESS_TEST_SCRIPT is set
+       and passes. Do not recall from memory — read the file. -->
 - Open issues: <issue ids still open — or "none">
 ## Decisions
 - <choices made + where the rationale lives>
@@ -43,18 +56,18 @@ prev: <plan>-<seq-1 or none>
 - <or "none">
 ```
 
-3. Update the active exec-plan's `Now`/`Next` to match, and refresh its
+4. Update the active exec-plan's `Now`/`Next` to match, and refresh its
    **`## Session Context Handoff`** section (Last Updated / Completed Work /
    Current Blockers / Risks) — that is the three-line summary a cold session
    reads first. If the plan has a JSON twin, update `current_slice_id` to the
    slice now in flight (never flip `passes` — that needs an evaluator verdict,
    see `evaluate`).
-4. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
+5. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
    scope? Don't fix it inline (that breaks slice discipline) and don't lose it —
    append it to `.trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>
    | <low|med|high> | <note>`). See the `garden` skill.
-5. `bin/trace.sh <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
-6. These files are **committed** (unlike `.trace/runtime/`). Commit them.
+6. `bin/trace.sh <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
+7. These files are **committed** (unlike `.trace/runtime/`). Commit them.
 
 > Each committed checkpoint is a gardening "visit": writing this one may tip
 > `harness.sh status` to `garden: DUE` (≥5 since the last sweep). The main agent

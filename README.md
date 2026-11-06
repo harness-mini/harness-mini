@@ -250,9 +250,10 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 | `bin/{ctx,trace,ralph}.sh` | context gauge · JSONL tracer · ralph loop |
 | `bin/session.sh` | Outer session runner (optional P2): force the matching session playbook into a fresh context |
 | `bin/model.sh` | resolve a role's model alias (builder → the highest-available frontier model tier when enabled) |
-| `bin/ctx-hook.sh` | opt-in PostToolUse hook (auto ctx_pct + 40% nudge) |
+| `bin/ctx-hook.sh` | opt-in PostToolUse hook (auto ctx_pct + 40% nudge + auto last-green test stamp) |
 | `harness/harness.lock` | installed version + managed-file checksums |
 | `skills/<name>/SKILL.md` → `.claude/skills/` | 17 skills (one folder each) |
+| `skills/checkpoint/scripts/` → `.claude/skills/checkpoint/scripts/` | checkpoint-only Footprint validator, line snapshotter, and no-op guard |
 | `agents/` → `.claude/agents/` | 5 sub-agents (who does the work) |
 | `docs/principles.md` | golden principles + the Mini delete-first constraint |
 | `docs/smart-dumb.md` | the 40% contract |

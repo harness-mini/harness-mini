@@ -124,9 +124,10 @@ rm -f "$FLAG"
 echo "init.sh — additive, idempotent installer with new/existing asymmetry"
 # Build a fake source tree so installer logic is tested independent of real assets.
 FSRC="$(mktemp -d)"
-mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs" "$FSRC/skills/demo"
+mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs" "$FSRC/skills/demo/scripts"
 printf 'skill body\n' > "$FSRC/skills/sample.md"
 printf 'demo body\n'  > "$FSRC/skills/demo/SKILL.md"   # canonical folder-form skill
+printf '#!/bin/sh\n' > "$FSRC/skills/demo/scripts/helper.sh"
 printf 'agent body\n' > "$FSRC/agents/planner.md"
 printf 'echo hi\n'    > "$FSRC/bin/ctx.sh"
 printf 'map\n'        > "$FSRC/AGENTS.md"
@@ -137,6 +138,7 @@ code=0; HARNESS_SRC="$FSRC" bash "$BIN/../init.sh" "$NEW" >/dev/null 2>&1 || cod
 assert_exit 0 "$code" "init succeeds on empty project"
 assert_eq "true" "$([ -f "$NEW/.claude/skills/sample.md" ] && echo true || echo false)" "skills install to .claude/skills/"
 assert_eq "true" "$([ -f "$NEW/.claude/skills/demo/SKILL.md" ] && echo true || echo false)" "folder-form skill installs to .claude/skills/<name>/SKILL.md"
+assert_eq "true" "$([ -f "$NEW/.claude/skills/demo/scripts/helper.sh" ] && echo true || echo false)" "skill-owned scripts install recursively with their skill"
 assert_eq "true" "$([ -f "$NEW/.claude/agents/planner.md" ] && echo true || echo false)" "agents install to .claude/agents/"
 assert_eq "true" "$([ -f "$NEW/harness/manifest.md" ] && echo true || echo false)" "neutral harness/manifest.md mirror written"
 assert_eq "true" "$([ -f "$NEW/.gitignore" ] && grep -q '.trace/runtime' "$NEW/.gitignore" && echo true || echo false)" "gitignore carries .trace/runtime"
@@ -946,6 +948,248 @@ assert_eq "0" "$(printf '%s' "$out" | grep -c 'no JSON twin')" "existing-mode in
 out="$(HARNESS_ROOT="$TW2" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
 assert_contains "$out" "workboard: planned" "existing-mode install: status shows the seed workboard"
 rm -rf "$TW2" "$TWSRC"
+
+# =============================================================================
+# checkpoint-hardening — slice-001: checkpoint-lint.sh
+# Tests written RED (before implementation). Discussion #75 / plan 0001.
+echo "checkpoint-lint.sh — validate Footprint entries enforce file:start-end::STATUS"
+CHECKPOINT_SCRIPTS="$ROOT/skills/checkpoint/scripts"
+LINT="$CHECKPOINT_SCRIPTS/checkpoint-lint.sh"
+assert_eq "true" "$([ -f "$LINT" ] && echo true || echo false)" "checkpoint lint helper is skill-owned"
+assert_eq "false" "$([ -e "$BIN/checkpoint-lint.sh" ] && echo true || echo false)" "checkpoint lint helper is absent from shared bin"
+TMPL="$(mktemp -d)"
+
+# helper: write a checkpoint with arbitrary Footprint block content.
+# Uses cat + heredoc-free technique to avoid printf '---' flag interpretation.
+write_cp() {  # <file> <footprint_lines_or_"none">
+  local f="$1" fp="$2"
+  {
+    printf '%s\n' "---"
+    printf '%s\n' "plan: test"
+    printf '%s\n' "seq: 1"
+    printf '%s\n' "---"
+    printf '%s\n' "## Task state"
+    printf '%s\n' "- Footprint: $fp"
+    printf '%s\n' "- Last green: none"
+    printf '%s\n' "- Open issues: none"
+  } > "$f"
+}
+
+write_cp_block() {  # <file> <indented footprint entry line>
+  local f="$1" entry="$2"
+  {
+    printf '%s\n' "---"
+    printf '%s\n' "plan: test"
+    printf '%s\n' "seq: 1"
+    printf '%s\n' "---"
+    printf '%s\n' "## Task state"
+    printf '%s\n' "- Footprint:"
+    printf '%s\n' "  - $entry"
+    printf '%s\n' "- Last green: none"
+    printf '%s\n' "- Open issues: none"
+  } > "$f"
+}
+
+# clean — no Footprint entries at all (field value on the same line = "none")
+write_cp "$TMPL/cp1.md" "none"
+code=0; bash "$LINT" "$TMPL/cp1.md" 2>/dev/null || code=$?
+assert_exit 0 "$code" "lint: none footprint exits 0"
+
+# clean — blank (all-whitespace) Footprint placeholder
+write_cp "$TMPL/cp2.md" ""
+code=0; bash "$LINT" "$TMPL/cp2.md" 2>/dev/null || code=$?
+assert_exit 0 "$code" "lint: empty Footprint field exits 0"
+
+# clean — valid WIP entry
+write_cp_block "$TMPL/cp3.md" "src/api.py:45-80::WIP"
+code=0; bash "$LINT" "$TMPL/cp3.md" 2>/dev/null || code=$?
+assert_exit 0 "$code" "lint: valid WIP entry exits 0"
+
+# clean — valid DONE entry
+write_cp_block "$TMPL/cp4.md" "bin/harness.sh:1-20::DONE"
+code=0; bash "$LINT" "$TMPL/cp4.md" 2>/dev/null || code=$?
+assert_exit 0 "$code" "lint: valid DONE entry exits 0"
+
+# clean — valid REVIEW entry
+write_cp_block "$TMPL/cp5.md" "lib/util.js:1-5::REVIEW"
+code=0; bash "$LINT" "$TMPL/cp5.md" 2>/dev/null || code=$?
+assert_exit 0 "$code" "lint: valid REVIEW entry exits 0"
+
+# violation — prose instead of notation
+write_cp_block "$TMPL/cp6.md" "I changed server/api.py around line 45 to fix rate limiting"
+code=0; err="$(bash "$LINT" "$TMPL/cp6.md" 2>&1)"; code=$?
+assert_exit 1 "$code" "lint: prose footprint exits 1"
+assert_contains "$err" "LINT" "lint: prose violation prints LINT message"
+
+# violation — missing :: delimiter
+write_cp_block "$TMPL/cp7.md" "src/api.py:45-80:WIP"
+code=0; bash "$LINT" "$TMPL/cp7.md" 2>/dev/null || code=$?
+assert_exit 1 "$code" "lint: missing :: delimiter exits 1"
+
+# violation — unknown STATUS token
+write_cp_block "$TMPL/cp8.md" "src/api.py:45-80::FIXME"
+code=0; bash "$LINT" "$TMPL/cp8.md" 2>/dev/null || code=$?
+assert_exit 1 "$code" "lint: unknown STATUS token exits 1"
+
+# usage: no args → usage error
+code=0; bash "$LINT" 2>/dev/null || code=$?
+assert_exit 1 "$code" "lint: no args exits 1 (usage)"
+
+# best-effort: missing file → exits 1 gracefully
+code=0; bash "$LINT" /tmp/nonexistent-cp-file-xyz.md 2>/dev/null || code=$?
+assert_exit 1 "$code" "lint: missing file exits 1"
+
+rm -rf "$TMPL"
+
+# =============================================================================
+# checkpoint-hardening — slice-002: checkpoint-snapshot.sh
+echo "checkpoint-snapshot.sh — deterministic line-range snapshot with boundary defense"
+SNAP="$CHECKPOINT_SCRIPTS/checkpoint-snapshot.sh"
+assert_eq "true" "$([ -f "$SNAP" ] && echo true || echo false)" "checkpoint snapshot helper is skill-owned"
+assert_eq "false" "$([ -e "$BIN/checkpoint-snapshot.sh" ] && echo true || echo false)" "checkpoint snapshot helper is absent from shared bin"
+TMPS="$(mktemp -d)"
+
+# usage: no args → exits 1
+code=0; bash "$SNAP" 2>/dev/null || code=$?
+assert_exit 1 "$code" "snapshot: no args exits 1 (usage)"
+
+# missing file → exits 1 with error
+code=0; err="$(bash "$SNAP" "no_such_file.py:1-5::WIP" 2>&1)"; code=$?
+assert_exit 1 "$code" "snapshot: missing file exits 1"
+assert_contains "$err" "not found" "snapshot: missing file prints 'not found'"
+
+# out-of-bounds range → exits 1 with error
+src="$TMPS/small.py"
+printf 'line1\nline2\nline3\n' > "$src"
+code=0; err="$(bash "$SNAP" "${src}:1-10::WIP" 2>&1)"; code=$?
+assert_exit 1 "$code" "snapshot: out-of-bounds range exits 1"
+assert_contains "$err" "out of bounds" "snapshot: out-of-bounds prints 'out of bounds'"
+
+# valid range → exits 0, writes snapshot
+# valid range → exits 0, writes snapshot
+src2="$TMPS/api.py"
+printf 'line1\nline2\nline3\nline4\nline5\n' > "$src2"
+out="$(HARNESS_TRACE_DIR="$TMPS/trace" bash "$SNAP" "${src2}:2-4::WIP" 2>/dev/null)"; code=$?
+assert_exit 0 "$code" "snapshot: valid range exits 0"
+assert_contains "$out" ".txt" "snapshot: prints path to snapshot file"
+[ -f "$out" ] && snap_content="$(cat "$out")" || snap_content=""
+assert_eq "line2
+line3
+line4" "$snap_content" "snapshot: content matches exact lines 2-4"
+
+# deterministic path: same input → same output path
+out2="$(HARNESS_TRACE_DIR="$TMPS/trace" bash "$SNAP" "${src2}:2-4::WIP" 2>/dev/null)"
+assert_eq "$out" "$out2" "snapshot: same input produces same output path (deterministic)"
+
+# single-line range (start == end)
+src3="$TMPS/util.sh"
+printf 'alpha\nbeta\ngamma\n' > "$src3"
+HARNESS_TRACE_DIR="$TMPS/trace" out3="$(bash "$SNAP" "${src3}:2-2::DONE" 2>/dev/null)"; code=$?
+assert_exit 0 "$code" "snapshot: single-line range exits 0"
+assert_eq "beta" "$(cat "$out3")" "snapshot: single-line snapshot content correct"
+
+rm -rf "$TMPS"
+
+# =============================================================================
+# checkpoint-hardening — slice-003: checkpoint-guard.sh
+echo "checkpoint-guard.sh — suppress no-op checkpoints when nothing changed"
+GUARD="$CHECKPOINT_SCRIPTS/checkpoint-guard.sh"
+assert_eq "true" "$([ -f "$GUARD" ] && echo true || echo false)" "checkpoint guard helper is skill-owned"
+assert_eq "false" "$([ -e "$BIN/checkpoint-guard.sh" ] && echo true || echo false)" "checkpoint guard helper is absent from shared bin"
+TMPG="$(mktemp -d)"
+
+# no previous checkpoint + no git → proceed (exit 0)
+code=0
+HARNESS_CHECKPOINT_DIR="$TMPG/checkpoints" HARNESS_ROOT="$TMPG" \
+  bash "$GUARD" 2>/dev/null || code=$?
+assert_exit 0 "$code" "guard: no prior checkpoint → proceed (exit 0)"
+
+# set up a fake git repo for changed-file tests
+GR="$TMPG/repo"
+mkdir -p "$GR/.trace/checkpoints"
+git -C "$GR" init -q
+git -C "$GR" config user.email "test@test"
+git -C "$GR" config user.name "Test"
+printf 'initial\n' > "$GR/file.txt"
+git -C "$GR" add file.txt
+git -C "$GR" commit -q -m "init"
+# write a fake checkpoint so the guard has something to compare against
+{ printf '%s\n' "---"; printf '%s\n' "plan: test"; printf '%s\n' "seq: 1"; printf '%s\n' "---"; } > "$GR/.trace/checkpoints/test-001.md"
+
+# no changes since last checkpoint → suppress (exit 1)
+code=0; msg="$(HARNESS_ROOT="$GR" bash "$GUARD" 2>&1)"; code=$?
+assert_exit 1 "$code" "guard: no file changes → suppress (exit 1)"
+assert_contains "$msg" "suppress" "guard: suppression prints 'suppress' message"
+
+# working-tree change → proceed (exit 0)
+printf 'modified\n' >> "$GR/file.txt"
+code=0
+HARNESS_ROOT="$GR" bash "$GUARD" 2>/dev/null || code=$?
+assert_exit 0 "$code" "guard: working-tree change → proceed (exit 0)"
+
+# staged change (clean working tree) → proceed (exit 0)
+git -C "$GR" checkout -- file.txt  # restore working tree
+git -C "$GR" add file.txt          # stage it (re-adding same file is a no-op diff-wise, so use a new file)
+printf 'staged\n' > "$GR/staged.txt"
+git -C "$GR" add "$GR/staged.txt"
+code=0
+HARNESS_ROOT="$GR" bash "$GUARD" 2>/dev/null || code=$?
+assert_exit 0 "$code" "guard: staged change → proceed (exit 0)"
+
+# installed skill path: infer the project root from the nearest bin/harness.sh
+IR="$TMPG/installed"
+mkdir -p "$IR/bin" "$IR/.claude/skills/checkpoint/scripts" "$IR/.trace/checkpoints"
+printf '# harness entry\n' > "$IR/bin/harness.sh"
+cp "$GUARD" "$IR/.claude/skills/checkpoint/scripts/checkpoint-guard.sh"
+git -C "$IR" init -q
+git -C "$IR" config user.email "test@test"
+git -C "$IR" config user.name "Test"
+git -C "$IR" add bin/harness.sh .claude/skills/checkpoint/scripts/checkpoint-guard.sh
+git -C "$IR" commit -q -m "init"
+{ printf '%s\n' "---" "plan: test" "seq: 1" "---"; } > "$IR/.trace/checkpoints/test-001.md"
+code=0; msg="$(cd "$IR" && bash .claude/skills/checkpoint/scripts/checkpoint-guard.sh 2>&1)" || code=$?
+assert_exit 1 "$code" "guard: installed skill discovers project root and suppresses clean checkpoint"
+assert_contains "$msg" "suppress" "guard: installed skill root discovery checks project git state"
+
+rm -rf "$TMPG"
+
+# =============================================================================
+# checkpoint-hardening — slice-004: ctx-hook.sh last-green extension
+echo "ctx-hook.sh — auto-stamp last-green.txt when HARNESS_TEST_SCRIPT passes"
+HOOK="$BIN/ctx-hook.sh"
+TMPH="$(mktemp -d)"
+
+# passing test script → stamps last-green.txt
+pass_script="$TMPH/pass.sh"
+printf '#!/usr/bin/env bash\nexit 0\n' > "$pass_script"; chmod +x "$pass_script"
+HARNESS_TEST_SCRIPT="$pass_script" HARNESS_TRACE_DIR="$TMPH/trace" \
+  bash "$HOOK" </dev/null >/dev/null 2>/dev/null
+lg="$TMPH/trace/last-green.txt"
+assert_eq "true" "$([ -f "$lg" ] && echo true || echo false)" "ctx-hook: passing tests create last-green.txt"
+lg_content="$(cat "$lg" 2>/dev/null)"
+assert_contains "$lg_content" "rev=" "ctx-hook: last-green.txt contains rev= field"
+
+# failing test script → no last-green.txt (or existing one unchanged)
+rm -f "$lg"
+fail_script="$TMPH/fail.sh"
+printf '#!/usr/bin/env bash\nexit 1\n' > "$fail_script"; chmod +x "$fail_script"
+HARNESS_TEST_SCRIPT="$fail_script" HARNESS_TRACE_DIR="$TMPH/trace" \
+  bash "$HOOK" </dev/null >/dev/null 2>/dev/null
+assert_eq "false" "$([ -f "$lg" ] && echo true || echo false)" "ctx-hook: failing tests do not create last-green.txt"
+
+# HARNESS_TEST_SCRIPT unset → no last-green.txt created, hook still exits 0
+code=0
+HARNESS_TRACE_DIR="$TMPH/trace2" bash "$HOOK" </dev/null >/dev/null 2>/dev/null || code=$?
+assert_exit 0 "$code" "ctx-hook: unset HARNESS_TEST_SCRIPT exits 0 (best-effort)"
+assert_eq "false" "$([ -f "$TMPH/trace2/last-green.txt" ] && echo true || echo false)" \
+  "ctx-hook: no last-green.txt when HARNESS_TEST_SCRIPT unset"
+
+# hook always exits 0 — even when test script missing
+HARNESS_TEST_SCRIPT="/tmp/no_such_script_xyz.sh" HARNESS_TRACE_DIR="$TMPH/trace3" \
+  bash "$HOOK" </dev/null >/dev/null 2>/dev/null
+assert_exit 0 "$?" "ctx-hook: missing test script still exits 0 (best-effort)"
+
+rm -rf "$TMPH"
 
 # =============================================================================
 echo ""
