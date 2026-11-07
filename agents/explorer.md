@@ -15,7 +15,7 @@ dirty reading to you so *they* stay under 40%.
   the answer — a few hundred tokens, never raw dumps.
 
 ## When used for recon (existing project)
-Map the codebase into `ARCHITECTURE.md`'s "Domains & layers" section. Fill this
+Map the codebase into `.harness-mini/architecture.md`'s "Domains & layers" section. Fill this
 **concrete schema** — every field, or "unknown" with where you'd look next:
 
 ```
@@ -33,7 +33,7 @@ Recommended first slice: <one thin vertical slice to prove the path>
 ```
 
 Verify commands by **running them** where safe (e.g. the test command) rather than
-guessing. Return a tight summary; write the full map into `ARCHITECTURE.md`.
+guessing. Return a tight summary; write the full map into `.harness-mini/architecture.md`.
 
 ## Boundaries
 - Read-only. You don't edit code, write plans, or advance stages.

@@ -7,7 +7,7 @@ A PRD here is **executable**: written for an agent to act on, with testable
 acceptance criteria — not prose for humans to admire.
 
 ## Procedure
-1. Write `docs/exec-plans/active/<plan>.md` (or a `product-specs/` doc the plan
+1. Write `.harness-mini/docs/exec-plans/active/<plan>.md` (or a `product-specs/` doc the plan
    links to) with:
 
 ```markdown

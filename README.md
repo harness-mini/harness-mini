@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.svg" alt="harness-mini — a minimal outer harness for developers' long coding tasks" width="100%">
+  <img src="assets/banner.svg" alt="harness-mini — a minimal outer harness for developers' long coding tasks" width="100%">
 </p>
 
 # harness-mini
@@ -32,9 +32,9 @@ package manager, no third-party binary. Five invariants define it:
 |---|---|---|
 | **1 · Files + shell** | Markdown skills + small POSIX `bin/*.sh`; nothing else executes. | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | **2 · Lifecycle FSM** | Every requirement rides `intake → prd → issues → implement ⇄ evaluate → checkpoint → done`; only the main agent (via `stage-viewer`) advances a stage. | [`ARCHITECTURE.md`](ARCHITECTURE.md#lifecycle-fsm) |
-| **3 · Anti-self-praise firewall** | `done` requires an independent `verdict: pass` committed to `.trace/evals/` — `harness.sh doctor` FAILs otherwise. | the [`evaluate`](skills/evaluate/SKILL.md) skill |
+| **3 · Anti-self-praise firewall** | `done` requires an independent `verdict: pass` committed to `.harness-mini/trace/evals/` — `harness.sh doctor` FAILs otherwise. | the [`evaluate`](skills/evaluate/SKILL.md) skill |
 | **4 · The 40% line** | Keep context occupancy below 40%; delegate heavy reads to disposable `explorer` sub-agents (context firewalls); checkpoint + reset at the line. | [`docs/smart-dumb.md`](docs/smart-dumb.md) |
-| **5 · Managed-set boundary** | The harness tracks runtime files and project files in separate locks; your exec-plans, `.trace/`, and project code are never touched by `update`. | [`ARCHITECTURE.md`](ARCHITECTURE.md#versioning--update-model) |
+| **5 · Managed-set boundary** | The harness tracks runtime files and project files in separate locks; your `.harness-mini/` plans and trace, and project code are never touched by `update`. | [`ARCHITECTURE.md`](ARCHITECTURE.md#versioning--update-model) |
 
 Under all of it sits the **Mini constraint** — delete before you add; a new
 capability is a doc by default and only becomes shell when it must execute
@@ -69,35 +69,38 @@ capability is a doc by default and only becomes shell when it must execute
 
 ## Install
 
-It installs like a skill — tell your agent *"install harness-mini here"*, or run:
+It installs like a skill — tell your agent *"install harness-mini here"*, or:
 
 ```bash
 git clone https://github.com/harness-mini/harness-mini.git
-bash harness-mini/init.sh /path/to/your/project
+bash harness-mini/init.sh /path/to/your/project      # 1. once per project
+cd /path/to/your/project
+"$HOME/.harness-mini/bin/harness.sh" agent list      # 2. the agent finds its own host id
+"$HOME/.harness-mini/bin/harness.sh" agent install <host>   # 3. skills + roles for that host
+"$HOME/.harness-mini/bin/harness.sh" status          # 4. work: follow the `path:` line
 ```
 
 `init.sh` is **additive** (never overwrites your files) and **idempotent** (safe
-to re-run). It behaves asymmetrically:
+to re-run). **New/empty project** → seeds an intake plan (founder funnel:
+`founder-check → to-prd → to-issues`). **Existing project** → seeds a recon plan
+(the `explorer` maps your code into `.harness-mini/architecture.md`). A pre-0.13
+install is migrated automatically when you re-run the new `init.sh` (or `update`):
+the runtime is installed first, and nothing is removed from the project unless it works.
 
-- **New/empty project** → generative bootstrap: seeds an intake plan and runs the
-  founder funnel (`founder-check → to-prd → to-issues`).
-- **Existing project** → recon graft: installs additively and seeds a recon plan
-  (the `explorer` maps your codebase into `ARCHITECTURE.md`); skips the founder
-  funnel.
+**Zero intrusion.** After `init.sh` + `agent install cursor` the project holds
+exactly this — nothing else, and your `.gitignore` is never edited:
 
-Every agent uses the same project layout: skills and nested resources go under
-`.agents/skills/`, role descriptions go under `harness/agents/`, and shared
-instructions live in `AGENTS.md`. `harness/manifest.md` lists the installed
-skills. The installer does not detect the current agent or generate host-specific
-skill mirrors or routing files.
-
-The runtime executables are installed once under `~/.harness-mini/bin/`; a
-project does not need its own `bin/` directory. From a project root, run the
-shared status command and follow its `path:` line:
-
-```bash
-"$HOME/.harness-mini/bin/harness.sh" status
 ```
+your-project/
+├── .harness-mini/    plans, trace, architecture.md — committed (trace/runtime/ ignored)
+├── AGENTS.md         + one marked block (the file is created only if absent)
+├── .agents/skills/   skills for your host (the dir depends on the host)
+└── .cursor/agents/   role descriptions; both dirs listed in .git/info/exclude
+```
+
+Everything harness-owned (executables, map, static docs, locks) lives under
+`~/.harness-mini/`, per project in `~/.harness-mini/<project-id>/`. See
+[`ARCHITECTURE.md`](ARCHITECTURE.md#two-file-classes).
 
 Open `session-init` for planning work or `session-coding` for implementation.
 Non-trivial work routes through `stage-viewer`, and when a harness skill and
@@ -111,6 +114,8 @@ harness-mini does **not** force ceremony onto every change. Route first:
 |---|---|---|
 | a small bug fix · one obvious change · no ambiguity (≤ ~1 slice) | **Quick mode** | copy [`docs/templates/quick-plan.md`](docs/templates/quick-plan.md) → implement (`tdd`) → L0/L1 eval → checkpoint |
 | ambiguous · cross-cutting · architecture/security/data-loss impact | **Full mode** | copy [`docs/templates/full-plan.md`](docs/templates/full-plan.md) → PRD → issues → implement → L1/L2 evaluate → checkpoint |
+
+Plans live in `.harness-mini/docs/exec-plans/active/`; installed projects find the templates at `~/.harness-mini/docs/templates/` (`docs/templates/` in this source repo).
 
 The `stage-viewer` skill makes this call; the templates are its two shapes. **New
 to the loop? Watch one run end-to-end: [`docs/walkthrough.md`](docs/walkthrough.md).**
@@ -155,19 +160,20 @@ The install is versioned. The front door is `~/.harness-mini/bin/harness.sh`:
 
 ```bash
 "$HOME/.harness-mini/bin/harness.sh" --root "$PWD" version              # installed version (+ latest, best-effort)
-"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" update               # update runtime and this project's shared files
+"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" update               # update runtime, global copies, and this project's files (migrates a legacy layout)
+"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" agent list|install <host>   # host-aware skills + roles
 "$HOME/.harness-mini/bin/harness.sh" --root "$PWD" doctor               # install health: ok/warn/fail (exit 1 on fail)
 "$HOME/.harness-mini/bin/harness.sh" --root "$PWD" status               # work state: plans, workboard, session path, resumable
-"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" report               # aggregate .trace metrics (stages, context, evals)
+"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" report               # aggregate .harness-mini/trace metrics (stages, context, evals)
 "$HOME/.harness-mini/bin/harness.sh" --root "$PWD" release <x.y.z>      # (source repo) bump + tag + GitHub release
 ```
 
 The firewall has **teeth**: a plan can't reach `done` without a committed
-`verdict: pass` record in `.trace/evals/` — `doctor` FAILs otherwise. `report`
+`verdict: pass` record in `.harness-mini/trace/evals/` — `doctor` FAILs otherwise. `report`
 turns the runtime traces into a metrics summary (context trend vs the 40% line,
 eval pass-rate + rework loops) so the thresholds are tuned by data, not vibes.
 Agents that support a PostToolUse hook can give the 40% rule teeth with the
-optional `~/.harness-mini/bin/ctx-hook.sh` (see `docs/smart-dumb.md`). Configure
+optional `~/.harness-mini/bin/ctx-hook.sh` (see `~/.harness-mini/docs/smart-dumb.md`). Configure
 that hook in the agent's own settings if desired.
 
 On entering a fresh session the agent runs the shared runtime's `harness.sh status` first (the
@@ -176,11 +182,13 @@ and `doctor` all surface an **update reminder**, so you're prompted to `update`
 rather than drifting behind. The check is best-effort and silent offline
 (`HARNESS_NO_NET`); `HARNESS_LATEST` pins it.
 
-`init.sh` records project-managed files in `harness/harness.lock` and executable
-runtime files in `~/.harness-mini/harness/runtime.lock`. `update` is
+Checksums live in three locks: installed skills and roles in
+`~/.harness-mini/<project-id>/harness.lock`, executables in
+`~/.harness-mini/harness/runtime.lock`, global copies in `harness/global.lock`.
+`update` is
 **checksum-guarded**: files you never touched are refreshed silently, files
 **you edited are kept** (the upstream copy is written next to them as
-`<file>.new`), and brand-new files are added. Project plans, `.trace/`, and
+`<file>.new`), and brand-new files are added. Project plans, `.harness-mini/`, and
 project code are never touched. `release` stamps
 `VERSION`, rolls `CHANGELOG.md`, tags `v<x.y.z>`, and cuts a GitHub release,
 gated on green tests + a clean tree (see the `release` skill).
@@ -190,7 +198,7 @@ gated on green tests + a clean tree (see the `release` skill).
 Context occupancy **below 40% = smart zone**; **at/above 40% = dumb zone**. Every
 agent keeps itself smart by (1) delegating heavy reads to a disposable `explorer`
 (context firewall), (2) checkpointing + resetting at 40%, (3) progressive
-disclosure. See `docs/smart-dumb.md`. Estimate with
+disclosure. See `docs/smart-dumb.md` (installed: `~/.harness-mini/docs/smart-dumb.md`). Estimate with
 `"$HOME/.harness-mini/bin/ctx.sh" <used> [window]`.
 
 > **What we measured** ([`bench/cib/results/FINDINGS.md`](bench/cib/results/FINDINGS.md)).
@@ -218,31 +226,27 @@ reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
 
 ## Layout
 
+Source repo (what you clone):
+
 | Path | Purpose |
 |------|---------|
-| `AGENTS.md` | context navigation map injected every run (anchor marks) |
+| `AGENTS.md` | context navigation map (anchor marks); installed globally, the project only gets a marked block |
 | `ARCHITECTURE.md` | layer stack + lifecycle FSM |
-| `init.sh` | additive/idempotent installer |
+| `init.sh` · `bin/*.sh` | installer · runtime sources, installed once under `~/.harness-mini/bin/` |
 | `VERSION` · `CHANGELOG.md` | canonical version (SemVer) · release log |
-| `bin/*.sh` | runtime script sources; installed under `~/.harness-mini/bin/` |
-| `~/.harness-mini/harness/runtime.lock` | runtime version + executable checksums |
-| `harness/harness.lock` | project version + project-managed file checksums |
-| `skills/<name>/SKILL.md` → `.agents/skills/` | shared skill directory, installed recursively |
-| `skills/checkpoint/scripts/` → `.agents/skills/checkpoint/scripts/` | checkpoint-only Footprint validator, line snapshotter, and no-op guard |
-| `agents/` → `harness/agents/` | role descriptions for agent workflows |
-| `docs/principles.md` | golden principles + the Mini delete-first constraint |
-| `docs/smart-dumb.md` | the 40% contract |
-| `docs/exec-plans/{active,completed}/` | dual-file plans (`.md` narrative + `.json` workboard twin) + decision logs (committed) |
-| `docs/references/*-llms.txt` | the 5 source distillates |
-| `.trace/checkpoints/` | committed handoffs (institutional memory) |
-| `.trace/evals/` | committed evaluation verdicts (the `done`-gate `doctor` enforces) |
-| `.trace/runtime/` | gitignored ephemeral JSONL traces (`harness.sh report` reads these) |
-| `tests/run.sh` | zero-dep TDD suite |
-| `bench/cib/` | context-intelligence benchmark + live results ([`FINDINGS.md`](bench/cib/results/FINDINGS.md)) |
+| `skills/<name>/SKILL.md` · `agents/` | sources; `agent install <host>` copies them to the host's dirs |
+| `docs/` | static docs (principles, smart-dumb, assumptions, templates, walkthrough, examples); installed to `~/.harness-mini/docs/` |
+| `references/` · `assets/` | source distillates · README banner (never installed) |
+| `.harness-mini/` | plans, checkpoints, evals — this repo dogfoods the project layout |
+| `tests/run.sh` · `bench/cib/` | zero-dep TDD suite · context benchmark ([`FINDINGS.md`](bench/cib/results/FINDINGS.md)) |
+
+In your project: `.harness-mini/docs/exec-plans/{active,completed}/` (dual-file
+plans: `.md` narrative + `.json` workboard twin), `trace/checkpoints/` (handoffs),
+`trace/evals/` (the `done`-gate verdicts `doctor` enforces), `trace/runtime/`
+(gitignored JSONL that `harness.sh report` reads).
 
 > **Editing skills?** `skills/<name>/SKILL.md` (and `agents/<name>.md`) are the
-> **canonical source** — edit there. `init.sh` copies skills into a target
-> project's `.agents/skills/` and roles into `harness/agents/`.
+> **canonical source** — edit there; `harness.sh agent install <host>` copies them out.
 
 ## Sub-agents
 
@@ -265,14 +269,14 @@ model override. Set `HARNESS_TOP_MODEL=1` to force the upgrade;
 ## Develop
 
 ```bash
-bash tests/run.sh   # 299 assertions, zero dependencies
+bash tests/run.sh   # 710 assertions, zero dependencies
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
 and safe to call from `zsh`. See the compatibility notes in
 [`CONTRIBUTING.md`](CONTRIBUTING.md) before contributing shell.
 
-## References distilled in `docs/references/`
+## References distilled in `references/`
 - Anthropic — Effective harnesses for long-running agents
 - Anthropic — Harness design for long-running apps
 - Anthropic — Scaling managed agents (decoupling brain/hands/session; stale assumptions)

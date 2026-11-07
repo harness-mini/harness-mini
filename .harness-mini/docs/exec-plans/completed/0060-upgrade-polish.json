@@ -1,0 +1,10 @@
+{
+  "plan_id": "0060-upgrade-polish",
+  "title": "Upgrade polish: fixes N1-N4 from the 0059 L2 evaluation",
+  "status": "done",
+  "current_slice_id": "issue-002",
+  "slices": [
+    { "id": "issue-001", "category": "update", "description": ".new notice, diff subcommand, downgrade guard.", "steps": ["Tests prove harness.sh diff shows the difference for a runtime/global file with a .new and errors clearly otherwise.", "Tests prove runs leaving .new files print a prominent notice with the diff command, and stay quiet when none.", "Tests prove migration refusal due to an edited runtime file names the .new file and the diff command.", "Tests prove update refuses a downgrade without --force, allows it with --force, and leaves upgrade/same-version behaviour unchanged."], "passes": true },
+    { "id": "issue-002", "category": "migration", "description": "Safer .mdc cleanup and full leftover listing.", "steps": ["Tests prove a generated rule with an edited description line is kept with a notice and a clean rule is removed.", "Tests prove the leftover-docs notice lists every leftover path."], "passes": true }
+  ]
+}

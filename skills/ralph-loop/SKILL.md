@@ -60,7 +60,7 @@ indirection is the seam that absorbs the difference.
 
 ## Example
 ```
-HARNESS_HUMAN_FLAG=.trace/needs-human \
+HARNESS_HUMAN_FLAG=.harness-mini/trace/needs-human \
 "$HOME/.harness-mini/bin/ralph.sh" --max 6 \
   --until '<agent> -p "run evaluator on plan auth; exit 0 iff all criteria pass"' \
   --cmd   '<agent> -p "advance plan auth one slice via tdd + slice-coding"'

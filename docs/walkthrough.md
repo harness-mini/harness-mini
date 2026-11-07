@@ -23,26 +23,34 @@ install → recon → route → plan → implement(slice, TDD) ⇄ evaluate → 
 $ git clone https://github.com/harness-mini/harness-mini.git
 $ bash harness-mini/init.sh ~/demo-api
 harness-mini: installing into /Users/you/demo-api  (mode: existing)
-  add   user runtime ($HOME/.harness-mini, v0.12.1)
-  add   .agents/skills/… (17 skills)
-  add   harness/agents/… (5 role descriptions)
-  add   AGENTS.md ARCHITECTURE.md
-  add   harness/manifest.md
-  add   harness/harness.lock (v0.12.1)
-  add   ~/.harness-mini/harness/runtime.lock (v0.12.1)
-  add   docs/exec-plans/active/0001-recon.md (+ json twin)
+  add   user runtime (/Users/you/.harness-mini, v0.12.1)
+  add   41 global file(s) under /Users/you/.harness-mini (map, docs, skills, agents)
+  add   .harness-mini/.gitignore
+  add   AGENTS.md (harness-mini block)
+  add   .harness-mini/architecture.md
+  add   manifest.md (state dir: /Users/you/.harness-mini/demo-api-ppsao1gf)
+  add   harness.lock (state dir, v0.12.1)
+  add   .harness-mini/docs/exec-plans/active/0001-recon.md (+ json twin)
 harness-mini: done.
+$ cd ~/demo-api
+$ ~/.harness-mini/bin/harness.sh agent install cursor    # the agent names its own host
+harness-mini: installed for cursor
+  skills: .agents/skills/   agents: .cursor/agents/ (md)
+  add   25 file(s)   keep  0 existing file(s) untouched
+  recorded targets, lock and manifest in /Users/you/.harness-mini/demo-api-ppsao1gf
 ```
 
 `demo-api` already has a `package.json`, so init chose **existing-project** mode:
 it grafted on additively (never overwrote a thing) and seeded a **recon** plan
-instead of the greenfield founder funnel.
+instead of the greenfield founder funnel. The project got only `.harness-mini/` and
+a marked block in `AGENTS.md`; `agent install <host>` then placed skills and roles
+for the agent's host (`harness.sh agent list` shows the ids).
 
 ## 1. Recon — map the ground first
 
-Open the seeded plan: `docs/exec-plans/active/0001-recon.md`. It's a checklist for
+Open the seeded plan: `.harness-mini/docs/exec-plans/active/0001-recon.md`. It's a checklist for
 the **explorer** sub-agent (a separate context window — your main session stays
-smart). The explorer fills `ARCHITECTURE.md`'s "Domains & layers" with a concrete
+smart). The explorer fills `.harness-mini/architecture.md`'s "Domains & layers" with a concrete
 schema:
 
 ```
@@ -64,8 +72,8 @@ real, multi-step feature touching credentials → **full mode** (a one-line typo
 would be **quick mode** instead; see the README decision table). Copy the template:
 
 ```console
-$ cp docs/templates/full-plan.md docs/exec-plans/active/0001-demo-auth.md
-$ cp docs/templates/full-plan-twin.json docs/exec-plans/active/0001-demo-auth.json
+$ cp ~/.harness-mini/docs/templates/full-plan.md .harness-mini/docs/exec-plans/active/0001-demo-auth.md
+$ cp ~/.harness-mini/docs/templates/full-plan-twin.json .harness-mini/docs/exec-plans/active/0001-demo-auth.json
 ```
 
 Every plan is a **dual file**: `<NNN-slug>.md` (the narrative) + a same-basename
@@ -134,7 +142,7 @@ At each slice boundary (and whenever you cross 40%), write a checkpoint *while
 still smart*:
 
 ```console
-$ # writes .trace/checkpoints/demo-auth-001.md, then commit it
+$ # writes .harness-mini/trace/checkpoints/demo-auth-001.md, then commit it
 ```
 
 See the real shape:
@@ -150,14 +158,14 @@ two files: the latest checkpoint and the plan.
 
 ```console
 $ # fresh session, no memory of the above:
-$ cat .trace/checkpoints/demo-auth-002.md   # ← "Next: Slice 3 — issue token via middleware"
-$ cat docs/exec-plans/active/0001-demo-auth.md
+$ cat .harness-mini/trace/checkpoints/demo-auth-002.md   # ← "Next: Slice 3 — issue token via middleware"
+$ cat .harness-mini/docs/exec-plans/active/0001-demo-auth.md
 ```
 
 It knows precisely where to start — zero re-derivation. That is the entire point of
 the harness: **work that survives a context reset.** The feature finishes in
 [`demo-auth-003`](examples/demo-auth/checkpoints/demo-auth-003.md); the plan moves
-to `docs/exec-plans/completed/`.
+to `.harness-mini/docs/exec-plans/completed/`.
 
 ## 9. Unattended runs — the Outer session runner (optional, P2)
 

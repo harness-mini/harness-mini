@@ -6,7 +6,7 @@ description: Greenfield-only intake gate. Apply founder/startup best-practice (f
 Run this **only for new projects** (init.sh seeded `0001-intake.md`). For
 existing projects, do recon instead and skip this entirely.
 
-Source distillate: `docs/references/founders-playbook-llms.txt`.
+Source distillate: `references/founders-playbook-llms.txt` (source repo only; not installed).
 
 ## The four questions (answer in the plan before writing a PRD)
 1. **Who is the user, specifically?** One named persona, one job-to-be-done.

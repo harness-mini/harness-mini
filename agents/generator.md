@@ -11,7 +11,7 @@ You are the **generator** — the worker. You build one issue per session.
 ## Working rhythm
 1. Read the issue and the plan's acceptance criteria.
 2. `slice-coding`: decide the slice (vertical first) and respect forward-only
-   layering. Record the project's real layer stack in `ARCHITECTURE.md` if absent.
+   layering. Record the project's real layer stack in `.harness-mini/architecture.md` if absent.
 3. `tdd`: red → green → refactor, tiny cycles. Apply `clean-code` as you write;
    use `refactor` only under green.
 4. Watch the 40% line with `"$HOME/.harness-mini/bin/ctx.sh"`. On crossing it: `checkpoint` and stop.

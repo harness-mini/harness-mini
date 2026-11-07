@@ -7,14 +7,23 @@
 #   new/empty project  -> generative bootstrap: seed an INTAKE plan that runs the
 #                         founder funnel (founder-check -> to-prd).
 #   existing project   -> recon graft: seed a RECON plan that maps the codebase
-#                         into ARCHITECTURE.md via the Explorer; no founder funnel.
+#                         into .harness-mini/architecture.md via the Explorer; no founder funnel.
 #
-# Install layout (shared skill path; no agent host selection):
-#   skills/  -> .agents/skills/
-#   agents/  -> harness/agents/
-#   bin/     -> $HARNESS_HOME/bin/ (not into projects)
-#   docs/ AGENTS.md ARCHITECTURE.md -> copied as-is
-#   harness/manifest.md            -> pointer list of those files
+# Install layout (zero intrusion — the project gets only):
+#   .harness-mini/        project progress: docs/exec-plans/{active,completed},
+#                         trace/{checkpoints,evals,runtime}, architecture.md, .gitignore
+#   AGENTS.md             one <!-- harness-mini:begin/end --> block (created if absent)
+# Everything harness-owned lives under $HARNESS_HOME (default ~/.harness-mini):
+#   bin/ VERSION harness/runtime.lock   the runtime
+#   AGENTS.md docs/ docs/ARCHITECTURE.md   the global map + static docs
+#   skills/ agents/                     sources for `harness.sh agent install <host>`
+#   <project-id>/{harness.lock,manifest.md}   per-project bookkeeping
+# init.sh installs no skills/agents (it cannot know the host) and never edits the
+# project's .gitignore, ARCHITECTURE.md or CLAUDE.md.
+# An older install (0058 shared layout or the .claude/ layout) is migrated
+# automatically: plans/trace move into .harness-mini/, harness-owned files are
+# removed only when their checksum matches the old harness/harness.lock; edited
+# files are kept and reported (migrate_legacy_layout in bin/_harness_lib.sh).
 #
 # Usage:  init.sh [target_dir] [--mode new|existing]
 # Env:    HARNESS_SRC   source root (default: directory containing this script)
@@ -60,223 +69,122 @@ detect_mode() {
 [ -z "$MODE" ] && MODE="$(detect_mode)"
 echo "harness-mini: installing into $DEST  (mode: $MODE)"
 
-# --- additive copy helpers ---------------------------------------------------
-copy_file() { # <src_file> <dest_file>  — never overwrite
-  [ -f "$1" ] || return 0
-  if [ -e "$2" ]; then say "skip  ${2#$DEST/} (exists)"; return 0; fi
-  mkdir -p "$(dirname "$2")" && cp "$1" "$2" && say "add   ${2#$DEST/}"
-}
-copy_tree() { # <src_dir> <dest_dir>  — additive, recursive
-  [ -d "$1" ] || return 0
-  ( cd "$1" && find . -type f ) | while read -r rel; do
-    copy_file "$1/${rel#./}" "$2/${rel#./}"
-  done
-}
-
-legacy_skill_description() { # <skill_md>
-  awk '
-    NR==1 && $0=="---" { fm=1; next }
-    fm && $0=="---"    { exit }
-    fm && /^description:/ { sub(/^description:[ \t]*/, ""); print; exit }
-  ' "$1"
-}
-
-remove_generated_cursor_rules() {
-  local rules="$DEST/.cursor/rules" expected rule name skill desc
-  [ -d "$rules" ] || return 0
-  expected="$(mktemp)" || return 1
-  cat > "$expected" <<'EOF'
----
-description: harness-mini routing gate — status-first, path-aware, prefer the harness lifecycle and skills
-alwaysApply: true
----
-
-This project runs on **harness-mini**. On a fresh session, first run
-`bin/harness.sh status`, read its `path:` line, and open the matching skill:
-`session-init` (path: init — plan work only, no product code) or
-`session-coding` (path: coding — Getting Bearings first, then one
-`passes: false` slice from the JSON twins in `docs/exec-plans/active/`).
-For non-trivial work — a feature, a multi-step or ambiguous change, anything
-cross-cutting — route it through the `stage-viewer` skill first and prefer
-harness-mini's lifecycle, skills, and sub-agents (read
-`.claude/skills/<name>/SKILL.md`) over ad-hoc tools or other installed
-plugins. When a harness skill and another tool both fit, the harness skill
-wins. Trivial one-line fixes may skip the ceremony (quick mode).
-
-Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
-EOF
-  if [ -f "$rules/harness-mini.mdc" ] && [ ! -L "$rules/harness-mini.mdc" ] \
-     && cmp -s "$expected" "$rules/harness-mini.mdc"; then
-    rm -f "$rules/harness-mini.mdc"
-    say "migr  removed unchanged generated .cursor/rules/harness-mini.mdc"
-  fi
-  rm -f "$expected"
-
-  for rule in "$rules"/*.mdc; do
-    [ -f "$rule" ] || continue
-    [ ! -L "$rule" ] || continue
-    name="$(basename "$rule" .mdc)"
-    [ "$name" = harness-mini ] && continue
-    skill="$DEST/.claude/skills/$name/SKILL.md"
-    [ -f "$skill" ] || continue
-    desc="$(legacy_skill_description "$skill")"
-    [ -n "$desc" ] || desc="harness-mini skill: $name"
-    expected="$(mktemp)" || return 1
-    {
-      printf '%s\n' '---'
-      printf 'description: %s\n' "$desc"
-      printf '%s\n' 'alwaysApply: false'
-      printf '%s\n\n' '---'
-      printf 'harness-mini skill **%s**. Read `.claude/skills/%s/SKILL.md` and follow it for this task.\n' "$name" "$name"
-    } > "$expected"
-    if cmp -s "$expected" "$rule"; then
-      rm -f "$rule"
-      say "migr  removed unchanged generated .cursor/rules/$name.mdc"
-    fi
-    rm -f "$expected"
-  done
-  rmdir "$rules" 2>/dev/null || true
-}
-
-migrate_lock_verified_legacy_files() {
-  local lock="$DEST/harness/harness.lock" legacy rel base current common
-  [ -f "$lock" ] || { say "skip  legacy bin/skills migration (no prior lock baseline)"; return 0; }
-
-  for legacy in "$DEST"/bin/*; do
-    [ -f "$legacy" ] || continue
-    [ ! -L "$legacy" ] || continue
-    rel="bin/$(basename "$legacy")"
-    base="$(lock_sha "$lock" "$rel")"
-    [ -n "$base" ] || continue
-    current="$(cksum_file "$legacy")"
-    if [ "$current" = "$base" ]; then
-      rm -f "$legacy"
-      say "migr  removed unchanged legacy $rel"
-    fi
-  done
-  rmdir "$DEST/bin" 2>/dev/null || true
-
-  if [ -d "$DEST/.claude/skills" ]; then
-    while IFS= read -r legacy; do
-      rel="${legacy#"$DEST/.claude/skills/"}"
-      base="$(lock_sha "$lock" ".claude/skills/$rel")"
-      [ -n "$base" ] || continue
-      current="$(cksum_file "$legacy")"
-      [ "$current" = "$base" ] || continue
-      common="$DEST/.agents/skills/$rel"
-      if [ -L "$common" ] && [ ! -e "$common" ]; then
-        say "keep  .claude/skills/$rel (shared target is a dangling symlink)"
-        continue
-      fi
-      if [ ! -e "$common" ]; then
-        mkdir -p "$(dirname "$common")" && mv "$legacy" "$common" || return 1
-        say "migr  moved unchanged .claude/skills/$rel to .agents/skills/$rel"
-      else
-        rm -f "$legacy"
-        say "migr  removed unchanged legacy .claude/skills/$rel"
-      fi
-    done < <(find "$DEST/.claude/skills" -type f -print 2>/dev/null)
-    find "$DEST/.claude/skills" -depth -type d -empty -exec rmdir {} \; 2>/dev/null || true
-    rmdir "$DEST/.claude" 2>/dev/null || true
-  fi
-}
-
-migrate_legacy_layout() {
-  remove_generated_cursor_rules || return 1
-  migrate_lock_verified_legacy_files || return 1
-}
-
+# Install the runtime, or refresh an older one: checksum-guarded exactly like
+# `harness.sh update` (pristine files upgraded, user-edited ones kept with a .new,
+# VERSION + runtime.lock advanced). An installed runtime that is already at this
+# source's version or newer is never touched (no downgrade). Sets REFRESH=refresh
+# when an existing home was upgraded, so the globals follow the same guard.
+REFRESH=add
 install_runtime() {
-  local runtime_lock="$HARNESS_HOME/harness/runtime.lock" version f target
+  local runtime_lock="$HARNESS_HOME/harness/runtime.lock" version installed log rc=0
   version="$(tr -d ' \t\r\n' < "$SRC/VERSION" 2>/dev/null)"
   [ -n "$version" ] || version=unknown
   if [ -f "$runtime_lock" ]; then
-    say "skip  user runtime (already initialized at $HARNESS_HOME)"
-    return 0
-  fi
-  mkdir -p "$HARNESS_HOME/bin" || return 1
-  for f in "$SRC"/bin/*; do
-    [ -f "$f" ] || continue
-    target="$HARNESS_HOME/bin/$(basename "$f")"
-    if [ ! -e "$target" ]; then
-      cp "$f" "$target" || return 1
-      chmod +x "$target" 2>/dev/null || true
+    installed="$(lock_version "$runtime_lock")"
+    if ! version_newer "$installed" "$version"; then
+      say "skip  user runtime (v$installed at $HARNESS_HOME is already current)"
+      return 0
     fi
-  done
-  if [ -f "$SRC/VERSION" ] && [ ! -e "$HARNESS_HOME/VERSION" ]; then
-    cp "$SRC/VERSION" "$HARNESS_HOME/VERSION" || return 1
+    REFRESH=refresh
   fi
-  write_runtime_lock "$SRC" "$HARNESS_HOME" "$version" || return 1
-  say "add   user runtime ($HARNESS_HOME, v$version)"
+  log="$(mktemp)" || return 1
+  sync_runtime "$SRC" "$HARNESS_HOME" "$version" "$log" || rc=$?
+  case "$rc" in
+    0) if [ "$REFRESH" = refresh ]; then say "update user runtime ($HARNESS_HOME, v${installed:-?} -> v$version)"
+       else say "add   user runtime ($HARNESS_HOME, v$version)"; fi
+       sed 's/^runtime /  /' "$log" | while IFS= read -r line; do say "$line"; done ;;
+    2) say "note  $SRC has no bin/harness.sh: no runtime was installed at $HARNESS_HOME" ;;
+  esac
+  rm -f "$log"
+  [ "$rc" -le 2 ]
 }
 
 install_runtime || { echo "init.sh: cannot install runtime at $HARNESS_HOME" >&2; exit 1; }
 
+# Harness-owned files that do not depend on any project live in the runtime
+# root: the global map, static docs (docs/ is the distribution source; the
+# source-repo-only references/ and assets/ sit outside it), the lifecycle
+# ARCHITECTURE.md, and the skill/agent sources the host-aware installer copies.
+install_global_assets() {
+  local out added
+  out="$(sync_globals "$SRC" "$REFRESH")" || return 1
+  added="$(printf '%s\n' "$out" | grep -c '^add ')"
+  [ "$added" -eq 0 ] || say "add   $added global file(s) under $HARNESS_HOME (map, docs, skills, agents)"
+  printf '%s\n' "$out" | grep -v '^add ' | while IFS= read -r line; do [ -z "$line" ] || say "global $line"; done
+  return 0
+}
+install_global_assets || { echo "init.sh: cannot install global assets at $HARNESS_HOME" >&2; exit 1; }
+
+# --- migrate pre-0059 layouts (before AGENTS.md is touched) ------------------
+# Moves plans/trace into .harness-mini/ and removes only lock-verified harness
+# files; the old harness/harness.lock is its baseline. Silent when nothing legacy.
+# It REFUSES (exit 1, project untouched) unless the runtime above is usable — the
+# AGENTS.md block must never point at a harness.sh that does not exist.
+migrate_legacy_layout "$DEST" "$SRC" || { echo "init.sh: legacy migration failed" >&2; exit 1; }
+
 # --- scaffold standard directories ------------------------------------------
-mkdir -p "$DEST/.agents/skills" "$DEST/harness/agents" \
-         "$DEST/docs/exec-plans/active" "$DEST/docs/exec-plans/completed" \
-         "$DEST/docs/references" "$DEST/harness" \
-         "$DEST/.trace/checkpoints" "$DEST/.trace/runtime"
+PROGRESS="$(progress_dir "$DEST")"
+STATE="$(state_dir "$DEST")"
+mkdir -p "$STATE" "$PROGRESS/docs/exec-plans/active" "$PROGRESS/docs/exec-plans/completed" \
+         "$PROGRESS/trace/checkpoints" "$PROGRESS/trace/evals" "$PROGRESS/trace/runtime"
+# Ephemeral traces are ignored from INSIDE .harness-mini/ — the project's own
+# .gitignore is never edited.
+if progress_gitignore_ensure "$DEST"; then say "add   .harness-mini/.gitignore"; fi
 
-# --- install shared skills and neutral role descriptions ---------------------
-copy_tree "$SRC/skills" "$DEST/.agents/skills"
-copy_tree "$SRC/agents" "$DEST/harness/agents"
-# docs/ rides along EXCEPT exec-plans — that is user space; the source repo's
-# own active plans must never seed a fresh install.
-( cd "$SRC/docs" 2>/dev/null && find . -type f -not -path './exec-plans/*' ) \
-  | while read -r rel; do copy_file "$SRC/docs/${rel#./}" "$DEST/docs/${rel#./}"; done
-copy_file "$SRC/AGENTS.md"       "$DEST/AGENTS.md"
-copy_file "$SRC/ARCHITECTURE.md" "$DEST/ARCHITECTURE.md"
+# Skills and role descriptions are NOT installed here: init cannot know the host.
+# The AGENTS.md block tells the agent to run `harness.sh agent list` then
+# `agent install <host>`, which copies from $HARNESS_HOME/skills and /agents.
 
-# --- migrate only provably harness-owned legacy files -----------------------
-migrate_legacy_layout || { echo "init.sh: legacy migration failed" >&2; exit 1; }
+# --- project instructions: one marker block in AGENTS.md ---------------------
+# The user's own ARCHITECTURE.md / CLAUDE.md / .gitignore are never touched.
+HOME_REF="$(home_ref)"
+if [ -f "$DEST/AGENTS.md" ] && grep -qxF "$HM_BEGIN" "$DEST/AGENTS.md"; then
+  say "skip  AGENTS.md (harness-mini block present)"
+else
+  agents_block_add "$DEST/AGENTS.md" "$HOME_REF" && say "add   AGENTS.md (harness-mini block)"
+fi
+# Project recon output: the lifecycle architecture itself is global.
+if [ ! -f "$PROGRESS/architecture.md" ]; then
+  cat > "$PROGRESS/architecture.md" <<'EOF'
+# Architecture (this project)
 
-# --- manifest: pointer list of the installed skill and agent files ----------
-if [ ! -f "$DEST/harness/manifest.md" ]; then
-  {
-    echo "# harness-mini manifest"
-    echo
-    echo "Skills are under .agents/skills/; role descriptions are under harness/agents/."
-    echo "Any coding agent that can read the repo should open the paths below."
-    echo
-    echo "## Skills (.agents/skills/)"
-    ( cd "$DEST/.agents/skills" 2>/dev/null && {
-        for d in */; do [ -f "${d}SKILL.md" ] && printf -- '- %sSKILL.md\n' "$d"; done
-        for m in *.md; do [ -f "$m" ] && printf -- '- %s\n' "$m"; done
-      } )
-    echo
-    echo "## Role descriptions (harness/agents/)"
-    ( cd "$DEST/harness/agents" 2>/dev/null && ls *.md 2>/dev/null ) | sed 's/^/- /'
-    echo
-    echo "## Map: AGENTS.md   Architecture: ARCHITECTURE.md"
-  } > "$DEST/harness/manifest.md"
-  say "add   harness/manifest.md"
+Filled by the recon plan (explorer agent). The harness lifecycle lives in
+`~/.harness-mini/docs/ARCHITECTURE.md`; this file is only about this project.
+
+## Domains & layers
+(pending recon)
+EOF
+  say "add   .harness-mini/architecture.md"
+fi
+
+# --- manifest: pointer list of the skills/roles an agent install places ------
+# Bookkeeping, so it lives in the state dir next to the lock, built from the
+# source (nothing is installed in the project yet).
+if [ ! -f "$STATE/manifest.md" ]; then
+  write_manifest "$SRC" "$STATE" "$(targets_text "$DEST")"
+  say "add   manifest.md (state dir: $STATE)"
 fi
 
 # --- version lockfile (additive: only on first install) ----------------------
 # Records the version + pristine upstream checksums so `harness.sh update` can
 # tell user-edited managed files from upstream changes. Left untouched on
 # re-run; thereafter maintained by `harness.sh update`.
-if [ ! -f "$DEST/harness/harness.lock" ]; then
+if [ ! -f "$STATE/harness.lock" ]; then
   src_ver="0.0.0"
   [ -f "$SRC/VERSION" ] && src_ver="$(tr -d ' \t\r\n' < "$SRC/VERSION")"
-  write_lock "$SRC" "$DEST" "$src_ver" && say "add   harness/harness.lock (v$src_ver)"
+  write_lock "$SRC" "$STATE" "$src_ver" "$(targets_text "$DEST")" && say "add   harness.lock (state dir, v$src_ver)"
 fi
-
-# --- .gitignore: ensure ephemeral runtime traces are ignored (additive) ------
-if [ ! -f "$DEST/.gitignore" ] || ! grep -q '\.trace/runtime' "$DEST/.gitignore" 2>/dev/null; then
-  printf '.trace/runtime/\n' >> "$DEST/.gitignore"
-  say "add   .gitignore (.trace/runtime/)"
-fi
+# retained pristine .agents/ files from a legacy install keep their old baseline
+legacy_seeds_adopt "$STATE/harness.lock"
 
 # --- seed the first exec-plan (idempotent: only if none exists) -------------
 # Guard on ANY active *.md (not just 0001-*): an upgraded install whose plans
 # are numbered differently must not gain a spurious bootstrap plan (#63).
-if ls "$DEST"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
+if ls "$PROGRESS"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
   say "skip  seed plan (active plan(s) already present)"
 else
   if [ "$MODE" = "existing" ]; then
-    cat > "$DEST/docs/exec-plans/active/0001-recon.md" <<'EOF'
+    cat > "$PROGRESS/docs/exec-plans/active/0001-recon.md" <<'EOF'
 ---
 plan: recon
 seq: 0001
@@ -289,8 +197,8 @@ This harness was grafted onto an existing project. Before any new work, map the
 ground. Do NOT run the greenfield funnel — this project already exists.
 
 ## Now (resume here)
-Spawn the **explorer** agent to fill this schema into `ARCHITECTURE.md`'s
-"Domains & layers" section (verify commands by running them where safe):
+Spawn the **explorer** agent to fill this schema into
+`.harness-mini/architecture.md`'s "Domains & layers" section (verify commands by running them where safe):
 
 - [ ] Entry points (file:line)
 - [ ] Test command
@@ -311,7 +219,7 @@ Spawn the **explorer** agent to fill this schema into `ARCHITECTURE.md`'s
 ## Decisions
 - (record here)
 EOF
-    cat > "$DEST/docs/exec-plans/active/0001-recon.json" <<'EOF'
+    cat > "$PROGRESS/docs/exec-plans/active/0001-recon.json" <<'EOF'
 {
   "plan_id": "0001-recon",
   "title": "Recon graft",
@@ -320,9 +228,9 @@ EOF
   "slices": []
 }
 EOF
-    say "add   docs/exec-plans/active/0001-recon.md (+ json twin)"
+    say "add   .harness-mini/docs/exec-plans/active/0001-recon.md (+ json twin)"
   else
-    cat > "$DEST/docs/exec-plans/active/0001-intake.md" <<'EOF'
+    cat > "$PROGRESS/docs/exec-plans/active/0001-intake.md" <<'EOF'
 ---
 plan: intake
 seq: 0001
@@ -346,7 +254,7 @@ A brand-new project. Run the founder funnel before writing any code.
 ## Decisions
 - (record here)
 EOF
-    cat > "$DEST/docs/exec-plans/active/0001-intake.json" <<'EOF'
+    cat > "$PROGRESS/docs/exec-plans/active/0001-intake.json" <<'EOF'
 {
   "plan_id": "0001-intake",
   "title": "Intake — greenfield bootstrap",
@@ -355,9 +263,10 @@ EOF
   "slices": []
 }
 EOF
-    say "add   docs/exec-plans/active/0001-intake.md (+ json twin)"
+    say "add   .harness-mini/docs/exec-plans/active/0001-intake.md (+ json twin)"
   fi
 fi
 
 echo "harness-mini: done."
+dotnew_notice "$DEST"
 exit 0

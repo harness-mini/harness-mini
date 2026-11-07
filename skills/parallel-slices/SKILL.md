@@ -36,7 +36,7 @@ do not isolate with worktrees; the footprint is the contract.
    *its* issue, its acceptance criteria, and its declared footprint.
 3. **Collect distillates, not diffs.** Take back only each generator's report —
    tests green, footprint touched, any unmet criterion. Pulling whole diffs into
-   the orchestrator defeats the 40% line (`docs/smart-dumb.md`); read code via the
+   the orchestrator defeats the 40% line (`$HOME/.harness-mini/docs/smart-dumb.md`); read code via the
    evaluator, not here.
 4. **Footprint breach = stop.** If a generator reports it had to touch a file
    outside its declared footprint, that group was mis-partitioned: stop, re-plan

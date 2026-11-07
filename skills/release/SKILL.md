@@ -38,4 +38,4 @@ without them it tags locally and tells you to finish by hand.
 - Verify the tag and release: `git tag | tail` and `gh release view v<x.y.z>`.
 - Installed projects pick it up via `"$HOME/.harness-mini/bin/harness.sh" update` (checksum-guarded:
   user-edited files are kept, upstream offered as `<file>.new`).
-- Write a checkpoint and move the plan to `docs/exec-plans/completed/`.
+- Write a checkpoint and move the plan to `.harness-mini/docs/exec-plans/completed/`.

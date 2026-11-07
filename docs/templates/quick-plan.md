@@ -9,12 +9,12 @@ eval: L0        # L0 self-check (tiny) or L1 lightweight reviewer; see evaluate 
 # <Title> — quick mode
 
 > **Quick mode** = one obvious change, no ambiguity, ≤ ~1 vertical slice. Skip the
-> PRD/issues ceremony. Use `docs/templates/full-plan.md` instead if the change is
+> PRD/issues ceremony. Use `$HOME/.harness-mini/docs/templates/full-plan.md` instead if the change is
 > ambiguous, cross-cutting, touches architecture, or risks data/security.
 > (When unsure, the README first-screen table decides for you.)
 >
 > **Dual file:** quick plans also keep a same-basename `<NNN-slug>.json` twin
-> (usually a single slice) — schema + rules: `docs/templates/full-plan.md`.
+> (usually a single slice) — schema + rules: `$HOME/.harness-mini/docs/templates/full-plan.md`.
 
 ## Problem
 <One or two sentences: what's broken or missing, and why it matters now.>

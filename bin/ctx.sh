@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ctx.sh — context occupancy estimate against the smart/dumb threshold.
 #
-# The harness rule (see docs/smart-dumb.md): context below the threshold is the
+# The harness rule (see ~/.harness-mini/docs/smart-dumb.md): context below the threshold is the
 # "smart" zone where the model reasons sharply; at/above it the model degrades
 # ("dumb" zone) and must checkpoint + reset.
 #
@@ -29,7 +29,7 @@ examples:
   HARNESS_CTX_THRESHOLD=30 ctx.sh 60000    # 30%  -> exit 2 (stricter line)
   HARNESS_CTX_THRESHOLD=60 ctx.sh 120000   # 60%  -> exit 0 (looser line)
 
-See docs/smart-dumb.md for when to move the line.
+See ~/.harness-mini/docs/smart-dumb.md for when to move the line.
 EOF
 }
 

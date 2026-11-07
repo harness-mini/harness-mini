@@ -12,4 +12,4 @@ skill wins. Trivial one-line fixes may skip the ceremony (quick mode). On a fres
 session, first run `bin/harness.sh version` — if a newer harness-mini exists, tell
 the user and offer `bin/harness.sh update`.
 
-Map: AGENTS.md · Manifest: harness/manifest.md · 40% rule: docs/smart-dumb.md
+Map: AGENTS.md · 40% rule: docs/smart-dumb.md (this source repo; installed: ~/.harness-mini/docs/smart-dumb.md)

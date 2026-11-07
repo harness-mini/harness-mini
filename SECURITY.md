@@ -17,8 +17,8 @@ security fixes — anything older is out of support.
 - `init.sh` and `bin/*.sh` — the shell code that runs on developer machines. The
   installer and CLI are the security-sensitive surface: what they write, what
   they overwrite, and what they execute.
-- Supply-chain integrity of a distributed install: the `harness/harness.lock`
-  checksums and everything the `harness.sh update` path pulls in.
+- Supply-chain integrity of a distributed install: the per-project `harness.lock`
+  checksums (`~/.harness-mini/<project-id>/`) and everything the `harness.sh update` path pulls in.
 - Skills/agents content (`skills/`, `agents/`) that instructs a coding agent to
   perform unsafe actions on the host where harness-mini is installed.
 

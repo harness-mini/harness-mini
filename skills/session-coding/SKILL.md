@@ -16,13 +16,13 @@ Execute in order and **report all five in your first turn**:
 1. Run `pwd` — confirm you are in the project root.
 2. Run `"$HOME/.harness-mini/bin/harness.sh" status` (workboard: active plans · JSON status ·
    current · next `passes: false`), `git log --oneline -5`, and read the
-   latest checkpoint under `.trace/checkpoints/` for this plan.
-3. Open the active twin `docs/exec-plans/active/<plan>.json` that `status`
+   latest checkpoint under `.harness-mini/trace/checkpoints/` for this plan.
+3. Open the active twin `.harness-mini/docs/exec-plans/active/<plan>.json` that `status`
    points at; select the highest-priority slice with `"passes": false`
    (prefer the `next:` id from status when present).
 4. Establish a clean **baseline** before new work — the *application's*
    documented check (lint/types/tests or its own boot/setup script from
-   `ARCHITECTURE.md` or the plan). **Do NOT re-run harness-mini's installer
+   the project's own docs, `.harness-mini/architecture.md` or the plan). **Do NOT re-run harness-mini's installer
    `init.sh`** — that installs the harness, not your app; if the app ships
    its own `./init.sh`, that one is fine. If any baseline check fails:
    **stop implementing new slices** and fix the regression first.

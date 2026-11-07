@@ -8,10 +8,99 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 ## [Unreleased]
 
 ### Changed
-- Skills and role descriptions now use shared project paths (`.agents/skills/`
-  and `harness/agents/`) across coding agents. Harness executables live in the
-  per-user `~/.harness-mini/bin/`; project and runtime files have separate
-  checksum locks, and updates retain checksum-modified legacy project scripts.
+- **BREAKING — zero-intrusion install layout (plan 0059).** Files now fall in
+  two classes. *Harness-owned* files that don't depend on project progress
+  live under `$HARNESS_HOME` (default `~/.harness-mini/`); *project-progress*
+  files that must be recorded live in the project's `.harness-mini/`. A
+  project now receives only: `.harness-mini/` (plans, trace, `architecture.md`,
+  an inner `.gitignore` for `trace/runtime/`), one `<!-- harness-mini:begin/end -->`
+  block in the root `AGENTS.md` (the file is created holding only the block if
+  absent; text outside the block is never touched), the host's skills/agents
+  dirs placed by `agent install`, and lines for those dirs in the local
+  `.git/info/exclude`. It no longer receives `docs/`, `harness/`, `.trace/`,
+  `ARCHITECTURE.md`, `CLAUDE.md`, a harness `bin/`, or any edit of the project
+  `.gitignore`.
+- **Per-project bookkeeping moves to `$HARNESS_HOME/<project-id>/`**
+  (`harness.lock`, `manifest.md`, `targets`). `project-id` is
+  `<name>-<8 chars [0-9a-z]>`: the lowercase-hyphenated basename plus the last
+  8 base-36 digits of sha256(absolute, symlink-resolved path). Caveat: **moving
+  or renaming a project changes its id**, so its old lock/targets are orphaned;
+  re-run `init.sh` and `agent install <host>` there.
+- **`init.sh` is host-blind and installs no skills or agents.** The AGENTS.md
+  block tells the agent to run `harness.sh agent list`, then
+  `agent install <host>`. Static docs, templates, the map (`AGENTS.md`) and
+  `docs/ARCHITECTURE.md` exist once under `$HARNESS_HOME`, never in projects.
+- **0058 correction: `.agents/skills` is no longer treated as universal.**
+  Install targets are host-aware; hosts that read `.agents/skills` natively
+  share it, others (Claude Code, Qoder, zcode, Trae, CodeBuddy) get their own
+  dir.
+- **`references/` and `assets/` moved to the repo root** (from `docs/`); they
+  are source-repo only and never installed or locked. The source repo now
+  dogfoods the `.harness-mini/` layout (plans, checkpoints, evals); its
+  `docs/` is distribution source only.
+- `update` also refreshes the global copies (map, docs, skill/agent sources)
+  under `$HARNESS_HOME`, checksum-guarded like project files, with a separate
+  `harness/global.lock` (next to `runtime.lock`).
+- `doctor` gains an installed-drift check: skills at persisted install targets
+  that differ from source are reported as a warning.
+
+### Added
+- **Host-aware `harness.sh agent list|install <host>`.** `agent list` prints the
+  host table (id, skills dir, agents dir, role format, confidence) for
+  Antigravity, Codex, Cursor, Claude Code, Qoder, zcode, Kimi, DeepSeek harness,
+  pi, opencode, Grok, GitHub Copilot, MiMo Code, Trae and CodeBuddy
+  (`host_row` in `bin/_harness_lib.sh` is the single source). Roles are written
+  as Markdown, `<name>.agent.md` (Copilot) or TOML (Codex). Unknown hosts, Muse
+  and Hermes install nothing: the command prints the source paths and
+  instructions so the agent installs itself. Each install appends a row to
+  `<state dir>/targets` (`host<TAB>skills<TAB>agents<TAB>fmt`) and rewrites the
+  project lock and manifest.
+- **Automatic legacy migration** on `init.sh` re-run and `update`: plans move
+  from `docs/exec-plans/` and `.trace/` into `.harness-mini/` (file-by-file
+  merge); harness-owned files from the old `harness/harness.lock` (docs,
+  `ARCHITECTURE.md`, `bin/`, `.claude/`, generated Cursor rules/`CLAUDE.md`)
+  are removed only when their checksum still matches; edited files are kept
+  and reported. A whole-file harness `AGENTS.md` is replaced by the block when
+  unchanged; an edited one keeps your text and gets the block appended;
+  leftover harness copies (`docs/references`, `docs/assets`, static docs,
+  generated Cursor rules) go only when byte-identical to the shipped copy and
+  the rest is listed, one path per line. Repeat runs are harmless and quiet.
+  *Bootstrap note (upgrading from ≤ 0.12.x):* run the new checkout's `init.sh`
+  in the project (`bash <checkout>/init.sh .`) — it installs the runtime under
+  `$HARNESS_HOME` (or refreshes an older one, checksum-guarded; never a
+  downgrade) and only then migrates. `bin/harness.sh update --src <checkout>`
+  run twice also works: the first run (old code) only copies the new `bin/`
+  into the project; the second (new code) installs the runtime from the source
+  tree, then migrates. **The migration is refused — nothing moved or removed —
+  unless the runtime at `$HARNESS_HOME` is installed and answers `agent list`;**
+  the message names the next step.
+- `init.sh` refreshes an existing runtime like `update` does (pristine files
+  upgraded, edited ones kept with `.new`, `VERSION` + `runtime.lock` advanced).
+- `doctor` and `status` also count unresolved `.new` files under
+  `$HARNESS_HOME` (runtime executables and global copies).
+- **A prominent notice when files were not upgraded (plan 0060).** After
+  `init.sh` or `update`, if any `<file>.new` is waiting under `$HARNESS_HOME`
+  (runtime or global copies) or in the project, one plain-ASCII banner says how
+  many files were NOT upgraded because you edited them (files under the install
+  dir are managed by harness-mini and should not be edited; put local needs in
+  the project), lists each `.new`, and prints the runnable line that shows the
+  difference. Nothing is printed when there are none. A migration refused
+  because an edited runtime file blocks the upgrade now names that `.new` and
+  the diff command instead of "run init.sh again".
+- **`harness.sh diff <relpath|path> [--root DIR]`.** Prints `diff -u` of your
+  kept file against its upstream `<file>.new` (labelled yours / upstream) for a
+  runtime, global or project file (`bin/harness.sh`, `skills/tdd/SKILL.md`, …);
+  exit 1 with a clear message when there is no `.new`.
+- **`update` refuses to downgrade the runtime** (same version test as
+  `init.sh`, for `--src DIR` and the default clone): exit 1, nothing changed,
+  unless `--force`.
+- **Safer cleanup of generated `.cursor/rules/*.mdc`.** A rule is deleted only
+  when it is byte-exact AND its `description:` line equals the one the old
+  installer wrote (the skill's description, or its fallback text). A look-alike
+  with an edited description or body is kept and named in the kept notice; it is
+  never reported as "removed unchanged".
+- **Leftover docs are listed in full.** Every kept legacy path is printed on its
+  own line (sorted); a repeat run never collapses them into a bare count.
 
 ## [0.12.1] - 2026-11-06
 

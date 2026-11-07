@@ -3,8 +3,8 @@
   This is the worked example referenced by docs/walkthrough.md. It shows the
   *shape* of a full-mode exec-plan for a relatable feature (password login on a
   small demo API). The commands/outputs in the walkthrough are equally illustrative.
-  Copy docs/templates/full-plan.md for a real plan; real plans live in
-  docs/exec-plans/active/, not here.
+  Copy ~/.harness-mini/docs/templates/full-plan.md for a real plan; real plans live in
+  .harness-mini/docs/exec-plans/active/, not here.
 -->
 ---
 plan: demo-auth

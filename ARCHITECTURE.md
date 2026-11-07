@@ -37,9 +37,9 @@ agent (via `stage-viewer`) advances a state; sub-agents never do.**
          │  checkpoint → committed handoff
          ▼
    ┌────────────┐
-   │ checkpoint │  gate: verdict: pass in .trace/evals/ (doctor enforces)
+   │ checkpoint │  gate: verdict: pass in .harness-mini/trace/evals/ (doctor enforces)
    └────────────┘
-         │  archive → docs/exec-plans/completed/
+         │  archive → .harness-mini/docs/exec-plans/completed/
          ▼
    ┌────────────┐
    │    done    │
@@ -54,17 +54,78 @@ agent (via `stage-viewer`) advances a state; sub-agents never do.**
 - **solid arrows** advance only when the exit condition holds; the **dashed**
   loop is the implement ⇄ evaluate rework cycle until criteria pass.
 
-## Repository layout
+## Two file classes
+
+Zero-intrusion install: harness-mini never spreads its own files through a
+project. Every file belongs to exactly one class.
+
+| Class | Lives in | Examples |
+|-------|----------|----------|
+| **Harness-owned**, independent of project progress | `$HARNESS_HOME` (default `~/.harness-mini/`), per project under `$HARNESS_HOME/<project-id>/` | executables, the map, static docs, skill/agent sources, lock, manifest |
+| **Project progress**, must be recorded with the project | `<project>/.harness-mini/` (committed, except `trace/runtime/`) | plans, checkpoints, evals, garden backlog, project architecture |
+
+Besides `.harness-mini/`, an install writes only a `<!-- harness-mini:begin/end -->`
+block in the project's root `AGENTS.md`, local `.git/info/exclude` lines, and —
+after `harness.sh agent install <host>` — that host's skills/agents dirs. The
+project's own `.gitignore`, `ARCHITECTURE.md` and `CLAUDE.md` are never touched.
+
+### Project layout (`<project>/.harness-mini/`)
 
 ```
-AGENTS.md              # context navigation map injected every run (anchor index)
-ARCHITECTURE.md        # this file
+.harness-mini/
+  .gitignore           # ignores trace/runtime/ (the project .gitignore stays untouched)
+  architecture.md      # this project's recon output (the explorer fills it)
+  docs/
+    exec-plans/
+      active/          # in-flight plans: <NNN-slug>.md + .json twin (committed)
+      completed/       # archived plans (committed)
+  trace/
+    checkpoints/       # COMMITTED — decisions, milestones, handoffs
+    evals/             # COMMITTED — <plan>-NNN.md verdicts (the done-gate)
+    garden-backlog.md  # COMMITTED — smell backlog
+    runtime/           # GITIGNORED — ephemeral per-run JSONL (report reads these)
+```
+
+### Runtime layout (`$HARNESS_HOME`, default `~/.harness-mini/`)
+
+```
+bin/                   # executables (harness.sh, trace.sh, ctx.sh, ...)
+VERSION
+harness/runtime.lock   # version + checksums of bin/*
+AGENTS.md              # the full agent map (the project block points here)
+docs/                  # static docs: principles, smart-dumb, assumptions, ARCHITECTURE.md,
+                       #   templates/, walkthrough, getting-started, examples/
+skills/  agents/       # sources that `agent install <host>` copies from
+<project-id>/          # per-project bookkeeping
+  harness.lock         # version + pristine checksums of installed skills/agents
+  manifest.md          # pointer list of what an agent install placed
+  targets              # one row per installed host (skills dir, agents dir, format)
+```
+
+**project-id** = `<project-name>-<8 chars [0-9a-z]>`: the name is the lowercase,
+hyphenated basename of the project; the 8 chars are base-36 of
+`sha256(absolute symlink-resolved path)`. Moving a project changes its id
+(documented trade-off). Implemented by `project_id` in `bin/_harness_lib.sh`.
+
+**Hosts.** Which skills/agents dir each coding-agent host reads is a single table,
+`host_row` in `bin/_harness_lib.sh`; `harness.sh agent list` prints it and
+`agent install <host>` acts on it (unknown hosts get self-install instructions).
+Hosts that read `.agents/skills` natively share one copy.
+
+## Repository layout (the source repo)
+
+The source repo dogfoods the project layout above: its own plans and trace live
+in `.harness-mini/`, while `docs/` is distribution source only.
+
+```
+AGENTS.md              # the agent map (installed to $HARNESS_HOME/AGENTS.md)
+ARCHITECTURE.md        # this file (installed to $HARNESS_HOME/docs/ARCHITECTURE.md)
 VERSION                # canonical version (SemVer); bumped by the release command
 CHANGELOG.md           # Keep-a-Changelog; rolled on release
 init.sh                # additive, idempotent installer (new vs existing)
-bin/                   # runtime script sources; installed under ~/.harness-mini/bin/
-  harness.sh           # front-door CLI: version·update·doctor·status·release
-  _harness_lib.sh      # shared helpers: managed-set, checksums, lockfile
+bin/                   # runtime script sources; installed under $HARNESS_HOME/bin/
+  harness.sh           # front-door CLI: version·update·doctor·status·agent·release
+  _harness_lib.sh      # shared helpers: layout resolver, host table, managed-set, lock
   ctx.sh               # context % estimate vs the 40% threshold
   ctx-hook.sh          # opt-in PostToolUse hook (ctx estimate + auto last-green)
   trace.sh             # append runtime JSONL (best-effort, never blocks)
@@ -74,46 +135,37 @@ bin/                   # runtime script sources; installed under ~/.harness-mini
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
                        #   references/ assets/ examples/ tests/.
-                       #   Installed (recursively) to .agents/skills/<name>/
-  checkpoint/scripts/   # checkpoint-only lint, snapshot, and guard helpers
-agents/                # role descriptions → installed to harness/agents/
-docs/
-  principles.md        # golden principles + the Mini delete-first constraint
-  smart-dumb.md        # the 40% occupancy contract
-  exec-plans/
-    active/            # in-flight plans + decision logs (committed)
-    completed/         # archived plans (committed)
-  references/          # *-llms.txt distillates of the source blogs
+                       #   Installed (recursively) to the host's skills dir
+  checkpoint/scripts/  # checkpoint-only lint, snapshot, and guard helpers
+agents/                # role descriptions → installed to the host's agents dir
+docs/                  # DISTRIBUTION SOURCE → $HARNESS_HOME/docs/ (never into a project)
+  principles.md  smart-dumb.md  assumptions.md  walkthrough.md  *-getting-started.md
+  templates/  examples/
+references/            # *-llms.txt distillates of the source blogs (source repo only)
+assets/                # README banner etc. (source repo only)
+  # references/ and assets/ are never installed, locked, or listed in a manifest
+.harness-mini/         # this repo's own plans + trace (dogfood)
 tests/run.sh           # zero-dep TDD suite for bin/*, skill scripts, and init.sh
-harness/
-  manifest.md          # pointer list of installed skill and agent files
-  harness.lock         # project version + checksums of project-managed files
-.trace/
-  checkpoints/         # COMMITTED — decisions, milestones, handoffs
-  evals/               # COMMITTED — <plan>-NNN.md verdicts (the done-gate)
-  runtime/             # GITIGNORED — ephemeral per-run JSONL (report reads these)
 ```
-
-The per-user runtime is separate from this tree: `~/.harness-mini/bin/` holds
-the executables and `~/.harness-mini/harness/runtime.lock` tracks their version
-and checksums.
 
 ## Versioning & update model
 
-An install has two independent managed sets. The **project set** contains
-`.agents/skills/**` recursively, `harness/agents/*`, selected docs, `AGENTS.md`,
-and `ARCHITECTURE.md`; the **runtime set** contains executable `bin/*` sources
-installed under `~/.harness-mini/bin/`. The project set is defined in
-`emit_managed_pairs()` (`bin/_harness_lib.sh`); runtime checksums are stored in
-`~/.harness-mini/harness/runtime.lock`. Project checksums live in
-`harness/harness.lock`. Project plans, `.trace/`, and application files are not
-managed.
+An install has two independent managed sets. The **project set** is only the
+skills and role files an `agent install` placed in the host's dirs; the
+**runtime set** is the executable `bin/*` sources under `$HARNESS_HOME/bin/`. The
+project set is defined in `emit_managed_pairs()` (`bin/_harness_lib.sh`) and
+recorded in `$HARNESS_HOME/<project-id>/harness.lock`; runtime checksums are in
+`$HARNESS_HOME/harness/runtime.lock`. The global copies (map, docs, skill/agent
+sources) have their own `harness/global.lock`. Project plans, `.harness-mini/`,
+and application files are not managed.
 
 `init.sh` writes both locks with the **pristine upstream checksum** of each
 managed file. `"$HOME/.harness-mini/bin/harness.sh" update` diffs `base` (lock
 baseline), `cur` (on disk), and `new` (upstream) independently for runtime and
 project files. It preserves edited files and writes upstream conflicts to
-`.new`. From this source repository, the release command stamps `VERSION`, rolls
+`.new`. `update` also refreshes the global copies and first migrates a pre-0.13
+project layout (data moves into `.harness-mini/`; legacy harness files are removed
+only when their old-lock checksum matches). From this source repository, the release command stamps `VERSION`, rolls
 `CHANGELOG.md`, tags `v<x.y.z>`, and publishes a GitHub release (gated on green
 tests + a clean tree).
 
@@ -122,7 +174,7 @@ tests + a clean tree).
 _(The full diagram with per-state exit conditions is at the top:
 [Lifecycle at a glance](#lifecycle-at-a-glance).)_
 
-- State lives in each `docs/exec-plans/active/<plan>.md` frontmatter (`stage:`).
+- State lives in each `.harness-mini/docs/exec-plans/active/<plan>.md` frontmatter (`stage:`).
 - **Plan-stage write ban:** while `stage` ∈ {intake, prd, issues}, no product-code
   edits (convention in `stage-viewer`; Mini has no permission engine).
 - **Transition authority (mode C):** agents work freely *within* a stage, but
@@ -130,12 +182,12 @@ _(The full diagram with per-state exit conditions is at the top:
   may mark its own output "done" — the evaluator gate plus main-agent control
   is the anti-self-praise firewall extended across the whole lifecycle.
 - **The firewall has teeth:** promoting a plan to `done` requires a committed
-  `verdict: pass` record at `.trace/evals/<plan>-NNN.md`; `harness.sh doctor`
+  `verdict: pass` record at `.harness-mini/trace/evals/<plan>-NNN.md`; `harness.sh doctor`
   FAILs a done plan that lacks one. `harness.sh report` aggregates these verdicts
   (+ the runtime ctx trend) so the loop is measured, not asserted.
 - **Garden triggers (orthogonal):** gardening fires on concrete signals, not
   "periodically" — **≥5 checkpoints** since the last sweep, a plan completing, a
-  pending release, or the **smell backlog** (`.trace/garden-backlog.md`) crossing
+  pending release, or the **smell backlog** (`.harness-mini/trace/garden-backlog.md`) crossing
   its threshold (any `high` / ≥3 open). `harness.sh status` prints `garden:
   DUE|ok` and a final `ready: <ready|warning|blocked> — <next>` verdict; the
   main agent dispatches the gardener. See the `garden` skill.
@@ -170,9 +222,5 @@ _(The full diagram with per-state exit conditions is at the top:
 - **new** → generative bootstrap: seed `0001-intake.md`, run the founder funnel
   (founder-check → to-prd → to-issues).
 - **existing** → recon graft: seed `0001-recon.md`, the explorer maps the
-  codebase into this file's "Domains & layers" section below; skip the founder
+  codebase into `.harness-mini/architecture.md` ("Domains & layers"); skip the founder
   funnel; install additively without overwriting anything.
-
-## Domains & layers
-<!-- The explorer fills this in during recon of an existing project. -->
-_(empty until a project is mapped)_

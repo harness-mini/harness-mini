@@ -10,7 +10,7 @@ prev: demo-auth-002
 - Slice 3 green: real signed session token issued via the existing middleware;
   stub removed. `verifyPassword()` extracted (the evaluator's clean-code note).
 - `npm test` → `15 passing`. **L1 re-evaluation PASS** on all four criteria.
-- Feature complete. Plan would move to `docs/exec-plans/completed/`.
+- Feature complete. Plan would move to `.harness-mini/docs/exec-plans/completed/`.
 ## Now
 - demo-auth done end-to-end. Out-of-scope items (signup, reset, rate limiting)
   remain deliberately unbuilt (five-step deletions, d0).

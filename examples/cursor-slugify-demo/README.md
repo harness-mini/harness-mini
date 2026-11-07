@@ -21,10 +21,10 @@ When that file is filled in, #23's last open item is satisfied.
 
 This folder has its own nested [`.cursor/rules/`](./.cursor/rules/) — the **gate**
 (`harness-mini.mdc`, `alwaysApply: true`) plus one **agent-requested** rule per skill
-(`<name>.mdc`, `alwaysApply: false` + the skill's `description`), generated in the
-exact format `init.sh` produces, except the path points at this repo's source
-tree. Each rule is a thin pointer to `skills/<name>/SKILL.md` — single source
-of truth, no copy. This repo does not commit a `.claude/` directory.
+(`<name>.mdc`, `alwaysApply: false` + the skill's `description`), written by hand for this demo (current installs use the `AGENTS.md` block and
+`harness.sh agent install cursor` instead), with paths pointing at this repo's
+source tree. Each rule is a thin pointer to `skills/<name>/SKILL.md` — single source
+of truth, no copy. This repo commits no per-host install dirs.
 
 **Setup:** open the **harness-mini repo root** in Cursor (so `skills/` resolves),
 then work on files **inside this folder**. The nested rules apply to this subtree.
@@ -81,7 +81,7 @@ bash bin/ctx.sh 80000 200000; echo "exit=$?"   # prints "40%", exit=2
 ```
 **What proves it:** `ctx.sh` prints the occupancy (`40%`) and signals via **exit code** —
 `2` means at/over the 40% line ("checkpoint now"), `0` means still in the smart zone
-(see `docs/smart-dumb.md`). That's the discipline `bin/ctx-hook.sh` automates
+(see `docs/smart-dumb.md`; installed: `~/.harness-mini/docs/smart-dumb.md`). That's the discipline `bin/ctx-hook.sh` automates
 on hosts that wire it, here run by hand. Paste both the `40%` line and `exit=2`.
 
 ### Beat 4 — Evaluator firewall (separate chat)

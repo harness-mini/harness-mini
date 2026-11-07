@@ -77,7 +77,7 @@ read the code through the evaluator, not by inflating the orchestrator's window.
 
 ### 2. 40% = the checkpoint-and-reset trigger (not a hard wall)
 Crossing 40% does not mean "stop blindly." It means: **checkpoint now, while you
-are still sharp.** Write `.trace/checkpoints/<plan>-<seq>.md`, update the active
+are still sharp.** Write `.harness-mini/trace/checkpoints/<plan>-<seq>.md`, update the active
 exec-plan, then reset to a fresh session that bootstraps from that artifact.
 Waiting until 90% is fatal — the handoff itself would be written by a degraded
 agent.
@@ -85,7 +85,7 @@ agent.
 ### 3. Measurement — best-effort, to *see* drift
 `"$HOME/.harness-mini/bin/ctx.sh" <used_tokens> [window]` prints `N%` and exits 2 at/over threshold.
 You cannot portably read a model's internal token counter, so this is an
-estimate. It is good enough to watch trends in `.trace/runtime/`, not a hard
+estimate. It is good enough to watch trends in `.harness-mini/trace/runtime/`, not a hard
 interrupt — and `"$HOME/.harness-mini/bin/harness.sh" report` charts those trends (max ctx%, how often
 the 40% line was crossed) so the threshold is tuned by data, not guesswork.
 
@@ -115,7 +115,7 @@ Honest caveat: `bytes(transcript)/4` is a heuristic proxy for tokens, not a true
 count — good enough to see the trend and fire a reminder, which is all this asks.
 
 When `HARNESS_TEST_SCRIPT` is set in the environment (e.g., `tests/run.sh`),
-`~/.harness-mini/bin/ctx-hook.sh` also automatically records `.trace/runtime/last-green.txt` with
+`~/.harness-mini/bin/ctx-hook.sh` also automatically records `.harness-mini/trace/runtime/last-green.txt` with
 the current timestamp and git revision whenever tests pass. The `checkpoint` skill
 reads that file to populate `Last green:` deterministically without hallucination.
 

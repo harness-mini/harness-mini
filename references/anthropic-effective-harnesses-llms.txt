@@ -42,6 +42,6 @@ Source: anthropic.com/engineering/effective-harnesses-for-long-running-agents
   not model memory.
 
 ## → How harness-mini uses this
-init.sh (bootstrap) · exec-plans + .trace/checkpoints (handoff artifacts) ·
+init.sh (bootstrap) · exec-plans + .harness-mini/trace/checkpoints (handoff artifacts) ·
 one-task-per-session + the 40% checkpoint trigger · evaluator agent prevents
 premature completion · tdd forces real verification.
