@@ -2243,6 +2243,9 @@ assert_contains "$g" "name: gardener" "installed role gains a name from the file
 assert_contains "$g" "description:" "installed role gains a description"
 assert_contains "$g" "GARDENER ROLE" "installed role keeps its body"
 assert_eq "GARDENER ROLE" "$(cat "$AGH/agents/gardener.md")" "global role sources are never altered"
+assert_eq "true" "$([ -f "$P5/.cursor/skills/tdd/SKILL.md" ] && echo true || echo false)" "cursor skills land in .cursor/skills"
+assert_eq "false" "$([ -e "$P5/.agents/skills" ] && echo true || echo false)" "cursor does not use .agents/skills"
+assert_contains "$(cat "$P5/.git/info/exclude" 2>/dev/null)" ".cursor/skills/" "cursor skills dir is listed in .git/info/exclude"
 
 # two hosts accumulate in targets, lock, manifest and exclude
 ag agent install codex --root "$P1" >/dev/null 2>&1

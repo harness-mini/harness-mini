@@ -32,7 +32,7 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   `docs/ARCHITECTURE.md` exist once under `$HARNESS_HOME`, never in projects.
 - **0058 correction: `.agents/skills` is no longer treated as universal.**
   Install targets are host-aware; hosts that read `.agents/skills` natively
-  share it, others (Claude Code, Qoder, zcode, Trae, CodeBuddy) get their own
+  share it, others (Claude Code, Cursor, Qoder, zcode, Trae, CodeBuddy) get their own
   dir.
 - **`references/` and `assets/` moved to the repo root** (from `docs/`); they
   are source-repo only and never installed or locked. The source repo now
