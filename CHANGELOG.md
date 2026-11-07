@@ -7,6 +7,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Per-project state dirs now live under `$HARNESS_HOME/projects/<project-id>/`**
+  (was `$HARNESS_HOME/<project-id>/`), so the top of `~/.harness-mini/` holds only
+  the runtime (`bin`, `docs`, `skills`, `agents`, `harness`, `projects`, `AGENTS.md`,
+  `VERSION`). Existing 0.13.0 state dirs are moved automatically and idempotently by
+  `init.sh` and by `harness.sh` (`update`, `doctor`, `status`, `agent install`, ...);
+  runtime dirs are never touched and an existing `projects/<project-id>/` is never
+  overwritten (the old dir is kept with a `keep` notice). Issue #82.
+
 ## [0.13.0] - 2026-11-07
 
 ### Changed

@@ -18,7 +18,7 @@ security fixes — anything older is out of support.
   installer and CLI are the security-sensitive surface: what they write, what
   they overwrite, and what they execute.
 - Supply-chain integrity of a distributed install: the per-project `harness.lock`
-  checksums (`~/.harness-mini/<project-id>/`) and everything the `harness.sh update` path pulls in.
+  checksums (`~/.harness-mini/projects/<project-id>/`) and everything the `harness.sh update` path pulls in.
 - Skills/agents content (`skills/`, `agents/`) that instructs a coding agent to
   perform unsafe actions on the host where harness-mini is installed.
 
