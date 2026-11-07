@@ -6,26 +6,27 @@ description: View and advance the lifecycle stage of every requirement. Main-age
 You are the main agent holding the tiller. Only you advance the FSM.
 
 ## On entry — workboard first (first thing)
-In a fresh session, run `bin/harness.sh status` **first**. It prints the active
+In a fresh session, run `"$HOME/.harness-mini/bin/harness.sh" status` **first**. It prints the active
 plans, each plan's JSON-twin workboard line (`status · n/m pass · current ·
 next passes:false` slice), resumability, and — best-effort, silent offline — an
 `update:` line when a newer harness-mini exists (tell the user and offer
-`bin/harness.sh update`; checksum-guarded, edits kept). The `next:` slice is
+`"$HOME/.harness-mini/bin/harness.sh" update`; checksum-guarded, edits kept). The `next:` slice is
 your default answer to "what now?".
 
 ## View
-1. List `docs/exec-plans/active/*.md`. For each, read the `stage:` frontmatter.
+1. List `.harness-mini/docs/exec-plans/active/*.md`. For each, read the `stage:` frontmatter.
 2. Report a one-line status per plan: `<plan> — <stage> — <one-line "Now">`.
-3. Read `.trace/checkpoints/` for the latest checkpoint of a plan if you need
+3. Read `.harness-mini/trace/checkpoints/` for the latest checkpoint of a plan if you need
    to resume it.
 
 ## Route (simple vs complex)
+> Static docs and templates live at `$HOME/.harness-mini/docs/` once installed (`docs/` in the harness-mini source repo).
 - **Simple** (one obvious change, <1 slice): **quick mode** — skip planning
   ceremony, go straight to `implement` with a lightweight plan note
-  (`docs/templates/quick-plan.md`); evaluate at **L0/L1**.
+  (`$HOME/.harness-mini/docs/templates/quick-plan.md`); evaluate at **L0/L1**.
 - **Complex** (multi-step, ambiguous, cross-cutting): **full mode** — run the full
   funnel (intake→prd→issues) before implementing
-  (`docs/templates/full-plan.md`); evaluate at **L1/L2**.
+  (`$HOME/.harness-mini/docs/templates/full-plan.md`); evaluate at **L1/L2**.
 
 Record the chosen evaluation tier in the plan's `eval:` field (see the `evaluate`
 skill); the `evaluate` exit condition below reads it.
@@ -34,15 +35,15 @@ skill); the `evaluate` exit condition below reads it.
 While an active plan's `stage` is **`intake`**, **`prd`**, or **`issues`**,
 agents **MUST NOT** modify product code. Allowed edits in those stages:
 
-- `docs/` (including `docs/exec-plans/`)
-- `.trace/` (checkpoints, evals, garden backlog)
+- `.harness-mini/docs/exec-plans/` (plans)
+- `.harness-mini/trace/` (checkpoints, evals, garden backlog)
 - harness plan/skill/agent docs **only when the change is the plan itself**
   (e.g. writing this plan's PRD) — not drive-by refactors of unrelated skills
 
 Product code (application source, and for harness-mini itself: `bin/` behavior
 changes unrelated to the plan's stated issues) waits until `stage: implement`.
 This is a **convention** enforced by the main agent / planner — Mini does not
-ship a git dirty-tree checker. Cold sessions: prefer `bin/harness.sh status`
+ship a git dirty-tree checker. Cold sessions: prefer `"$HOME/.harness-mini/bin/harness.sh" status`
 (`ready:` line) before acting.
 
 ## Fan out the implement stage (full mode)
@@ -63,11 +64,11 @@ You may move a plan forward only when the stage's exit condition is met:
 | issues | atomic, testable issues exist |
 | implement | a vertical slice is green; ready for evaluation (after a fan-out: all parallel slices green + integrated) |
 | evaluate | the **eval tier passed** all criteria — L0/L1/L2, default L1, per the plan's `eval:` field; a fan-out also needs the **integration evaluate** to pass (else loop back to implement) |
-| checkpoint | checkpoint written to `.trace/checkpoints/` |
-| done | plan moved to `docs/exec-plans/completed/` |
+| checkpoint | checkpoint written to `.harness-mini/trace/checkpoints/` |
+| done | plan moved to `.harness-mini/docs/exec-plans/completed/` |
 
 To advance: edit the plan's `stage:` field, append a line to the plan's
-Decisions log, and `bin/trace.sh main <new-stage> stage_advance plan=<plan>`.
+Decisions log, and `"$HOME/.harness-mini/bin/trace.sh" main <new-stage> stage_advance plan=<plan>`.
 If the plan has a JSON twin, keep it in sync in the same edit: `status`
 (`planned|in_progress|done` — mirrors, never overrides, the MD `stage:`) and
 `current_slice_id`. **Only you** flip a slice's `passes` to `true` — and only
@@ -75,7 +76,7 @@ after the eval tier passed it (anti-self-praise); a builder's "done" claim is
 routed to the evaluator first.
 
 ## Garden gate (orthogonal, you dispatch it)
-When a plan reaches `done` (and as a release pre-flight), run `bin/harness.sh
+When a plan reaches `done` (and as a release pre-flight), run `"$HOME/.harness-mini/bin/harness.sh"
 status` and read the `garden:` line. If it says **DUE** — ≥5 checkpoints since the
 last sweep, or the smell backlog crossed its threshold — **dispatch the gardener**
 before opening the next plan. It's non-blocking and small; the gardener never
@@ -86,6 +87,6 @@ A sub-agent never edits `stage:` and never declares "done." If a worker claims
 completion, you route it to the **evaluator** first. Anti-self-praise.
 
 You may **not** promote a plan to `done` without a `verdict: pass` record at
-`.trace/evals/<plan>-<NNN>.md` (the `evaluate` skill writes it). This is the
+`.harness-mini/trace/evals/<plan>-<NNN>.md` (the `evaluate` skill writes it). This is the
 firewall with teeth: `harness.sh doctor` **FAILs** a done plan that has no passing
 evaluation on record — so "done" can't be self-declared, it must be earned.

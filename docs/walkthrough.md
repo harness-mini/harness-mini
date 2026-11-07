@@ -5,8 +5,8 @@ happens after `init.sh`, end to end, through a single small feature — adding
 password login to a tiny `demo-api`.
 
 > **This is an illustrative guided example.** `demo-api` is hypothetical; the
-> `npm test` outputs are representative. The harness commands (`init.sh`,
-> `bin/*.sh`) are real. The committed artifacts the loop produces live under
+> `npm test` outputs are representative. The installer and user runtime commands
+> are real. The committed artifacts the loop produces live under
 > [`examples/demo-auth/`](examples/demo-auth/) — open them alongside this page.
 
 The loop:
@@ -23,27 +23,34 @@ install → recon → route → plan → implement(slice, TDD) ⇄ evaluate → 
 $ git clone https://github.com/harness-mini/harness-mini.git
 $ bash harness-mini/init.sh ~/demo-api
 harness-mini: installing into /Users/you/demo-api  (mode: existing)
-  add   .claude/skills/… (16 skills)
-  add   .claude/agents/… (5 agents)
-  add   bin/ctx.sh bin/trace.sh bin/ralph.sh bin/harness.sh …
-  add   AGENTS.md ARCHITECTURE.md
-  add   harness/manifest.md
-  add   CLAUDE.md (routing gate v3, path-aware)
-  add   .cursor/rules/harness-mini.mdc
-  add   harness/harness.lock (v0.2.0)
-  add   docs/exec-plans/active/0001-recon.md (+ json twin)
+  add   user runtime (/Users/you/.harness-mini, v0.12.1)
+  add   41 global file(s) under /Users/you/.harness-mini (map, docs, skills, agents)
+  add   .harness-mini/.gitignore
+  add   AGENTS.md (harness-mini block)
+  add   .harness-mini/architecture.md
+  add   manifest.md (state dir: /Users/you/.harness-mini/demo-api-ppsao1gf)
+  add   harness.lock (state dir, v0.12.1)
+  add   .harness-mini/docs/exec-plans/active/0001-recon.md (+ json twin)
 harness-mini: done.
+$ cd ~/demo-api
+$ ~/.harness-mini/bin/harness.sh agent install cursor    # the agent names its own host
+harness-mini: installed for cursor
+  skills: .agents/skills/   agents: .cursor/agents/ (md)
+  add   25 file(s)   keep  0 existing file(s) untouched
+  recorded targets, lock and manifest in /Users/you/.harness-mini/demo-api-ppsao1gf
 ```
 
 `demo-api` already has a `package.json`, so init chose **existing-project** mode:
 it grafted on additively (never overwrote a thing) and seeded a **recon** plan
-instead of the greenfield founder funnel.
+instead of the greenfield founder funnel. The project got only `.harness-mini/` and
+a marked block in `AGENTS.md`; `agent install <host>` then placed skills and roles
+for the agent's host (`harness.sh agent list` shows the ids).
 
 ## 1. Recon — map the ground first
 
-Open the seeded plan: `docs/exec-plans/active/0001-recon.md`. It's a checklist for
+Open the seeded plan: `.harness-mini/docs/exec-plans/active/0001-recon.md`. It's a checklist for
 the **explorer** sub-agent (a separate context window — your main session stays
-smart). The explorer fills `ARCHITECTURE.md`'s "Domains & layers" with a concrete
+smart). The explorer fills `.harness-mini/architecture.md`'s "Domains & layers" with a concrete
 schema:
 
 ```
@@ -65,8 +72,8 @@ real, multi-step feature touching credentials → **full mode** (a one-line typo
 would be **quick mode** instead; see the README decision table). Copy the template:
 
 ```console
-$ cp docs/templates/full-plan.md docs/exec-plans/active/0001-demo-auth.md
-$ cp docs/templates/full-plan-twin.json docs/exec-plans/active/0001-demo-auth.json
+$ cp ~/.harness-mini/docs/templates/full-plan.md .harness-mini/docs/exec-plans/active/0001-demo-auth.md
+$ cp ~/.harness-mini/docs/templates/full-plan-twin.json .harness-mini/docs/exec-plans/active/0001-demo-auth.json
 ```
 
 Every plan is a **dual file**: `<NNN-slug>.md` (the narrative) + a same-basename
@@ -104,7 +111,7 @@ $ npm test
 Log a runtime event so the loop is observable (best-effort, never blocks):
 
 ```console
-$ bash bin/trace.sh generator implement test result=green ctx_pct=34
+$ "$HOME/.harness-mini/bin/trace.sh" generator implement test result=green ctx_pct=34
 ```
 
 ## 5. Stay smart — the 40% line
@@ -113,7 +120,7 @@ Before any heavy read or broad search, check occupancy; delegate to the explorer
 if you'd blow the budget:
 
 ```console
-$ bash bin/ctx.sh 68000 200000
+$ "$HOME/.harness-mini/bin/ctx.sh" 68000 200000
 34%            # under 40 → smart zone, keep going
 ```
 
@@ -135,7 +142,7 @@ At each slice boundary (and whenever you cross 40%), write a checkpoint *while
 still smart*:
 
 ```console
-$ # writes .trace/checkpoints/demo-auth-001.md, then commit it
+$ # writes .harness-mini/trace/checkpoints/demo-auth-001.md, then commit it
 ```
 
 See the real shape:
@@ -151,29 +158,28 @@ two files: the latest checkpoint and the plan.
 
 ```console
 $ # fresh session, no memory of the above:
-$ cat .trace/checkpoints/demo-auth-002.md   # ← "Next: Slice 3 — issue token via middleware"
-$ cat docs/exec-plans/active/0001-demo-auth.md
+$ cat .harness-mini/trace/checkpoints/demo-auth-002.md   # ← "Next: Slice 3 — issue token via middleware"
+$ cat .harness-mini/docs/exec-plans/active/0001-demo-auth.md
 ```
 
 It knows precisely where to start — zero re-derivation. That is the entire point of
 the harness: **work that survives a context reset.** The feature finishes in
 [`demo-auth-003`](examples/demo-auth/checkpoints/demo-auth-003.md); the plan moves
-to `docs/exec-plans/completed/`.
+to `.harness-mini/docs/exec-plans/completed/`.
 
 ## 9. Unattended runs — the Outer session runner (optional, P2)
 
-Interactive hosts rely on the agent noticing the gate and opening the right
+Interactive agents rely on the agent noticing the shared instructions and opening the right
 skill. Scripted long runs can instead **force** the playbook into a fresh
 context every session — no host hooks, no vendor lock-in, nothing required
 for core Mini:
 
 ```console
-$ bin/session.sh                  # print the first user message (path-aware)
-$ bin/session.sh -- claude -p     # or: your host CLI, message as final argument
-$ bin/session.sh -- codex exec -  # any host; each invocation = a fresh context
+$ "$HOME/.harness-mini/bin/session.sh"              # print the first user message
+$ "$HOME/.harness-mini/bin/session.sh" -- "$AGENT_COMMAND" --prompt
 ```
 
-The runner reads `bin/harness.sh status`, takes its `path:` line
+The runner reads project status through the centralized runtime, takes its `path:` line
 (`init` → `session-init`, `coding` → `session-coding`), and injects that
 skill's body **verbatim** under a short wrapper — the skill files stay the
 single source of truth. It persists nothing: every invocation starts clean.
@@ -190,6 +196,6 @@ straight to implement; everything else flows exactly like this.
 
 Next: read [`AGENTS.md`](../AGENTS.md) (the map), then
 [`docs/principles.md`](principles.md) (the Mini delete-first constraint and golden principles).
-Another host? See
+More usage notes: see
 [`docs/codex-getting-started.md`](codex-getting-started.md) /
 [`docs/cursor-getting-started.md`](cursor-getting-started.md).

@@ -28,7 +28,7 @@ Closes #N _(or "no issue — trivial one-liner, explained above")_
 - [ ] **Managed-set aware:** touching anything `init.sh` installs → updated
       `emit_managed_pairs()` in `bin/_harness_lib.sh`
 - [ ] **`AGENTS.md` stays a map** — a one-line pointer at most, no prose
-- [ ] **Docs updated** alongside the change (README / ARCHITECTURE / manifest)
+- [ ] **Docs updated** alongside the change (README / ARCHITECTURE)
 - [ ] **`CHANGELOG.md` `[Unreleased]`** has a user-facing line
 - [ ] **Mini constraint:** Markdown or POSIX shell only — no runtime, package
       manager, or third-party dependency added
@@ -38,9 +38,9 @@ Closes #N _(or "no issue — trivial one-liner, explained above")_
 <!-- If this change rode the harness loop, link its records so the reviewer
      can verify against the stated acceptance criteria. -->
 
-- Plan: `docs/exec-plans/…` — stage reached:
-- Eval verdict: `.trace/evals/…` (L0 / L1 / L2) —
-- Checkpoint: `.trace/checkpoints/…` —
+- Plan: `.harness-mini/docs/exec-plans/…` — stage reached:
+- Eval verdict: `.harness-mini/trace/evals/…` (L0 / L1 / L2) —
+- Checkpoint: `.harness-mini/trace/checkpoints/…` —
 
 ## Reviewers
 

@@ -25,7 +25,7 @@ criterion needs a human/agent call, it is at least L1.
 
 > The firewall is the **separate context**, not the tooling. No sub-agents
 > available? Run L1/L2 as a fresh prompt/thread with *only* the criteria + the diff
-> (see `docs/codex-getting-started.md` / `docs/cursor-getting-started.md`).
+> (see `$HOME/.harness-mini/docs/codex-getting-started.md` / `$HOME/.harness-mini/docs/cursor-getting-started.md`).
 
 ## Procedure (every tier)
 1. Read the plan's **acceptance criteria** (from `to-prd`). They are the contract.
@@ -46,7 +46,7 @@ criterion needs a human/agent call, it is at least L1.
   via `ralph-loop`) until it passes.
 
 ## Record the verdict (durable — this is what gives the firewall teeth)
-Every tier writes a committed record to `.trace/evals/<plan>-<NNN>.md` so the
+Every tier writes a committed record to `.harness-mini/trace/evals/<plan>-<NNN>.md` so the
 verdict outlives the session and can be audited:
 
 ```markdown
@@ -65,7 +65,7 @@ grader: evaluator|reviewer|main
 `stage-viewer` may not promote a plan to `done` without a `verdict: pass` record,
 and `harness.sh doctor` **FAILs** a done plan that has none. Keep the ephemeral
 `trace.sh` verdict line too (it feeds `harness.sh report`):
-`bin/trace.sh <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.
+`"$HOME/.harness-mini/bin/trace.sh" <grader> evaluate verdict=pass|fail tier=L0|L1|L2 fails=<n>`.
 
 ## Calibration
 - Be specific and harsh on evidence; never accept "looks done."

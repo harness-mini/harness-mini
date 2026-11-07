@@ -1,0 +1,14 @@
+{
+  "plan_id": "host-neutral-install",
+  "title": "Host-neutral install and project-isolated runtime",
+  "status": "done",
+  "current_slice_id": "issue-006",
+  "slices": [
+    { "id": "issue-001", "category": "runtime", "description": "Centralize runtime at HOME, track its own lock, and accept an explicit project root.", "steps": ["Tests prove init installs runtime under HARNESS_HOME and creates no project bin directory.", "Tests prove centralized harness commands operate on the requested project root without crossing into a second project.", "Tests prove runtime version/checksums are stored separately from project locks."], "passes": true },
+    { "id": "issue-002", "category": "installer", "description": "Install a shared .agents/skills layout without host recognition.", "steps": ["Tests prove all skills and nested resources install under .agents/skills without an agent argument, prompt, or host detection.", "Tests prove fresh installs do not generate .claude/skills, .cursor/skills, .cursor/rules, or CLAUDE.md; role descriptions are stored under harness/agents.", "Tests prove doctor/status recognize the shared .agents/skills directory."], "passes": true },
+    { "id": "issue-003", "category": "update", "description": "Separate runtime/project locks and update the common project layout.", "steps": ["Tests prove two project roots update independently through the common managed path.", "Tests prove runtime self-update does not store executable checksums in a project lock.", "Tests prove edited managed files remain intact and are written to .new on upstream conflict."], "passes": true },
+    { "id": "issue-004", "category": "diagnostics", "description": "Harden doctor/status for centralized runtime and shared skills.", "steps": ["Tests prove doctor and status accept explicit project roots from the central runtime.", "Tests prove diagnostics report shared skill count, missing skills, manifest health, and runtime/project versions."], "passes": true },
+    { "id": "issue-005", "category": "migration", "description": "Safely migrate legacy project executables and host-specific skill files.", "steps": ["Tests prove lock-matching legacy bin scripts, .claude/skills, and generated .cursor/rules are removed or moved to the common path.", "Tests prove edited legacy files are preserved and repeated migration is idempotent."], "passes": true },
+    { "id": "issue-006", "category": "documentation", "description": "Update docs and manifest for centralized runtime and common skills.", "steps": ["Focused searches find no active project-bin command examples or host-specific skill paths/rules guidance.", "Full tests and separate L2 evaluation confirm docs match the shared layout and migration behavior."], "passes": true }
+  ]
+}

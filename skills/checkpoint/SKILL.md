@@ -1,27 +1,28 @@
 ---
 name: checkpoint
-description: Write a committed handoff checkpoint so a fresh session can resume with zero loss. Use when crossing the 40% context line, on every stage transition, and at session end. Writes .trace/checkpoints/<plan>-<seq>.md while the agent is still sharp.
+description: Write a committed handoff checkpoint so a fresh session can resume with zero loss. Use when crossing the 40% context line, on every stage transition, and at session end. Writes .harness-mini/trace/checkpoints/<plan>-<seq>.md while the agent is still sharp.
 ---
 
 A checkpoint is institutional memory. Write it **while still under 40%** — a
 handoff authored by a degraded agent is worthless.
 
 ## Triggers (write a checkpoint on ALL of these)
-1. Crossing the 40% context line (`bin/ctx.sh` exited 2).
+1. Crossing the 40% context line (`"$HOME/.harness-mini/bin/ctx.sh"` exited 2).
 2. Every lifecycle stage transition.
 3. Session end.
 
 ## Procedure
 The helpers live with this skill. In the harness-mini checkout, invoke them as
 `bash skills/checkpoint/scripts/<helper>.sh`; in an installed project, use
-`bash .claude/skills/checkpoint/scripts/<helper>.sh`.
+`bash <skills-dir>/checkpoint/scripts/<helper>.sh`, where `<skills-dir>` is the
+host's skills dir (see `harness.sh agent list`; `.agents/skills` for most hosts).
 
 1. Run `checkpoint-guard.sh` — if it exits 1 (suppressed), skip writing
    a redundant checkpoint (no tracked files changed).
 2. Pick the next sequence number for this plan (look at existing
-   `.trace/checkpoints/<plan>-*.md`).
-3. Write `.trace/checkpoints/<plan>-<seq>.md` and validate it with
-   `checkpoint-lint.sh .trace/checkpoints/<plan>-<seq>.md`:
+   `.harness-mini/trace/checkpoints/<plan>-*.md`).
+3. Write `.harness-mini/trace/checkpoints/<plan>-<seq>.md` and validate it with
+   `checkpoint-lint.sh .harness-mini/trace/checkpoints/<plan>-<seq>.md`:
 
 ```markdown
 ---
@@ -46,8 +47,8 @@ prev: <plan>-<seq-1 or none>
        e.g.  - src/api.py:45-80::WIP
        Do NOT use prose. Run checkpoint-lint.sh <this-file> to validate.
        Run checkpoint-snapshot.sh "src/api.py:45-80::WIP" to record exact lines. -->
-- Last green: <cat .trace/runtime/last-green.txt  — or "none">
-  <!-- Populated automatically by bin/ctx-hook.sh when HARNESS_TEST_SCRIPT is set
+- Last green: <cat .harness-mini/trace/runtime/last-green.txt  — or "none">
+  <!-- Populated automatically by "$HOME/.harness-mini/bin/ctx-hook.sh" when HARNESS_TEST_SCRIPT is set
        and passes. Do not recall from memory — read the file. -->
 - Open issues: <issue ids still open — or "none">
 ## Decisions
@@ -64,10 +65,10 @@ prev: <plan>-<seq-1 or none>
    see `evaluate`).
 5. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
    scope? Don't fix it inline (that breaks slice discipline) and don't lose it —
-   append it to `.trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>
+   append it to `.harness-mini/trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>
    | <low|med|high> | <note>`). See the `garden` skill.
-6. `bin/trace.sh <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
-7. These files are **committed** (unlike `.trace/runtime/`). Commit them.
+6. `"$HOME/.harness-mini/bin/trace.sh" <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
+7. These files are **committed** (unlike `.harness-mini/trace/runtime/`). Commit them.
 
 > Each committed checkpoint is a gardening "visit": writing this one may tip
 > `harness.sh status` to `garden: DUE` (≥5 since the last sweep). The main agent

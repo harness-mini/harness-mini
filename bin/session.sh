@@ -18,11 +18,12 @@
 #                                  — a fresh process per invocation, so every
 #                                  session starts from a clean context.
 #
-# Env: HARNESS_ROOT  project root (default: parent of this script's dir)
+# Env: HARNESS_ROOT  project root (default: current working directory)
+#      HARNESS_HOME  runtime root; its skills/ are the fallback skill source
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-ROOT="${HARNESS_ROOT:-$(cd "$HERE/.." && pwd)}"
+ROOT="${HARNESS_ROOT:-$PWD}"
 
 # 1. session path from the workboard (file truth; offline; default init)
 path="$(HARNESS_NO_NET=1 bash "$HERE/harness.sh" status 2>/dev/null \
@@ -32,11 +33,12 @@ case "$path" in
   *)      skill="session-init" ;;
 esac
 
-# 2. the skill body — installed layout first, source layout second
-SKILL_MD=""
-for f in "$ROOT/.claude/skills/$skill/SKILL.md" "$ROOT/skills/$skill/SKILL.md"; do
-  [ -f "$f" ] && { SKILL_MD="$f"; break; }
-done
+# 2. the skill body — project install first, source checkout second, then the
+#    global sources (init installs no skills in the project; the host is unknown)
+SKILL_MD="$(bash -c '. "$1/_harness_lib.sh"; find_installed_skill "$2" "$3"' _ "$HERE" "$ROOT" "$skill" 2>/dev/null)"
+if [ -z "$SKILL_MD" ] && [ -f "${HARNESS_HOME:-$HERE/..}/skills/$skill/SKILL.md" ]; then
+  SKILL_MD="${HARNESS_HOME:-$HERE/..}/skills/$skill/SKILL.md"
+fi
 [ -n "$SKILL_MD" ] || { echo "session.sh: skill not found: $skill" >&2; exit 1; }
 
 # 3. body verbatim, YAML frontmatter (first --- block) stripped — presentation

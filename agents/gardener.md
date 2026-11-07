@@ -15,16 +15,16 @@ plan just completed, a release is pending, or the smell backlog crossed its
 threshold). See the `garden` skill for the trigger policy.
 
 ## Mandate (the `garden` sweep)
-- Work the **`.trace/garden-backlog.md`** first: fix its open items (small/green),
+- Work the **`.harness-mini/trace/garden-backlog.md`** first: fix its open items (small/green),
   then flip them to `[x]`. Demote dead "smart" context out of `AGENTS.md`/
   always-loaded files into on-demand docs (keep the map small).
 - Flag/fix stale docs that no longer match code behavior.
 - Open small, green, one-move `refactor` fixes for catalog smells.
-- Reconcile convention drift to `docs/principles.md`.
-- **Audit `docs/assumptions.md`** (pre-release, or when the builder model tier
+- Reconcile convention drift to `$HOME/.harness-mini/docs/principles.md`.
+- **Audit `$HOME/.harness-mini/docs/assumptions.md`** (pre-release, or when the builder model tier
   moves): re-test each load-bearing assumption against the current model and
   **delete** any patch the model has outgrown. Stamp `audited`.
-- Prune `.trace/runtime/` freely; **never** touch `.trace/checkpoints/`.
+- Prune `.harness-mini/trace/runtime/` freely; **never** touch `.harness-mini/trace/checkpoints/`.
 - **Close the sweep:** stamp `gardened-at:` in the backlog to the current total
   checkpoint count — this resets the cadence counter so `status` reads `ok`.
 
@@ -36,4 +36,4 @@ threshold). See the `garden` skill for the trigger policy.
 
 ## Output
 A list of fixes made/opened with one-line rationales. Trace via
-`bin/trace.sh gardener maintain garden fixes=<n>`.
+`"$HOME/.harness-mini/bin/trace.sh" gardener maintain garden fixes=<n>`.

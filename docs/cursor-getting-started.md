@@ -1,83 +1,47 @@
 # Using harness-mini with Cursor
 
-harness-mini is an **environment, not a program** — Markdown skills/agents +
-distilled docs + thin POSIX shell. Skills and agents live in `.claude/skills/`
-and `.claude/agents/`. Cursor does not read that tree by itself; `init.sh`
-also writes a thin `.cursor/rules/` pointer per skill. No extra runtime.
-
-> **What differs on Cursor.** Sub-agents are separate chats, and there is no
-> 40%-line hook — use `bin/ctx.sh` by hand. `init.sh` mirrors each skill into
-> `.cursor/rules/` as an **agent-requested** rule (`alwaysApply: false` + the
-> skill's `description`), so Cursor's agent can surface a skill on demand. The
-> file-level mechanism is tested **and demonstrated once end-to-end**: a worked
-> run ([`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/),
-> [#23](https://github.com/harness-mini/harness-mini/issues/23)) shows Cursor
-> observably loading the gate and pulling skill rules on demand. That's one
-> model session, not a guarantee for every host.
+Zero intrusion: the project gets only `.harness-mini/` (plans, trace, project
+architecture) and one marked block in its root `AGENTS.md`; everything else
+harness-owned lives under `$HOME/.harness-mini/`. `harness.sh agent install cursor`
+adds skills in `.agents/skills/` (Cursor reads it natively) and role
+descriptions in `.cursor/agents/` as Markdown; both dirs are listed in
+`.git/info/exclude`.
 
 ## 1. Install
 
 ```bash
 git clone https://github.com/harness-mini/harness-mini.git
 bash harness-mini/init.sh /path/to/your/project
+cd /path/to/your/project
+"$HOME/.harness-mini/bin/harness.sh" agent list            # confirm your host id: cursor
+"$HOME/.harness-mini/bin/harness.sh" agent install cursor
 ```
 
-## 2. Make the harness visible to Cursor
+Executables, map and static docs are installed once under `$HOME/.harness-mini/`;
+projects get no `bin/` or `docs/`. Re-running the new `init.sh` (or `update`)
+installs the runtime first, then migrates an older install automatically.
 
-`init.sh` does this for you, two ways:
+## 2. Open the shared instructions
 
-- **The routing gate** — an **always-applied** rule at
-  `.cursor/rules/harness-mini.mdc` (`alwaysApply: true`) that tells Cursor to
-  prefer the harness lifecycle and skills over ad-hoc tools, and points at
-  `AGENTS.md`.
-- **One rule per skill** — `.cursor/rules/<name>.mdc` (`alwaysApply: false` + the
-  skill's `description`), an **agent-requested** rule Cursor can pull on demand by
-  matching the description. Each points at the canonical
-  `.claude/skills/<name>/SKILL.md` (single source of truth — the rule is a thin
-  pointer, not a copy of the body).
+Read the project's `AGENTS.md` (it carries the harness-mini block), then the
+global map `$HOME/.harness-mini/AGENTS.md`. Open a skill from
+`.agents/skills/<name>/SKILL.md` when its description matches your task. The
+source checkout keeps canonical skill files at `skills/<name>/SKILL.md`.
 
-Both are harness-owned and created only if absent, so re-running `init.sh` won't
-clobber your edits. You can still open `.claude/skills/<name>/SKILL.md` directly
-any time (identical to `skills/<name>/SKILL.md`).
+For a new requirement, use `stage-viewer` to choose quick or full planning.
+For implementation, the session path in `status` selects `session-init` or
+`session-coding`. Sub-agent roles are installed in `.cursor/agents/` and can
+be run as separate chats if the editor does not provide independent agents.
 
-## 3. Prompt recipes
-
-**Route a new requirement:**
-
-> Read `.claude/skills/stage-viewer/SKILL.md`. Decide if "<X>" is simple or
-> complex. If complex, run the funnel (`to-prd` → `to-issues`); then implement one
-> vertical slice with `tdd` + `slice-coding`.
-
-**Stay smart (40%):**
-
-> Before a broad search or large read, do it in a separate chat and bring back
-> only a short distillate — don't fill this thread (see `docs/smart-dumb.md`).
-
-## 4. Fallback when sub-agents aren't available
-
-The harness's sub-agents are **separate context windows**, not a runtime. In
-Cursor, reproduce them with separate chats:
-
-- **explorer** → a throwaway chat does the heavy search/read; paste back only the
-  conclusion + `file:line` pointers.
-- **evaluator** → a fresh chat with *only* the acceptance criteria + the diff
-  grades the work (it didn't build it — that's the anti-self-praise firewall).
-  Scale rigor with the tiered `evaluate` convention (L0/L1/L2).
-
-## 5. Run the shell directly
+## 3. Use the runtime from the project root
 
 ```bash
-bash bin/harness.sh version       # installed harness version
-bash bin/ctx.sh 80000 200000      # 40% → checkpoint now
-bash bin/trace.sh cursor implement test result=green   # log a runtime event
+"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" status
+"$HOME/.harness-mini/bin/harness.sh" --root "$PWD" doctor
+"$HOME/.harness-mini/bin/ctx.sh" 80000 200000
+"$HOME/.harness-mini/bin/trace.sh" main implement tool_call ctx_pct=22
 ```
 
-Read the docs, let Cursor pull the skill rules (or open the files directly), run
-the shell — that's the integration. The file-level mechanism is tested, and one
-end-to-end run ([#23](https://github.com/harness-mini/harness-mini/issues/23)) has
-shown Cursor actually routing a task through the harness.
-
-**See / repeat it:** [`examples/cursor-slugify-demo/`](../examples/cursor-slugify-demo/)
-is a runnable storyboard with a **completed transcript** ([`TRANSCRIPT.md`](../examples/cursor-slugify-demo/TRANSCRIPT.md))
-from a real Cursor session — gate → skill-on-demand → 40% line → evaluator in a
-separate chat. Open this repo in Cursor and re-run the four beats to reproduce it.
+When called from the project directory, `--root "$PWD"` may be omitted. The
+same commands and project layout apply in any coding agent that can read files
+and run shell commands.

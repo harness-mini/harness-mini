@@ -65,6 +65,6 @@ investment; doesn't generalize for free.)
 ## → How harness-mini uses this
 This is the spine. AGENTS.md as map · docs/ + exec-plans as system of record ·
 references/*-llms.txt · forward-only layer stack (slice-coding) ·
-ephemeral .trace/runtime vs committed .trace/checkpoints · garden agent =
+ephemeral .harness-mini/trace/runtime vs committed .harness-mini/trace/checkpoints · garden agent =
 GC/doc-gardening · golden principles in principles.md · ralph-loop = the
 review-until-satisfied loop.

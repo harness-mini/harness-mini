@@ -1,5 +1,5 @@
 ---
-description: Write a committed handoff checkpoint so a fresh session can resume with zero loss. Use when crossing the 40% context line, on every stage transition, and at session end. Writes .trace/checkpoints/<plan>-<seq>.md while the agent is still sharp.
+description: Write a committed handoff checkpoint so a fresh session can resume with zero loss. Use when crossing the 40% context line, on every stage transition, and at session end. Writes .harness-mini/trace/checkpoints/<plan>-<seq>.md while the agent is still sharp.
 alwaysApply: false
 ---
 

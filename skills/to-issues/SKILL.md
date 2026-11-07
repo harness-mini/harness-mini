@@ -34,10 +34,10 @@ big; split it.
 ## Emit the JSON twin (dual-file rule)
 Every plan you create gets a **same-basename `<NNN-slug>.json` workboard**
 beside the MD — `harness.sh status` reads it to point cold sessions at the next
-slice. Schema + rules: `docs/templates/full-plan.md` → "Twin file". You create
+slice. Schema + rules: `$HOME/.harness-mini/docs/templates/full-plan.md` → "Twin file". You create
 it with every slice `passes: false` and `status: "planned"`; you never flip
 `passes` (that's the main agent, after an evaluator verdict) and you never
 weaken `steps` (they are the slice's test conditions).
 
-Trace: `bin/trace.sh planner issues to_issues count=<n>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" planner issues to_issues count=<n>`.
 Then hand the first issue to the **generator** and advance to `implement`.

@@ -32,7 +32,7 @@ This is a **small, well-scoped feature** (one pure function, clear test cases), 
 implement (test-first) → evaluate → done
 ```
 
-Harness is up to date (0.8.0). No active exec-plan yet — we'd create a lightweight quick plan in `docs/exec-plans/active/` if you want the full paper trail, or keep it informal inside `examples/cursor-slugify-demo/` for the demo.
+Harness is up to date (0.8.0). No active exec-plan yet — we'd create a lightweight quick plan in `.harness-mini/docs/exec-plans/active/` if you want the full paper trail, or keep it informal inside `examples/cursor-slugify-demo/` for the demo.
 
 ## What we're building
 
@@ -163,7 +163,7 @@ exit=2
 **New chat?** ☑ yes (fresh context, never saw the build)
 
 **Prompt sent:** (criteria + `git diff` pasted in)
-> You are grading, not building. Read `.claude/skills/evaluate/SKILL.md` ...
+> You are grading, not building. Read `skills/evaluate/SKILL.md` ...
 
 **Rules the evaluator chat attached:** `harness-mini.mdc` (gate) + **`evaluate.mdc`** — confirmed pulled on demand in Cursor's UI
 

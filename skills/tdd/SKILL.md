@@ -25,7 +25,7 @@ Red → Green → Refactor. No step skipped, ever.
   an earlier criterion already happens to satisfy it. A criterion with no test that
   went red is not done; it's untested behavior that passed by luck.
 - Keep each cycle tiny: a cycle that needs a checkpoint mid-way was too big.
-- Trace transitions: `bin/trace.sh generator implement test result=red|green`.
+- Trace transitions: `"$HOME/.harness-mini/bin/trace.sh" generator implement test result=red|green`.
 
 ## Discipline against false completion
 A passing test you wrote is only as honest as the assertion. Prefer behavior

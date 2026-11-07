@@ -27,7 +27,7 @@ Source: anthropic.com/engineering/managed-agents
 
 ## What maps onto harness-mini (a CLI-agnostic doc harness)
 - **Brain/hands/session is already our split:** brain = main agent + skills;
-  hands = the explorer/generator sub-agent firewalls; session = `.trace/`
+  hands = the explorer/generator sub-agent firewalls; session = `.harness-mini/trace/`
   (committed `checkpoints/` + ephemeral `runtime/`).
 - **Interrogate, don't reload:** cold resume reads the checkpoint/`status`
   artifact — it does not replay the whole history. (`harness.sh status/report`.)

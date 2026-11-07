@@ -9,7 +9,7 @@ eval: L1        # L1 default; bump to L2 for arch/security/data-loss/public-API/
 # <Title> — full mode
 
 > **Full mode** = ambiguous, cross-cutting, architecture impact, or risky. Run the
-> lifecycle. For a tiny obvious change, use `docs/templates/quick-plan.md` instead.
+> lifecycle. For a tiny obvious change, use `$HOME/.harness-mini/docs/templates/quick-plan.md` instead.
 >
 > **Dual file:** this plan keeps a same-basename `<NNN-slug>.json` twin beside it
 > (schema below). The MD is the narrative; the JSON is the machine workboard.

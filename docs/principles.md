@@ -66,7 +66,7 @@ install. The contract is files + shell — see the README.
 
 ## Question stale assumptions (the harness is not the model)
 
-> From Anthropic's *Scaling managed agents* (`docs/references/anthropic-managed-agents-llms.txt`):
+> From Anthropic's *Scaling managed agents* (`references/anthropic-managed-agents-llms.txt` in the source repo):
 > a harness encodes assumptions about what the model **can't do on its own**, and
 > those assumptions **go stale as models improve**. The post's own example —
 > context-anxiety workarounds needed in Sonnet 4.5 became unnecessary in Opus 4.5.
@@ -86,7 +86,7 @@ So we hold them as **hypotheses, not law**:
    that no longer earns its keep gets **deleted** — the Mini constraint's
    delete-first discipline applied to the harness's own beliefs, not just its features.
 3. **Decoupling validated, not copied.** The post's brain/hands/session split is
-   already ours (main agent / sub-agent firewalls / `.trace/`); we *interrogate*
+   already ours (main agent / sub-agent firewalls / `.harness-mini/trace/`); we *interrogate*
    the session (`status`/`report`/checkpoints) instead of reloading it. The infra
    half — sandboxes, vaults, TTFT, provisioning — stays out (the Mini constraint).
 

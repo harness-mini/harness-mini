@@ -15,14 +15,14 @@ main agent dispatches the gardener when DUE.
 - **Cadence — "after several visits":** a *visit* = one committed checkpoint.
   Garden is **due** after **≥5 checkpoints since the last sweep**
   (`HARNESS_GARDEN_EVERY` overrides the 5). Also garden **when a plan completes**
-  (moves to `docs/exec-plans/completed/`) and **before a release**.
+  (moves to `.harness-mini/docs/exec-plans/completed/`) and **before a release**.
 - **Smell — "an unpleasant odor":** garden is **due** when the backlog holds **any
   `high`-severity item** or **≥3 open items**.
 
-## The backlog — `.trace/garden-backlog.md` (committed)
+## The backlog — `.harness-mini/trace/garden-backlog.md` (committed)
 Smells get *noticed* mid-task but mustn't be fixed inline (that breaks slice
 discipline / bloats the diff). So they're **recorded**, never dropped. The file is
-committed institutional debt (it lives outside `.trace/runtime/`):
+committed institutional debt (it lives outside `.harness-mini/trace/runtime/`):
 
 ```markdown
 # Garden backlog — deferred smells (committed debt)
@@ -45,15 +45,15 @@ to the current total checkpoint count (resetting the cadence counter).
    fix PR. (Mimics OpenAI's "doc-gardening" agent.)
 2. **Demote dead smart context:** anything in `AGENTS.md` or always-loaded files
    that isn't true in >80% of runs, isn't machine-verifiable, or has rotted →
-   move it to an on-demand `docs/` file with a pointer. Keep the map small.
+   move it to an on-demand doc (e.g. under `$HOME/.harness-mini/docs/`) with a pointer. Keep the map small.
 3. **Smells:** scan for the `refactor` catalog smells; open green, one-move
    refactors.
 4. **Convention drift:** naming, layer violations, structured-logging gaps —
-   reconcile to `docs/principles.md`.
-5. **Trace hygiene:** `.trace/runtime/` is ephemeral — it may be pruned freely.
-   Never prune `.trace/checkpoints/` (committed memory).
+   reconcile to `$HOME/.harness-mini/docs/principles.md`.
+5. **Trace hygiene:** `.harness-mini/trace/runtime/` is ephemeral — it may be pruned freely.
+   Never prune `.harness-mini/trace/checkpoints/` (committed memory).
 6. **Assumption audit (pre-release, or when the builder model tier moves):** walk
-   `docs/assumptions.md`. For each entry, run (or judge) its "test if stale" using
+   `$HOME/.harness-mini/docs/assumptions.md`. For each entry, run (or judge) its "test if stale" using
    `harness.sh report` signal. A constraint that no longer earns its keep gets
    **deleted** — the Mini constraint's delete-first discipline on the harness's own beliefs. Stamp `audited`.
    A harness that patches gaps the model has already closed is dead weight.
@@ -64,4 +64,4 @@ to the current total checkpoint count (resetting the cadence counter).
 - Don't refactor on red; don't bundle unrelated changes.
 - Record demotions in the plan/commit so the next gardener knows why.
 
-Trace: `bin/trace.sh gardener maintain garden fixes=<n>`.
+Trace: `"$HOME/.harness-mini/bin/trace.sh" gardener maintain garden fixes=<n>`.

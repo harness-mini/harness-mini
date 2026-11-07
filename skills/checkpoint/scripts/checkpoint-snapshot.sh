@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # checkpoint-snapshot.sh — snapshot the exact source lines named in a
-# structured Footprint entry, writing the result to .trace/runtime/.
+# structured Footprint entry, writing the result to .harness-mini/trace/runtime/.
 #
 # Usage: checkpoint-snapshot.sh "file/path:start-end::STATUS"
 # Output: path to the written snapshot file (stdout)
 # Exit:   0 = success, 1 = error (message on stderr)
-# Env:    HARNESS_TRACE_DIR (default .trace/runtime)
+# Env:    HARNESS_TRACE_DIR (default .harness-mini/trace/runtime)
 #
 # The snapshot path is deterministic: same entry → same path, so callers
 # can compare or cache without extra bookkeeping.
@@ -59,7 +59,7 @@ fi
 # Deterministic output path: hash of the entry string (no external tools needed)
 # Use cksum (POSIX) to get a stable numeric hash
 hash="$(printf '%s' "$entry" | cksum | awk '{print $1}')"
-dir="${HARNESS_TRACE_DIR:-.trace/runtime}"
+dir="${HARNESS_TRACE_DIR:-.harness-mini/trace/runtime}"
 out="$dir/snap-${hash}.txt"
 
 mkdir -p "$dir"
