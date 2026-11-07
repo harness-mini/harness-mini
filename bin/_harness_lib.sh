@@ -155,7 +155,7 @@ host_row() {
   case "$id" in
     antigravity)                    r='antigravity|.agents/skills|.agents/agents|md|high' ;;
     codex|codex-cli)                r='codex|.agents/skills|.codex/agents|toml|high' ;;
-    cursor)                         r='cursor|.agents/skills|.cursor/agents|md|high' ;;
+    cursor)                         r='cursor|.cursor/skills|.cursor/agents|md|high' ;;
     claude|claude-code)             r='claude|.claude/skills|.claude/agents|md|high' ;;
     qoder)                          r='qoder|.qoder/skills|.qoder/agents|md|high agents; skills dir low' ;;
     zcode|z-code)                   r='zcode|.zcode/skills|.zcode/agents|md|medium (project dirs not in official docs)' ;;

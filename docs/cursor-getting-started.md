@@ -3,7 +3,7 @@
 Zero intrusion: the project gets only `.harness-mini/` (plans, trace, project
 architecture) and one marked block in its root `AGENTS.md`; everything else
 harness-owned lives under `$HOME/.harness-mini/`. `harness.sh agent install cursor`
-adds skills in `.agents/skills/` (Cursor reads it natively) and role
+adds skills in `.cursor/skills/` and role
 descriptions in `.cursor/agents/` as Markdown; both dirs are listed in
 `.git/info/exclude`.
 

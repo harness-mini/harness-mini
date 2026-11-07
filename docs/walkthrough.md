@@ -35,7 +35,7 @@ harness-mini: done.
 $ cd ~/demo-api
 $ ~/.harness-mini/bin/harness.sh agent install cursor    # the agent names its own host
 harness-mini: installed for cursor
-  skills: .agents/skills/   agents: .cursor/agents/ (md)
+  skills: .cursor/skills/   agents: .cursor/agents/ (md)
   add   25 file(s)   keep  0 existing file(s) untouched
   recorded targets, lock and manifest in /Users/you/.harness-mini/demo-api-ppsao1gf
 ```
