@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-07
+
 ### Changed
 - **BREAKING — zero-intrusion install layout (plan 0059).** Files now fall in
   two classes. *Harness-owned* files that don't depend on project progress
