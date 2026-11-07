@@ -1,0 +1,10 @@
+{
+  "plan_id": "0061-projects-state-dir",
+  "title": "Move per-project state to ~/.harness-mini/projects/<project-id>",
+  "status": "done",
+  "current_slice_id": "issue-002",
+  "slices": [
+    { "id": "issue-001", "category": "layout", "description": "state_dir moves under projects/ and every reader follows.", "steps": ["Tests prove a fresh install writes lock, manifest and targets under $HARNESS_HOME/projects/<project-id>/ and adds no other new top-level entry to $HARNESS_HOME.", "Tests prove doctor, status, update, agent install and session.sh work with the new state dir."], "passes": true },
+    { "id": "issue-002", "category": "migration", "description": "Migrate the 0.13.0 flat state dirs.", "steps": ["Tests prove a 0.13.0-layout $HARNESS_HOME/<id>/ migrates into projects/<id>/ on init.sh and on update --root, idempotently.", "Tests prove runtime dirs are untouched, an existing target is never overwritten, two projects migrate independently, and an id equal to a runtime dir name cannot clobber it."], "passes": true }
+  ]
+}

@@ -161,11 +161,11 @@ assert_eq "$(pid "$PID_LINK_REAL" | sed 's/^.*-//')" "$(pid "$PID_LINK_PARENT/al
 rm -rf "$PID_LINK_REAL" "$PID_LINK_PARENT"
 # layout resolvers
 state="$(bash -c '. "$1"; state_dir "$2"' _ "$LIB" "/nonexistent/x")"
-assert_eq "$HARNESS_HOME/x-alij4br1" "$state" "state_dir resolves to \$HARNESS_HOME/<project-id>"
+assert_eq "$HARNESS_HOME/projects/x-alij4br1" "$state" "state_dir resolves to \$HARNESS_HOME/projects/<project-id>"
 prog="$(bash -c '. "$1"; progress_dir "$2"' _ "$LIB" "/nonexistent/x")"
 assert_eq "/nonexistent/x/.harness-mini" "$prog" "progress_dir resolves to <project>/.harness-mini"
 state="$(HARNESS_HOME=/tmp/other-home bash -c '. "$1"; state_dir "$2"' _ "$LIB" "/nonexistent/x")"
-assert_eq "/tmp/other-home/x-alij4br1" "$state" "state_dir honours the HARNESS_HOME override"
+assert_eq "/tmp/other-home/projects/x-alij4br1" "$state" "state_dir honours the HARNESS_HOME override"
 
 # =============================================================================
 echo "central runtime — install executables outside projects and select project root"
@@ -526,9 +526,9 @@ printf 'map\n'        > "$LSRC/AGENTS.md"
 printf '0.4.2\n'      > "$LSRC/VERSION"
 LDEST="$(mktemp -d)"; LHOME="$(mktemp -d)"
 HARNESS_SRC="$LSRC" HARNESS_HOME="$LHOME" bash "$ROOT/init.sh" "$LDEST" >/dev/null 2>&1
-LSTATE="$LHOME/$(basename "$(HARNESS_HOME="$LHOME" state_of "$LDEST")")"
-assert_eq "true" "$([ -f "$LSTATE/harness.lock" ] && echo true || echo false)" "harness.lock is written under \$HARNESS_HOME/<project-id>/"
-assert_eq "true" "$([ -f "$LSTATE/manifest.md" ] && echo true || echo false)" "manifest.md is written under \$HARNESS_HOME/<project-id>/"
+LSTATE="$LHOME/projects/$(basename "$(HARNESS_HOME="$LHOME" state_of "$LDEST")")"
+assert_eq "true" "$([ -f "$LSTATE/harness.lock" ] && echo true || echo false)" "harness.lock is written under \$HARNESS_HOME/projects/<project-id>/"
+assert_eq "true" "$([ -f "$LSTATE/manifest.md" ] && echo true || echo false)" "manifest.md is written under \$HARNESS_HOME/projects/<project-id>/"
 assert_eq "false" "$([ -e "$LDEST/harness" ] && echo true || echo false)" "no lock, manifest or harness/ directory appears in the project"
 lock="$(cat "$LSTATE/harness.lock" 2>/dev/null)"
 assert_contains "$lock" "version: 0.4.2" "lock records the source VERSION"
@@ -2318,7 +2318,7 @@ for d in references assets docs/references docs/assets docs/exec-plans; do
   assert_eq "false" "$([ -e "$RH/$d" ] && echo true || echo false)" "real install: \$HARNESS_HOME/$d absent"
 done
 assert_eq "true" "$([ -f "$RH/docs/principles.md" ] && echo true || echo false)" "real install: static docs landed under \$HARNESS_HOME/docs"
-assert_eq "0" "$(grep -rlE 'references/|assets/banner' "$RH"/*/harness.lock "$RH"/*/manifest.md 2>/dev/null | wc -l | tr -d ' ')" "real install: lock and manifest never list references/ or assets/"
+assert_eq "0" "$(grep -rlE 'references/|assets/banner' "$RH"/projects/*/harness.lock "$RH"/projects/*/manifest.md 2>/dev/null | wc -l | tr -d ' ')" "real install: lock and manifest never list references/ or assets/"
 rm -rf "$RH" "$RP"
 
 # source repo dogfoods .harness-mini/: status reads it (independent of which plans are active right now)
@@ -2333,6 +2333,8 @@ ACTIVE="$ROOT/skills $ROOT/agents $ROOT/AGENTS.md $ROOT/ARCHITECTURE.md $ROOT/RE
 assert_eq "0" "$(grep -rF -e '.trace' $ACTIVE | wc -l | tr -d ' ')" "no active doc/skill/agent mentions .trace"
 assert_eq "0" "$(grep -rhE 'docs/exec-plans' $ACTIVE | sed 's#\.harness-mini/docs/exec-plans##g' | grep -c 'docs/exec-plans')" "exec-plans are only referenced as .harness-mini/docs/exec-plans"
 assert_eq "0" "$(grep -rlE -e 'harness/(harness\.lock|manifest\.md|agents)' -e 'docs/(references|assets)' -e '\.claude/skills' -e 'CLAUDE\.md' $ROOT/skills $ROOT/agents $ROOT/AGENTS.md $ROOT/README.md $ROOT/docs | wc -l | tr -d ' ')" "no active instruction names legacy install paths or CLAUDE.md"
+
+assert_eq "0" "$(grep -rlE -e 'harness-mini/<project-id>' -e 'HARNESS_HOME/<project-id>' $ROOT/skills $ROOT/agents $ROOT/AGENTS.md $ROOT/ARCHITECTURE.md $ROOT/README.md $ROOT/SECURITY.md $ROOT/docs | wc -l | tr -d ' ')" "no active doc names the pre-0061 flat state dir (<project-id> sits under projects/)"
 
 # doctor drift check: respects persisted targets, silent for installed projects
 echo "installed_drift — source vs persisted install targets"
@@ -2349,6 +2351,113 @@ assert_eq "" "$(drift)" "persisted target in sync: no drift (agents dir absent i
 mkdir -p "$DS/.agents/agents"
 assert_contains "$(drift)" ".agents/agents/planner.md" "existing target dir missing a source role is reported"
 rm -rf "$DS" "$DH"
+
+# =============================================================================
+echo "state dir under projects/ — fresh layout + 0.13.0 flat-layout migration (0061 #82)"
+SDS="$(mktemp -d)"; SDH="$(mktemp -d)"
+mkdir -p "$SDS/skills/tdd" "$SDS/agents" "$SDS/bin" "$SDS/docs"
+cp "$BIN"/*.sh "$SDS/bin/"
+printf '0.13.0\n' > "$SDS/VERSION"; printf 'tdd\n' > "$SDS/skills/tdd/SKILL.md"
+printf 'role\n' > "$SDS/agents/planner.md"; printf 'map\n' > "$SDS/AGENTS.md"
+sd_init() { HARNESS_SRC="$SDS" HARNESS_HOME="$SDH" bash "$ROOT/init.sh" "$1" 2>&1; }
+sd_hh() { HARNESS_HOME="$SDH" bash "$HARNESS_HOME_RUNTIME" "$@" 2>&1; }
+sd_id() { basename "$(HARNESS_HOME="$SDH" state_of "$1")"; }
+# the 0.13.0 layout, built by hand: $H/<id>/{harness.lock,manifest.md,targets}
+sd_flat() { # <project> <tag> — returns the old state dir path
+  local d="$SDH/$(sd_id "$1")"; mkdir -p "$d"
+  printf 'version: 0.13.0\n# %s\n' "$2" > "$d/harness.lock"
+  printf '# manifest %s\n' "$2" > "$d/manifest.md"
+  printf 'default\t.agents/skills\t.agents/agents\tcopy\n' > "$d/targets"
+  printf '%s' "$d"
+}
+HARNESS_HOME_RUNTIME="$SDH/bin/harness.sh"
+
+# fresh install: only the known top-level entries, state under projects/
+SDP1="$(mktemp -d)"; sd_init "$SDP1" >/dev/null
+SDID1="$(sd_id "$SDP1")"
+unexpected=""
+for e in $(ls -A "$SDH"); do
+  case "$e" in projects|bin|docs|skills|agents|harness|AGENTS.md|VERSION) ;; *) unexpected="$unexpected $e" ;; esac
+done
+assert_eq "" "$unexpected" "fresh install adds no top-level entry besides projects/ and the runtime set"
+assert_eq "true" "$([ -f "$SDH/projects/$SDID1/harness.lock" ] && [ -f "$SDH/projects/$SDID1/manifest.md" ] && echo true || echo false)" "fresh install: lock and manifest under projects/<id>/"
+assert_eq "$SDID1" "$(ls "$SDH/projects")" "projects/ holds exactly the project's state dir"
+out="$(sd_hh --root "$SDP1" agent install claude)"
+assert_eq "true" "$([ -s "$SDH/projects/$SDID1/targets" ] && echo true || echo false)" "agent install writes targets under projects/<id>/"
+assert_contains "$out" "recorded targets, lock and manifest in $SDH/projects/$SDID1" "agent install names the projects/<id> state dir"
+assert_eq "false" "$([ -e "$SDH/$SDID1" ] && echo true || echo false)" "no flat \$HARNESS_HOME/<id> is created"
+
+# 0.13.0 layout migrates via init.sh; runtime dirs untouched; second run silent
+SDP2="$(mktemp -d)"; SDID2="$(sd_id "$SDP2")"; sd_flat "$SDP2" two >/dev/null
+RTBEFORE="$(snap "$SDH/bin"; snap "$SDH/skills"; snap "$SDH/agents"; snap "$SDH/docs")"
+out="$(sd_init "$SDP2")"
+assert_contains "$out" "migr  moved state dir to projects/$SDID2" "init reports moving the old state dir"
+assert_eq "false" "$([ -e "$SDH/$SDID2" ] && echo true || echo false)" "init: the flat state dir is gone after the move"
+assert_eq "version: 0.13.0 # two" "$(tr '\n' ' ' < "$SDH/projects/$SDID2/harness.lock" | sed 's/ $//')" "init: the moved lock is the old one (not regenerated)"
+assert_eq "# manifest two" "$(cat "$SDH/projects/$SDID2/manifest.md")" "init: the moved manifest is the old one"
+assert_eq "true" "$([ -s "$SDH/projects/$SDID2/targets" ] && echo true || echo false)" "init: targets moved along"
+assert_eq "$RTBEFORE" "$(snap "$SDH/bin"; snap "$SDH/skills"; snap "$SDH/agents"; snap "$SDH/docs")" "migration leaves the runtime dirs untouched"
+SDSNAP="$(snap "$SDH")"
+out="$(sd_init "$SDP2")"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'moved state dir')" "second init: no migration line"
+assert_eq "$SDSNAP" "$(snap "$SDH")" "second init: \$HARNESS_HOME unchanged (idempotent)"
+
+# two projects migrate independently; update --root migrates only its own project
+SDP3="$(mktemp -d)"; SDP4="$(mktemp -d)"; SDID3="$(sd_id "$SDP3")"; SDID4="$(sd_id "$SDP4")"
+sd_flat "$SDP3" three >/dev/null; sd_flat "$SDP4" four >/dev/null
+out="$(sd_init "$SDP3")"
+assert_eq "true" "$([ -f "$SDH/projects/$SDID3/harness.lock" ] && [ ! -e "$SDH/$SDID3" ] && echo true || echo false)" "project three migrated by init"
+assert_eq "true" "$([ -f "$SDH/$SDID4/harness.lock" ] && [ ! -e "$SDH/projects/$SDID4" ] && echo true || echo false)" "project four is untouched while three migrates"
+code=0; out="$(sd_hh --root "$SDP4" update --src "$SDS")" || code=$?
+assert_exit 0 "$code" "update --root on a 0.13.0-layout project succeeds"
+assert_contains "$out" "migr  moved state dir to projects/$SDID4" "update reports moving the old state dir"
+assert_eq "true" "$([ -f "$SDH/projects/$SDID4/harness.lock" ] && [ ! -e "$SDH/$SDID4" ] && echo true || echo false)" "project four migrated by update"
+assert_contains "$(cat "$SDH/projects/$SDID4/harness.lock")" "version: 0.13.0" "update keeps working from the migrated lock"
+SDSNAP="$(snap "$SDH")"
+out="$(sd_hh --root "$SDP4" update --src "$SDS")"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'moved state dir')" "second update: no migration line"
+assert_eq "$SDSNAP" "$(snap "$SDH")" "second update: \$HARNESS_HOME unchanged (idempotent)"
+
+# an existing target is never overwritten: both kept, one keep notice
+SDP5="$(mktemp -d)"; SDID5="$(sd_id "$SDP5")"; OLD5="$(sd_flat "$SDP5" old)"
+mkdir -p "$SDH/projects/$SDID5"; printf 'version: 9.9.9\n# new\n' > "$SDH/projects/$SDID5/harness.lock"
+OLDSNAP="$(snap "$OLD5")"
+out="$(sd_init "$SDP5")"
+assert_eq "1" "$(printf '%s' "$out" | grep -c '^  keep  .*projects/'"$SDID5")" "existing target: exactly one keep notice"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'moved state dir')" "existing target: nothing is moved"
+assert_eq "version: 9.9.9 # new" "$(tr '\n' ' ' < "$SDH/projects/$SDID5/harness.lock" | sed 's/ $//')" "existing target: its lock is not overwritten"
+assert_eq "$OLDSNAP" "$(snap "$OLD5")" "existing target: the old dir is kept as it was"
+
+# id equals a runtime dir name: the helper must never move it (name guard AND lock check)
+GH="$(mktemp -d)"; GR="$(mktemp -d)"
+for n in bin docs skills agents harness projects; do
+  mkdir -p "$GH/$n"; printf 'version: 0.13.0\n' > "$GH/$n/harness.lock"
+  before="$(snap "$GH")"
+  HARNESS_HOME="$GH" bash -c '. "$1"; say() { :; }; project_id() { printf %s "$3"; }; migrate_state_dir "$2"' _ "$LIB" "$GR" "$n" >/dev/null 2>&1
+  assert_eq "$before" "$(snap "$GH")" "id '$n': the runtime dir is never moved (even holding a harness.lock)"
+  rm -rf "$GH/$n"
+done
+mkdir -p "$GH/lockless"; printf 'x\n' > "$GH/lockless/other"
+HARNESS_HOME="$GH" bash -c '. "$1"; say() { :; }; project_id() { printf lockless; }; migrate_state_dir "$2"' _ "$LIB" "$GR" >/dev/null 2>&1
+assert_eq "true" "$([ -f "$GH/lockless/other" ] && [ ! -e "$GH/projects" ] && echo true || echo false)" "a flat dir without harness.lock is not a state dir and is left alone"
+printf 'plain file\n' > "$GH/afile"
+HARNESS_HOME="$GH" bash -c '. "$1"; say() { :; }; project_id() { printf afile; }; migrate_state_dir "$2"' _ "$LIB" "$GR" >/dev/null 2>&1
+assert_eq "plain file" "$(cat "$GH/afile")" "a plain file named like the id is left alone"
+rm -rf "$GH" "$GR"
+
+# read-only commands on a not-yet-migrated project do not report a missing lock
+SDP6="$(mktemp -d)"; sd_init "$SDP6" >/dev/null; SDID6="$(sd_id "$SDP6")"
+mv "$SDH/projects/$SDID6" "$SDH/$SDID6"
+code=0; out="$(sd_hh --root "$SDP6" doctor)" || code=$?
+assert_exit 0 "$code" "doctor on an unmigrated project does not fail"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'harness.lock missing')" "doctor on an unmigrated project reports no missing lock"
+mv "$SDH/projects/$SDID6" "$SDH/$SDID6" 2>/dev/null
+out="$(sd_hh --root "$SDP6" status)"
+assert_contains "$out" "project: 0.13.0" "status on an unmigrated project reads the project version"
+mv "$SDH/projects/$SDID6" "$SDH/$SDID6" 2>/dev/null
+out="$(sd_hh --root "$SDP6" agent install claude)"; code=$?
+assert_eq "true" "$([ -s "$SDH/projects/$SDID6/targets" ] && [ ! -e "$SDH/$SDID6" ] && echo true || echo false)" "agent install on an unmigrated project writes into projects/<id>/ (old dir moved first)"
+rm -rf "$SDS" "$SDH" "$SDP1" "$SDP2" "$SDP3" "$SDP4" "$SDP5" "$SDP6"
 
 rm -rf "$HARNESS_HOME"
 

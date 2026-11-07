@@ -26,7 +26,7 @@ RUNTIME_ROOT="$(cd "$HERE/.." && pwd)"
 . "$HERE/_harness_lib.sh"
 
 HARNESS_ROOT="${HARNESS_ROOT:-$PWD}"
-# Per-project bookkeeping (lock + manifest) lives in $HARNESS_HOME/<project-id>/,
+# Per-project bookkeeping (lock + manifest) lives in $HARNESS_HOME/projects/<project-id>/,
 # never in the project tree. Re-derived once the project root is final.
 LOCK=""
 
@@ -180,7 +180,7 @@ update_runtime() {
 #                harness files are removed by checksum, edited ones kept) — silent when none.
 #                REFUSED (nothing touched) unless step 1 left a usable runtime.
 #   4. project   the skills + role files `agent install <host>` placed in this project
-#                (harness.lock under $HARNESS_HOME/<project-id>/)
+#                (harness.lock under $HARNESS_HOME/projects/<project-id>/)
 # Per file (base = lock baseline, cur = on disk, new = upstream):
 #   absent          -> ADD       missing managed file
 #   new == cur      -> UNCHANGED  already matches upstream
@@ -934,6 +934,13 @@ if [ -n "$root_override" ]; then HARNESS_ROOT="$root_override"; fi
 HARNESS_ROOT="$(cd "$HARNESS_ROOT" && pwd)"
 LOCK="$(state_dir "$HARNESS_ROOT")/harness.lock"
 sub="$1"; shift
+# A 0.13.0 flat state dir moves to projects/<id> before any command reads it:
+# `update` reports the move, every other command does it silently.
+case "$sub" in
+  -h|--help|help) ;;
+  update) migrate_state_dir "$HARNESS_ROOT" || die "update: cannot move the old state dir into $(harness_home)/projects" 1 ;;
+  *) migrate_state_dir "$HARNESS_ROOT" >/dev/null || true ;;
+esac
 case "$sub" in
   version) cmd_version "$@" ;;
   update)  cmd_update "$@" ;;

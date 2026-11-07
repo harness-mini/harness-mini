@@ -99,7 +99,7 @@ your-project/
 ```
 
 Everything harness-owned (executables, map, static docs, locks) lives under
-`~/.harness-mini/`, per project in `~/.harness-mini/<project-id>/`. See
+`~/.harness-mini/`, per project in `~/.harness-mini/projects/<project-id>/`. See
 [`ARCHITECTURE.md`](ARCHITECTURE.md#two-file-classes).
 
 Open `session-init` for planning work or `session-coding` for implementation.
@@ -183,7 +183,7 @@ rather than drifting behind. The check is best-effort and silent offline
 (`HARNESS_NO_NET`); `HARNESS_LATEST` pins it.
 
 Checksums live in three locks: installed skills and roles in
-`~/.harness-mini/<project-id>/harness.lock`, executables in
+`~/.harness-mini/projects/<project-id>/harness.lock`, executables in
 `~/.harness-mini/harness/runtime.lock`, global copies in `harness/global.lock`.
 `update` is
 **checksum-guarded**: files you never touched are refreshed silently, files
