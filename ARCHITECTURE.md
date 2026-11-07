@@ -61,7 +61,7 @@ project. Every file belongs to exactly one class.
 
 | Class | Lives in | Examples |
 |-------|----------|----------|
-| **Harness-owned**, independent of project progress | `$HARNESS_HOME` (default `~/.harness-mini/`), per project under `$HARNESS_HOME/<project-id>/` | executables, the map, static docs, skill/agent sources, lock, manifest |
+| **Harness-owned**, independent of project progress | `$HARNESS_HOME` (default `~/.harness-mini/`), per project under `$HARNESS_HOME/projects/<project-id>/` | executables, the map, static docs, skill/agent sources, lock, manifest |
 | **Project progress**, must be recorded with the project | `<project>/.harness-mini/` (committed, except `trace/runtime/`) | plans, checkpoints, evals, garden backlog, project architecture |
 
 Besides `.harness-mini/`, an install writes only a `<!-- harness-mini:begin/end -->`
@@ -96,7 +96,7 @@ AGENTS.md              # the full agent map (the project block points here)
 docs/                  # static docs: principles, smart-dumb, assumptions, ARCHITECTURE.md,
                        #   templates/, walkthrough, getting-started, examples/
 skills/  agents/       # sources that `agent install <host>` copies from
-<project-id>/          # per-project bookkeeping
+projects/<project-id>/ # per-project bookkeeping
   harness.lock         # version + pristine checksums of installed skills/agents
   manifest.md          # pointer list of what an agent install placed
   targets              # one row per installed host (skills dir, agents dir, format)
@@ -106,6 +106,9 @@ skills/  agents/       # sources that `agent install <host>` copies from
 hyphenated basename of the project; the 8 chars are base-36 of
 `sha256(absolute symlink-resolved path)`. Moving a project changes its id
 (documented trade-off). Implemented by `project_id` in `bin/_harness_lib.sh`.
+A 0.13.0 state dir sitting flat at the top of `$HARNESS_HOME` is moved into `projects/` automatically
+(`migrate_state_dir`: `init.sh` and every `harness.sh` command; never a runtime
+dir, never over an existing `projects/<project-id>/`).
 
 **Hosts.** Which skills/agents dir each coding-agent host reads is a single table,
 `host_row` in `bin/_harness_lib.sh`; `harness.sh agent list` prints it and
@@ -154,7 +157,7 @@ An install has two independent managed sets. The **project set** is only the
 skills and role files an `agent install` placed in the host's dirs; the
 **runtime set** is the executable `bin/*` sources under `$HARNESS_HOME/bin/`. The
 project set is defined in `emit_managed_pairs()` (`bin/_harness_lib.sh`) and
-recorded in `$HARNESS_HOME/<project-id>/harness.lock`; runtime checksums are in
+recorded in `$HARNESS_HOME/projects/<project-id>/harness.lock`; runtime checksums are in
 `$HARNESS_HOME/harness/runtime.lock`. The global copies (map, docs, skill/agent
 sources) have their own `harness/global.lock`. Project plans, `.harness-mini/`,
 and application files are not managed.

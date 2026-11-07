@@ -18,7 +18,7 @@ cksum_file() {
 
 # --- layout resolver ---------------------------------------------------------
 # Two classes of file (0059): harness-owned bookkeeping lives under
-# $HARNESS_HOME (global) or $HARNESS_HOME/<project-id> (per project); project
+# $HARNESS_HOME (global) or $HARNESS_HOME/projects/<project-id> (per project); project
 # progress lives in <project>/.harness-mini/. These helpers are the single
 # source of truth for where each class goes.
 
@@ -63,8 +63,27 @@ project_id() {
   printf '%s-%s' "$(project_name "$abs")" "$(base36_tail8 "$(hash_hex "$abs")")"
 }
 
-# state_dir <root> — per-project harness bookkeeping (lock, manifest).
-state_dir() { printf '%s/%s' "$(harness_home)" "$(project_id "$1")"; }
+# state_dir <root> — per-project harness bookkeeping (lock, manifest, targets).
+state_dir() { printf '%s/projects/%s' "$(harness_home)" "$(project_id "$1")"; }
+
+# migrate_state_dir <root> — 0.13.0 kept the state dir flat at $HARNESS_HOME/<id>;
+# move it to projects/<id>. Only a directory named exactly like this project's id
+# that holds a harness.lock moves, and never a runtime dir name. An existing
+# projects/<id> is never overwritten (both kept, one `keep` notice). Silent when
+# there is nothing to move. The caller defines say().
+migrate_state_dir() {
+  local id old new n
+  id="$(project_id "$1")"
+  for n in bin docs skills agents harness projects; do [ "$id" != "$n" ] || return 0; done
+  old="$(harness_home)/$id"; new="$(state_dir "$1")"
+  [ -d "$old" ] && [ -f "$old/harness.lock" ] || return 0
+  if [ -e "$new" ]; then
+    say "keep  $old (projects/$id also exists; both kept — delete the old one yourself if unused)"
+    return 0
+  fi
+  mkdir -p "$(dirname "$new")" && mv "$old" "$new" || return 1
+  say "migr  moved state dir to projects/$id"
+}
 
 # progress_dir <root> — per-project progress that must be committed.
 progress_dir() { printf '%s/.harness-mini' "$1"; }

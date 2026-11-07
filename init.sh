@@ -17,7 +17,8 @@
 #   bin/ VERSION harness/runtime.lock   the runtime
 #   AGENTS.md docs/ docs/ARCHITECTURE.md   the global map + static docs
 #   skills/ agents/                     sources for `harness.sh agent install <host>`
-#   <project-id>/{harness.lock,manifest.md}   per-project bookkeeping
+#   projects/<project-id>/{harness.lock,manifest.md,targets}   per-project bookkeeping
+#                         (a 0.13.0 flat <project-id>/ dir is moved there automatically)
 # init.sh installs no skills/agents (it cannot know the host) and never edits the
 # project's .gitignore, ARCHITECTURE.md or CLAUDE.md.
 # An older install (0058 shared layout or the .claude/ layout) is migrated
@@ -114,6 +115,9 @@ install_global_assets() {
   return 0
 }
 install_global_assets || { echo "init.sh: cannot install global assets at $HARNESS_HOME" >&2; exit 1; }
+
+# --- 0.13.0 flat state dir -> projects/<id> (before anything reads or writes it) ---
+migrate_state_dir "$DEST" || { echo "init.sh: cannot move the old state dir into $HARNESS_HOME/projects" >&2; exit 1; }
 
 # --- migrate pre-0059 layouts (before AGENTS.md is touched) ------------------
 # Moves plans/trace into .harness-mini/ and removes only lock-verified harness

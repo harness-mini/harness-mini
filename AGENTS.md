@@ -112,7 +112,7 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 | Committed checkpoints (institutional memory) | `.harness-mini/trace/checkpoints/` |
 | Committed evaluation verdicts (the `done`-gate) | `.harness-mini/trace/evals/<plan>-NNN.md` |
 | Ephemeral runtime traces (gitignored) | `.harness-mini/trace/runtime/` |
-| Per-project lock + manifest | `$HOME/.harness-mini/<project-id>/` |
+| Per-project lock + manifest | `$HOME/.harness-mini/projects/<project-id>/` |
 
 ## Versioning — `~/.harness-mini/bin/harness.sh` (the front door)
 
@@ -121,7 +121,7 @@ running orthogonally on triggers — full diagram + per-state exit conditions:
 `"$HOME/.harness-mini/bin/harness.sh" help` lists the commands (`version` ·
 `update` · `doctor` · `status` · `report` · `release`); runtime checksums live
 in `~/.harness-mini/harness/runtime.lock`, and project checksums live in
-`~/.harness-mini/<project-id>/harness.lock` (canonical version source: `VERSION`). Non-obvious
+`~/.harness-mini/projects/<project-id>/harness.lock` (canonical version source: `VERSION`). Non-obvious
 semantics:
 `update` is **checksum-guarded** (your edits kept, upstream lands as `<file>.new`;
 `.harness-mini/` never touched); `doctor` enforces the **eval-gate**
