@@ -85,6 +85,8 @@ Skills dir rule: `.agents/skills` where the host reads it natively, else the hos
 - 2026-11-06: skills made host-aware like agents; dsh uses `.dsh/agents/`; zcode/pi dirs confirmed; Muse/Hermes → self-install fallback.
 - 2026-11-06: scope and 12 decisions above confirmed by the user. Host mapping research delegated to a sub-agent.
 
+- 2026-11-07 (post-merge-prep): user verified Cursor loads skills from `.cursor/skills`, not `.agents/skills`; host table row for cursor corrected to `.cursor/skills`.
+
 ## Evaluation
 - L2 round 1 (`zero-intrusion-install-001`): fail — B1 blocker (v0.12.1 upgrade removed project bin without a runtime), M1/M2 major. Fixed.
 - L2 round 2 (`zero-intrusion-install-002`): **pass**, 8/8, 4 minor open (N1 .new hint wording, N2 `update` has no downgrade guard, N3 `.mdc` description-only edit reported as unchanged, N4 stale legacy docs left after upgrade).

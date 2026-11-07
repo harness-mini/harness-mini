@@ -94,7 +94,7 @@ exactly this — nothing else, and your `.gitignore` is never edited:
 your-project/
 ├── .harness-mini/    plans, trace, architecture.md — committed (trace/runtime/ ignored)
 ├── AGENTS.md         + one marked block (the file is created only if absent)
-├── .agents/skills/   skills for your host (the dir depends on the host)
+├── .cursor/skills/   skills for your host (the dir depends on the host)
 └── .cursor/agents/   role descriptions; both dirs listed in .git/info/exclude
 ```
 
