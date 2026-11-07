@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-07
+
 ### Changed
 - **Per-project state dirs now live under `$HARNESS_HOME/projects/<project-id>/`**
   (was `$HARNESS_HOME/<project-id>/`), so the top of `~/.harness-mini/` holds only
