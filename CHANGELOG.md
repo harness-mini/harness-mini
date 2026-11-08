@@ -7,6 +7,18 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Garden sweep.** Docs now match the code: the Cursor getting-started uses
+  `.cursor/skills`, and README/ARCHITECTURE document `harness.sh diff <file>` and
+  the `update` downgrade guard (`--force`). Internals: a single `read_version`
+  helper replaces nine duplicated `VERSION` reads and an unused helper is gone
+  (no behavior change). A user who hand-edited `bin/_harness_lib.sh` keeps their
+  copy on `update` (upstream lands as `.new`) and must merge it, because
+  `harness.sh` now needs `read_version` from the lib.
+- The 0.14.0 section gained an `### Upgrading` note: run the new checkout's
+  `init.sh` first, because an installed 0.13.0 runtime reports `lock missing`
+  once the state dir has moved.
+
 ## [0.14.0] - 2026-11-07
 
 ### Changed
