@@ -185,10 +185,11 @@ rather than drifting behind. The check is best-effort and silent offline
 Checksums live in three locks: installed skills and roles in
 `~/.harness-mini/projects/<project-id>/harness.lock`, executables in
 `~/.harness-mini/harness/runtime.lock`, global copies in `harness/global.lock`.
-`update` is
-**checksum-guarded**: files you never touched are refreshed silently, files
-**you edited are kept** (the upstream copy is written next to them as
-`<file>.new`), and brand-new files are added. Project plans, `.harness-mini/`, and
+`update` is **checksum-guarded**: files you never touched are refreshed silently,
+files **you edited are kept** (the upstream copy is written next to them as
+`<file>.new`; `harness.sh diff <file>` shows how yours differs), and brand-new
+files are added. `update` refuses to downgrade the runtime unless `--force`.
+Project plans, `.harness-mini/`, and
 project code are never touched. `release` stamps
 `VERSION`, rolls `CHANGELOG.md`, tags `v<x.y.z>`, and cuts a GitHub release,
 gated on green tests + a clean tree (see the `release` skill).

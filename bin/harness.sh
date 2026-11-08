@@ -38,9 +38,9 @@ installed_version() {
   if [ -f "$LOCK" ]; then
     lock_version "$LOCK"
   elif [ -f "$RUNTIME_ROOT/VERSION" ]; then
-    tr -d ' \t\r\n' < "$RUNTIME_ROOT/VERSION"
+    read_version "$RUNTIME_ROOT/VERSION"
   elif [ -f "$HARNESS_ROOT/VERSION" ]; then
-    tr -d ' \t\r\n' < "$HARNESS_ROOT/VERSION"
+    read_version "$HARNESS_ROOT/VERSION"
   else
     echo "unknown"
   fi
@@ -50,7 +50,7 @@ runtime_version() {
   if [ -f "$RUNTIME_ROOT/harness/runtime.lock" ]; then
     lock_version "$RUNTIME_ROOT/harness/runtime.lock"
   elif [ -f "$RUNTIME_ROOT/VERSION" ]; then
-    tr -d ' \t\r\n' < "$RUNTIME_ROOT/VERSION"
+    read_version "$RUNTIME_ROOT/VERSION"
   else
     echo "unknown"
   fi
@@ -64,7 +64,7 @@ project_version() {
   lockf="$(state_dir "$root")/harness.lock"
   [ ! -f "$lockf" ] || version="$(lock_version "$lockf")"
   if [ -z "$version" ] && [ -f "$root/VERSION" ]; then
-    version="$(tr -d ' \t\r\n' < "$root/VERSION")"
+    version="$(read_version "$root/VERSION")"
   fi
   printf '%s' "${version:-uninitialized}"
 }
@@ -214,7 +214,7 @@ cmd_update() {
   [ -d "$src" ] || die "update: source not found: $src" 64
 
   local src_ver="0.0.0"
-  [ -f "$src/VERSION" ] && src_ver="$(tr -d ' \t\r\n' < "$src/VERSION")"
+  [ -f "$src/VERSION" ] && src_ver="$(read_version "$src/VERSION")"
   # No downgrade of the runtime (the same version_newer test init.sh uses), unless --force.
   local rt_ver; rt_ver="$(lock_version "$(harness_home)/harness/runtime.lock")"
   if [ -z "$force" ] && version_newer "$src_ver" "$rt_ver"; then
@@ -587,7 +587,7 @@ cmd_doctor() {
                     || emit warn "$((nnew + nglob)) unresolved .new file(s) from update$(dotnew_where "$nglob") — resolve & delete"
 
   if [ -f "$root/VERSION" ] && [ -f "$LOCK" ]; then
-    local fv lv; fv="$(tr -d ' \t\r\n' < "$root/VERSION")"; lv="$(installed_version)"
+    local fv lv; fv="$(read_version "$root/VERSION")"; lv="$(installed_version)"
     [ "$fv" = "$lv" ] && emit ok "VERSION matches lock ($lv)" \
                       || emit warn "VERSION ($fv) != lock ($lv)"
   fi

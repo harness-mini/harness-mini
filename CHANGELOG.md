@@ -18,6 +18,12 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   runtime dirs are never touched and an existing `projects/<project-id>/` is never
   overwritten (the old dir is kept with a `keep` notice). Issue #82.
 
+### Upgrading
+Run the 0.14.0 checkout's `init.sh` first. An installed 0.13.0 runtime is old
+code: it reports `lock missing` once the state dir has moved to `projects/`.
+`init.sh` refreshes the runtime (checksum-guarded, never a downgrade) and then
+migrates the state dir.
+
 ## [0.13.0] - 2026-11-07
 
 ### Changed

@@ -25,7 +25,7 @@ installs the runtime first, then migrates an older install automatically.
 
 Read the project's `AGENTS.md` (it carries the harness-mini block), then the
 global map `$HOME/.harness-mini/AGENTS.md`. Open a skill from
-`.agents/skills/<name>/SKILL.md` when its description matches your task. The
+`.cursor/skills/<name>/SKILL.md` when its description matches your task. The
 source checkout keeps canonical skill files at `skills/<name>/SKILL.md`.
 
 For a new requirement, use `stage-viewer` to choose quick or full planning.

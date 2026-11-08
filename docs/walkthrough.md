@@ -23,13 +23,13 @@ install → recon → route → plan → implement(slice, TDD) ⇄ evaluate → 
 $ git clone https://github.com/harness-mini/harness-mini.git
 $ bash harness-mini/init.sh ~/demo-api
 harness-mini: installing into /Users/you/demo-api  (mode: existing)
-  add   user runtime (/Users/you/.harness-mini, v0.13.0)
+  add   user runtime (/Users/you/.harness-mini, v0.14.0)
   add   41 global file(s) under /Users/you/.harness-mini (map, docs, skills, agents)
   add   .harness-mini/.gitignore
   add   AGENTS.md (harness-mini block)
   add   .harness-mini/architecture.md
   add   manifest.md (state dir: /Users/you/.harness-mini/projects/demo-api-9zia7ujs)
-  add   harness.lock (state dir, v0.13.0)
+  add   harness.lock (state dir, v0.14.0)
   add   .harness-mini/docs/exec-plans/active/0001-recon.md (+ json twin)
 harness-mini: done.
 $ cd ~/demo-api
