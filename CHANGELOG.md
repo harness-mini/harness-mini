@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-11-08
+
 ### Changed
 - **Garden sweep.** Docs now match the code: the Cursor getting-started uses
   `.cursor/skills`, and README/ARCHITECTURE document `harness.sh diff <file>` and
