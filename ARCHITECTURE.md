@@ -166,7 +166,8 @@ and application files are not managed.
 managed file. `"$HOME/.harness-mini/bin/harness.sh" update` diffs `base` (lock
 baseline), `cur` (on disk), and `new` (upstream) independently for runtime and
 project files. It preserves edited files and writes upstream conflicts to
-`.new`. `update` also refreshes the global copies and first migrates a pre-0.13
+`.new` (`harness.sh diff <file>` compares your copy with it). `update` never
+downgrades the runtime unless `--force`. `update` also refreshes the global copies and first migrates a pre-0.13
 project layout (data moves into `.harness-mini/`; legacy harness files are removed
 only when their old-lock checksum matches). From this source repository, the release command stamps `VERSION`, rolls
 `CHANGELOG.md`, tags `v<x.y.z>`, and publishes a GitHub release (gated on green

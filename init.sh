@@ -78,7 +78,7 @@ echo "harness-mini: installing into $DEST  (mode: $MODE)"
 REFRESH=add
 install_runtime() {
   local runtime_lock="$HARNESS_HOME/harness/runtime.lock" version installed log rc=0
-  version="$(tr -d ' \t\r\n' < "$SRC/VERSION" 2>/dev/null)"
+  version="$(read_version "$SRC/VERSION" 2>/dev/null)"
   [ -n "$version" ] || version=unknown
   if [ -f "$runtime_lock" ]; then
     installed="$(lock_version "$runtime_lock")"
@@ -175,7 +175,7 @@ fi
 # re-run; thereafter maintained by `harness.sh update`.
 if [ ! -f "$STATE/harness.lock" ]; then
   src_ver="0.0.0"
-  [ -f "$SRC/VERSION" ] && src_ver="$(tr -d ' \t\r\n' < "$SRC/VERSION")"
+  [ -f "$SRC/VERSION" ] && src_ver="$(read_version "$SRC/VERSION")"
   write_lock "$SRC" "$STATE" "$src_ver" "$(targets_text "$DEST")" && say "add   harness.lock (state dir, v$src_ver)"
 fi
 # retained pristine .agents/ files from a legacy install keep their old baseline

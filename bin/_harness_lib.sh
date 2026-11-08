@@ -161,7 +161,7 @@ agents_block_remove() {
 
 # --- host table ---------------------------------------------------------------
 # The ONE place that knows where each coding-agent host reads skills and role
-# files (researched from official docs, see .harness-mini/docs/exec-plans/active/0059-*.md).
+# files (researched from official docs, see .harness-mini/docs/exec-plans/completed/0059-*.md).
 
 HOST_IDS="antigravity codex cursor claude qoder zcode kimi deepseek pi opencode grok copilot mimo trae codebuddy muse hermes"
 
@@ -206,9 +206,8 @@ targets_text() {
   if [ -s "$f" ]; then cat "$f"; else printf '%s\n' "$DEFAULT_TARGET_ROW"; fi
 }
 
-# target_skill_dirs / target_agent_dirs <root> — unique relative target dirs.
+# target_skill_dirs <root> — unique relative skill target dirs.
 target_skill_dirs() { targets_text "$1" | awk -F'\t' '!s[$2]++ { print $2 }'; }
-target_agent_dirs() { targets_text "$1" | awk -F'\t' '!s[$3]++ { print $3 }'; }
 
 # existing_skill_dirs <root> — the skill targets that exist on disk.
 existing_skill_dirs() {
@@ -499,6 +498,9 @@ write_lock() {
   rm -rf "$stage"
 }
 
+# read_version <file> — print a VERSION file with all whitespace stripped.
+read_version() { tr -d ' \t\r\n' < "$1"; }
+
 # lock_version <lockfile> — print the version recorded in a lockfile.
 lock_version() { awk -F': *' '/^version:/{print $2; exit}' "$1" 2>/dev/null; }
 
@@ -633,7 +635,7 @@ emit_global_pairs() {
 sync_globals() {
   local src="$1" mode="$2" home lock upd tmp ver tab; tab="$(printf '\t')"
   home="$(harness_home)"; lock="$home/harness/global.lock"
-  ver="$(tr -d ' \t\r\n' < "$src/VERSION" 2>/dev/null)"; : "${ver:=unknown}"
+  ver="$(read_version "$src/VERSION" 2>/dev/null)"; : "${ver:=unknown}"
   [ "$mode" = refresh ] || [ ! -f "$lock" ] || ver="$(lock_version "$lock")"
   mkdir -p "$home/harness" && upd="$(mktemp)" || return 1
   emit_global_pairs "$src" | while IFS="$tab" read -r s rel; do
