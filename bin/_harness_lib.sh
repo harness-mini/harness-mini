@@ -88,6 +88,69 @@ migrate_state_dir() {
 # progress_dir <root> — per-project progress that must be committed.
 progress_dir() { printf '%s/.harness-mini' "$1"; }
 
+# json_wb <twin.json> — distill a plan's JSON twin into one |-separated line:
+#   status | current_slice_id | next-pass:false-slice | npass | nfail | plan_id-seen(0|1)
+# awk only (zero-dependency; no jq). Shared by harness.sh status and session-bearings.sh.
+# Each "passes" pairs with the slice "id" that precedes it (same line or the
+# id carried from the previous line). Several slices on one line stay distinct.
+json_wb() {
+  awk '
+    function last_slice_id(chunk,   tmp, sid, pre, key, start, len) {
+      sid = ""
+      tmp = chunk
+      while (match(tmp, /"id"[ \t]*:[ \t]*"[^"]*"/)) {
+        start = RSTART
+        len = RLENGTH
+        pre = substr(tmp, 1, start - 1)
+        if (pre !~ /[A-Za-z0-9_]$/) {
+          key = substr(tmp, start, len)
+          sub(/^"id"[ \t]*:[ \t]*"/, "", key)
+          sub(/"$/, "", key)
+          sid = key
+        }
+        if (start + len > length(tmp)) break
+        tmp = substr(tmp, start + len)
+      }
+      return sid
+    }
+    /"plan_id":[ \t]*"/          { pid = 1 }
+    /"status":[ \t]*"/ {
+      s = $0
+      sub(/.*"status":[ \t]*"/, "", s)
+      sub(/".*/, "", s)
+      st = s
+    }
+    /"current_slice_id":[ \t]*"/ {
+      s = $0
+      sub(/.*"current_slice_id":[ \t]*"/, "", s)
+      sub(/".*/, "", s)
+      cur = s
+    }
+    {
+      rest = $0
+      while (match(rest, /"passes"[ \t]*:[ \t]*(true|false)/)) {
+        pstart = RSTART
+        plen = RLENGTH
+        chunk = substr(rest, 1, pstart - 1)
+        sid = last_slice_id(chunk)
+        if (sid == "") sid = pending
+        pass = substr(rest, pstart, plen)
+        sub(/^"passes"[ \t]*:[ \t]*/, "", pass)
+        if (sid != "") {
+          if (pass == "true") np++
+          else { ns++; if (nxt == "") nxt = sid }
+        }
+        pending = ""
+        if (pstart + plen > length(rest)) { rest = ""; break }
+        rest = substr(rest, pstart + plen)
+      }
+      sid = last_slice_id(rest)
+      if (sid != "") pending = sid
+    }
+    END { printf "%s|%s|%s|%d|%d|%d\n", st, cur, nxt, np+0, ns+0, pid+0 }
+  ' "$1"
+}
+
 # git_exclude_add <root> <pattern>... — list installed harness dirs in the
 # project's LOCAL .git/info/exclude (never the project's .gitignore). Idempotent,
 # keeps existing lines, and does nothing when <root> has no .git directory.

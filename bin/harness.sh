@@ -139,24 +139,7 @@ cmd_version() {
   fi
 }
 
-# json_wb <twin.json> — distill a plan's JSON twin into one |-separated line:
-#   status | current_slice_id | next-pass:false-slice | npass | nfail | plan_id-seen(0|1)
-# awk only (zero-dependency; no jq). Tolerates any indentation and compact
-# one-line slice objects (exact-key matching: "id" never collides with
-# plan_id/current_slice_id). "|" delimiter so EMPTY fields survive `read`
-# (IFS-whitespace would collapse them and shift columns). plan_id-seen=0 or
-# empty status => not a readable twin.
-json_wb() {
-  awk '
-    /"plan_id":[ \t]*"/          { pid=1 }
-    /"status":[ \t]*"/           { s=$0; sub(/.*"status":[ \t]*"*/,"",s);  sub(/".*/,"",s); st=s }
-    /"current_slice_id":[ \t]*"/ { s=$0; sub(/.*"current_slice_id":[ \t]*"*/,"",s); sub(/".*/,"",s); cur=s }
-    /"id":[ \t]*"/               { s=$0; sub(/.*"id":[ \t]*"*/,"",s);     sub(/".*/,"",s); id=s }
-    /"passes":[ \t]*true/        { np++; id="" }
-    /"passes":[ \t]*false/       { ns++; if (nxt=="") nxt=id; id="" }
-    END { printf "%s|%s|%s|%d|%d|%d\n", st, cur, nxt, np+0, ns+0, pid+0 }
-  ' "$1"
-}
+# json_wb — see _harness_lib.sh
 
 # update_runtime <source_root> <version> <log_file> — install/refresh the runtime at
 # $HARNESS_HOME from the source tree (sync_runtime in the lib). No runtime.lock there

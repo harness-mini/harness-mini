@@ -135,6 +135,7 @@ bin/                   # runtime script sources; installed under $HARNESS_HOME/b
   ralph.sh             # ralph-loop driver (work → check → repeat)
   model.sh             # resolve role model tiers
   session.sh           # fresh-context session playbook runner
+  session-bearings.sh  # deterministic session-coding first-turn report (file truth)
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
                        #   references/ assets/ examples/ tests/.
