@@ -26,7 +26,7 @@ fi
 . "$LIB"
 
 PDIR="$(progress_dir "$ROOT")"
-ADIR="$PDIR/docs/exec-plans/active"
+ADIR="$ROOT/.harness-mini/docs/exec-plans/active"
 
 p_class=9 pick_md="" pick_plan="" pick_stage="" pick_twin="" pick_slice=""
 
