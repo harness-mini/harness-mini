@@ -140,6 +140,7 @@ skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   references/ assets/ examples/ tests/.
                        #   Installed (recursively) to the host's skills dir
   checkpoint/scripts/  # checkpoint-only lint, snapshot, and guard helpers
+  session-coding/scripts/  # session-coding first-turn bearings report
 agents/                # role descriptions → installed to the host's agents dir
 docs/                  # DISTRIBUTION SOURCE → $HARNESS_HOME/docs/ (never into a project)
   principles.md  smart-dumb.md  assumptions.md  walkthrough.md  *-getting-started.md

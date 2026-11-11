@@ -1514,6 +1514,28 @@ sed 's/"passes": false/"passes": true/' "$WTWIN" > "$WTWIN.tmp" && mv "$WTWIN.tm
 out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
 assert_contains "$out" "2/2 pass" "workboard counts all-green slices"
 assert_contains "$out" "next: all green" "workboard: no next slice when all pass"
+# several slices on one line — each passes pairs with the id before it
+printf '%s\n' '{ "plan_id": "0001-intake", "status": "in_progress", "current_slice_id": "slice-002", "slices": [ { "id": "slice-001", "passes": true }, { "id": "slice-002", "passes": false } ] }' > "$WTWIN"
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "1/2 pass" "compact twin counts each slice"
+assert_contains "$out" "next: slice-002" "compact twin names the failing slice, not the last id on the line"
+# id on one line, passes on the next
+cat > "$WTWIN" <<'EOF'
+{
+  "plan_id": "0001-intake",
+  "status": "in_progress",
+  "current_slice_id": "slice-002",
+  "slices": [
+    { "id": "slice-001",
+      "passes": true },
+    { "id": "slice-002",
+      "passes": false }
+  ]
+}
+EOF
+out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"
+assert_contains "$out" "1/2 pass" "split-line twin counts each slice"
+assert_contains "$out" "next: slice-002" "split-line twin keeps the id until its passes"
 # garbage twin -> status must not crash; doctor warns unparseable
 printf 'not json {{{\n' > "$WTWIN"
 out="$(HARNESS_ROOT="$WDIR" HARNESS_NO_NET=1 bash "$HARN" status 2>&1)"; code=$?
@@ -1767,11 +1789,11 @@ assert_eq "true" "$([ -f "$sc" ] && echo true || echo false)" "skills/session-co
 scb="$(cat "$sc" 2>/dev/null)"
 first_sec="$(printf '%s' "$scb" | grep -m1 '^## ' )"
 assert_contains "$first_sec" "Getting Bearings" "first section is the mandatory Getting Bearings"
-assert_contains "$scb" "pwd" "bearings step 1: pwd / project root"
-assert_contains "$scb" "git log --oneline -5" "bearings step 2: git log -5"
-assert_contains "$scb" '$HOME/.harness-mini/bin/harness.sh' "bearings step 2: centralized status command"
-assert_contains "$scb" "latest checkpoint" "bearings step 2: latest checkpoint"
-assert_contains "$scb" 'passes": false' "bearings step 3: select the passes:false slice"
+assert_contains "$scb" "skills/session-coding/scripts/session-bearings.sh" "bearings helper is invoked from the skill"
+assert_eq "0" "$(printf '%s' "$scb" | grep -c 'bin/session-bearings.sh')" "bearings helper is not a shared bin path"
+assert_contains "$scb" "selected_slice" "bearings: slice from file truth, not memory"
+assert_contains "$scb" "do not paraphrase" "bearings: forbid hallucinated workboard fields"
+assert_contains "$scb" 'passes": false' "bearings step 3: slice still passes:false in twin"
 assert_contains "$scb" "baseline" "bearings step 4: app baseline green"
 assert_contains "$scb" "init.sh" "bearings step 4 names init.sh (to forbid it)"
 assert_contains "$scb" "installer" "bearings step 4 calls init.sh the harness installer"
@@ -1788,6 +1810,31 @@ assert_contains "$scb" "evaluate" "after-bearings routes through evaluate"
 assert_contains "$scb" "checkpoint" "session ends with a checkpoint"
 assert_contains "$scb" "path: coding" "skill confirms path: coding from status"
 assert_contains "$(cat "$am")" "session-coding" "AGENTS.md skills list mentions session-coding"
+
+# =============================================================================
+echo "skills/session-coding/scripts/session-bearings.sh — deterministic coding orientation (#75)"
+BEAR="$ROOT/skills/session-coding/scripts/session-bearings.sh"
+assert_eq "true" "$([ -f "$BEAR" ] && echo true || echo false)" "session-bearings.sh is skill-owned"
+assert_eq "false" "$([ -e "$BIN/session-bearings.sh" ] && echo true || echo false)" "session-bearings.sh is absent from shared bin"
+PB="$(mkboard)"; mkplan "$PB" 0001-coder implement next
+out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$BEAR" 2>&1)"; code=$?
+assert_exit 0 "$code" "session-bearings exits 0 on a coding board"
+assert_contains "$out" "path: coding" "report states coding path"
+assert_contains "$out" "selected_slice: slice-002" "report picks first passes:false slice"
+assert_contains "$out" "workboard:" "report includes workboard line"
+# last-green file truth
+mkdir -p "$PB/.harness-mini/trace/runtime"
+printf '2026-01-01T00:00:00Z rev=deadbeef\n' > "$PB/.harness-mini/trace/runtime/last-green.txt"
+out2="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$BEAR" 2>&1)"; code=$?
+assert_exit 0 "$code" "session-bearings with last-green"
+assert_contains "$out2" "last_green: 2026-01-01T00:00:00Z rev=deadbeef" "last_green read from disk"
+rm -rf "$PB"
+# init board -> exit 2
+PB="$(mkboard)"; mkplan "$PB" 0001-idea prd none
+out3="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$BEAR" 2>&1)"; code=$?
+assert_exit 2 "$code" "session-bearings exits 2 on init path"
+assert_contains "$out3" "session-init" "init path hints session-init"
+rm -rf "$PB"
 
 # =============================================================================
 echo "bin/session.sh — Outer session runner (P2, #61)"

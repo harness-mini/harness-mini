@@ -11,22 +11,28 @@ that board.
 
 ## Getting Bearings (first turn — before any product code)
 
+The helper lives with this skill. In the harness-mini checkout, invoke it as
+`bash skills/session-coding/scripts/session-bearings.sh`; in an installed project, use
+`bash <skills-dir>/session-coding/scripts/session-bearings.sh`, where `<skills-dir>` is the
+host's skills dir (see `harness.sh agent list`; `.agents/skills` for most hosts).
+
 Execute in order and **report all five in your first turn**:
 
-1. Run `pwd` — confirm you are in the project root.
-2. Run `"$HOME/.harness-mini/bin/harness.sh" status` (workboard: active plans · JSON status ·
-   current · next `passes: false`), `git log --oneline -5`, and read the
-   latest checkpoint under `.harness-mini/trace/checkpoints/` for this plan.
-3. Open the active twin `.harness-mini/docs/exec-plans/active/<plan>.json` that `status`
-   points at; select the highest-priority slice with `"passes": false`
-   (prefer the `next:` id from status when present).
+1. Run `session-bearings.sh` from the project root. If it
+   exits **2**, stop — this board is `path: init` (`session-init` owns it). Otherwise
+   **paste or faithfully quote** its output (do not paraphrase `selected_slice`,
+   `workboard`, `last_green`, or `checkpoint_resume` from memory).
+2. Confirm the printed `root:` is the project you intend to work in.
+3. Use `selected_slice:` from the report as this session's slice (it must still show
+   `"passes": false` in the twin). Open the twin at `twin:` when you need that
+   slice's JSON `steps` (the test conditions).
 4. Establish a clean **baseline** before new work — the *application's*
    documented check (lint/types/tests or its own boot/setup script from
    the project's own docs, `.harness-mini/architecture.md` or the plan). **Do NOT re-run harness-mini's installer
    `init.sh`** — that installs the harness, not your app; if the app ships
    its own `./init.sh`, that one is fine. If any baseline check fails:
    **stop implementing new slices** and fix the regression first.
-5. Tell the user, in substance: "I selected slice `[slice-id]` for this
+5. Tell the user, in substance: "I selected slice `[selected_slice from report]` for this
    session and am starting work."
 
 Bearings are never skipped — not on resume, not on a "quick" session.
