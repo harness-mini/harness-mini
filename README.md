@@ -140,9 +140,13 @@ The `path:` line picks the playbook:
 - **`path: init`** → the **`session-init`** skill: plan-layer work only
   (founder funnel, PRD, issues, the JSON twin) — **no product code** on this path.
 - **`path: coding`** → the **`session-coding`** skill: a mandatory five-step
-  **Getting Bearings** first turn (`pwd` · `status` + recent commits + latest
-  checkpoint · open the twin and select the `next:` slice · app baseline green ·
-  report the selected slice), then exactly **one slice**, test-first, verified
+  **Getting Bearings** first turn. Run
+  `skills/session-coding/scripts/session-bearings.sh` (after install,
+  `<skills-dir>/session-coding/scripts/session-bearings.sh`) and quote its
+  report — plan, selected slice, workboard, checkpoint resume line, last-green.
+  Exit 2 means the board is still `path: init`. Then confirm the project root,
+  read that slice's JSON `steps`, establish the app baseline, and tell the user
+  the selected slice. After that, exactly **one slice**, test-first, verified
   against the twin's `steps` and routed through `evaluate` — the builder never
   flips `passes` (anti-self-praise).
 

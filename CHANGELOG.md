@@ -7,6 +7,22 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **`session-coding` Getting Bearings reads a file-truth report.**
+  `skills/session-coding/scripts/session-bearings.sh` prints the plan, the
+  selected slice, the workboard, the checkpoint resume line, and last-green
+  from disk. Quote that report; do not restate it from memory. Exit 2 means
+  the board is still `path: init`.
+
+### Fixed
+- Workboard parsing pairs each `passes` value with the slice `id` that
+  precedes it. A one-line twin no longer drops the failing slice, so
+  `harness.sh status` and the bearings report name the real `next:` slice.
+
+### Changed
+- Pull requests and pushes to `main` run `bash tests/run.sh` on Ubuntu and
+  macOS. Changed `.sh` files are shellchecked at warning level and above.
+
 ## [0.14.1] - 2026-11-08
 
 ### Changed
