@@ -28,7 +28,7 @@ fi
 PDIR="$(progress_dir "$ROOT")"
 ADIR="$ROOT/.harness-mini/docs/exec-plans/active"
 
-p_class=9 pick_md="" pick_plan="" pick_stage="" pick_twin="" pick_slice=""
+p_class=9 pick_plan="" pick_stage="" pick_twin="" pick_slice=""
 
 classify_plan() {
   local f="$1" plan stage twin wb wst wcur wnxt wnp wns wpok pc slice=""
@@ -63,7 +63,6 @@ classify_plan() {
   esac
   if [ "$pc" -lt "$p_class" ]; then
     p_class="$pc"
-    pick_md="$f"
     pick_plan="$plan"
     pick_stage="$stage"
     pick_twin="$twin"
