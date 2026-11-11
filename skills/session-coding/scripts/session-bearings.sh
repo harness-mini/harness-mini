@@ -10,12 +10,20 @@
 # Exit:  0 = coding path, report on stdout
 #        2 = not path: coding — use session-init
 # Env:   HARNESS_ROOT (default: cwd)
+#        HARNESS_HOME (runtime root; default $HOME/.harness-mini)
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="${HARNESS_ROOT:-$PWD}"
+# Source checkout: skills/session-coding/scripts -> repo bin/.
+# Installed skill: runtime bin under $HARNESS_HOME.
+if [ -f "$HERE/../../../bin/_harness_lib.sh" ]; then
+  LIB="$HERE/../../../bin/_harness_lib.sh"
+else
+  LIB="${HARNESS_HOME:-$HOME/.harness-mini}/bin/_harness_lib.sh"
+fi
 # shellcheck source=bin/_harness_lib.sh
-. "$HERE/_harness_lib.sh"
+. "$LIB"
 
 PDIR="$(progress_dir "$ROOT")"
 ADIR="$PDIR/docs/exec-plans/active"
@@ -72,7 +80,7 @@ fi
 
 if [ "$p_class" -gt 2 ] || [ -z "$pick_plan" ]; then
   printf 'session-bearings: no coding-ready plan — path is init; use session-init.\n' >&2
-  printf 'hint: run "%s/harness.sh" status\n' "$HERE" >&2
+  printf 'hint: run "%s" status\n' "$(dirname "$LIB")/harness.sh" >&2
   exit 2
 fi
 

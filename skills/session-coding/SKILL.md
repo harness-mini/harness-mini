@@ -11,9 +11,14 @@ that board.
 
 ## Getting Bearings (first turn — before any product code)
 
+The helper lives with this skill. In the harness-mini checkout, invoke it as
+`bash skills/session-coding/scripts/session-bearings.sh`; in an installed project, use
+`bash <skills-dir>/session-coding/scripts/session-bearings.sh`, where `<skills-dir>` is the
+host's skills dir (see `harness.sh agent list`; `.agents/skills` for most hosts).
+
 Execute in order and **report all five in your first turn**:
 
-1. Run `"$HOME/.harness-mini/bin/session-bearings.sh"` from the project root. If it
+1. Run `session-bearings.sh` from the project root. If it
    exits **2**, stop — this board is `path: init` (`session-init` owns it). Otherwise
    **paste or faithfully quote** its output (do not paraphrase `selected_slice`,
    `workboard`, `last_green`, or `checkpoint_resume` from memory).

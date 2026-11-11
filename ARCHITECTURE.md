@@ -135,12 +135,12 @@ bin/                   # runtime script sources; installed under $HARNESS_HOME/b
   ralph.sh             # ralph-loop driver (work → check → repeat)
   model.sh             # resolve role model tiers
   session.sh           # fresh-context session playbook runner
-  session-bearings.sh  # deterministic session-coding first-turn report (file truth)
 skills/                # one folder per skill: <name>/SKILL.md (required;
                        #   metadata in frontmatter) + optional scripts/
                        #   references/ assets/ examples/ tests/.
                        #   Installed (recursively) to the host's skills dir
   checkpoint/scripts/  # checkpoint-only lint, snapshot, and guard helpers
+  session-coding/scripts/  # session-coding first-turn bearings report
 agents/                # role descriptions → installed to the host's agents dir
 docs/                  # DISTRIBUTION SOURCE → $HARNESS_HOME/docs/ (never into a project)
   principles.md  smart-dumb.md  assumptions.md  walkthrough.md  *-getting-started.md

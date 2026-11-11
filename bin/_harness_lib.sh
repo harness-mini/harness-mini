@@ -90,7 +90,8 @@ progress_dir() { printf '%s/.harness-mini' "$1"; }
 
 # json_wb <twin.json> — distill a plan's JSON twin into one |-separated line:
 #   status | current_slice_id | next-pass:false-slice | npass | nfail | plan_id-seen(0|1)
-# awk only (zero-dependency; no jq). Shared by harness.sh status and session-bearings.sh.
+# awk only (zero-dependency; no jq). Shared by harness.sh status and
+# skills/session-coding/scripts/session-bearings.sh.
 # Each "passes" pairs with the slice "id" that precedes it (same line or the
 # id carried from the previous line). Several slices on one line stay distinct.
 json_wb() {

@@ -1789,7 +1789,8 @@ assert_eq "true" "$([ -f "$sc" ] && echo true || echo false)" "skills/session-co
 scb="$(cat "$sc" 2>/dev/null)"
 first_sec="$(printf '%s' "$scb" | grep -m1 '^## ' )"
 assert_contains "$first_sec" "Getting Bearings" "first section is the mandatory Getting Bearings"
-assert_contains "$scb" "session-bearings.sh" "bearings step 1: deterministic session-bearings report"
+assert_contains "$scb" "skills/session-coding/scripts/session-bearings.sh" "bearings helper is invoked from the skill"
+assert_eq "0" "$(printf '%s' "$scb" | grep -c 'bin/session-bearings.sh')" "bearings helper is not a shared bin path"
 assert_contains "$scb" "selected_slice" "bearings: slice from file truth, not memory"
 assert_contains "$scb" "do not paraphrase" "bearings: forbid hallucinated workboard fields"
 assert_contains "$scb" 'passes": false' "bearings step 3: slice still passes:false in twin"
@@ -1811,9 +1812,10 @@ assert_contains "$scb" "path: coding" "skill confirms path: coding from status"
 assert_contains "$(cat "$am")" "session-coding" "AGENTS.md skills list mentions session-coding"
 
 # =============================================================================
-echo "bin/session-bearings.sh — deterministic coding orientation (#75)"
-BEAR="$BIN/session-bearings.sh"
-assert_eq "true" "$([ -f "$BEAR" ] && echo true || echo false)" "session-bearings.sh exists"
+echo "skills/session-coding/scripts/session-bearings.sh — deterministic coding orientation (#75)"
+BEAR="$ROOT/skills/session-coding/scripts/session-bearings.sh"
+assert_eq "true" "$([ -f "$BEAR" ] && echo true || echo false)" "session-bearings.sh is skill-owned"
+assert_eq "false" "$([ -e "$BIN/session-bearings.sh" ] && echo true || echo false)" "session-bearings.sh is absent from shared bin"
 PB="$(mkboard)"; mkplan "$PB" 0001-coder implement next
 out="$(HARNESS_ROOT="$PB" HARNESS_NO_NET=1 bash "$BEAR" 2>&1)"; code=$?
 assert_exit 0 "$code" "session-bearings exits 0 on a coding board"
