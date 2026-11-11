@@ -1,8 +1,7 @@
-# The project's gate is bash tests/run.sh (CONTRIBUTING). Nothing else.
 # pull_request: every update before merge.
 # push to main: the merge result.
-# A same-repo branch push is already covered by pull_request, so it does not
-# run a second time. A fork PR has no push on this repo, so pull_request runs it.
+# test: bash tests/run.sh on Ubuntu and macOS (bash 3.2).
+# lint: shellcheck on .sh files changed in that push or pull request.
 name: ci
 
 on:
@@ -34,3 +33,41 @@ jobs:
           git config --global user.email "ci@users.noreply.github.com"
       - name: Run tests
         run: bash tests/run.sh
+
+  lint:
+    name: lint changed shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - name: Shellcheck changed scripts
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -eu
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF"
+            base="origin/$BASE_REF"
+          else
+            case "$BEFORE" in
+              ""|0000000000000000000000000000000000000000)
+                echo "no previous revision; skip"
+                exit 0
+                ;;
+            esac
+            base="$BEFORE"
+          fi
+          files="$(git diff --name-only --diff-filter=ACMR "$base" HEAD | grep '\.sh$' || true)"
+          if [ -z "$files" ]; then
+            echo "no changed .sh files"
+            exit 0
+          fi
+          printf '%s\n' "$files"
+          # warning and above. Style notes stay local. Shebangs pick sh vs bash.
+          printf '%s\n' "$files" | xargs -r shellcheck --severity=warning
