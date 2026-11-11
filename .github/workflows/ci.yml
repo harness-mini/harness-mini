@@ -1,0 +1,36 @@
+# The project's gate is bash tests/run.sh (CONTRIBUTING). Nothing else.
+# pull_request: every update before merge.
+# push to main: the merge result.
+# A same-repo branch push is already covered by pull_request, so it does not
+# run a second time. A fork PR has no push on this repo, so pull_request runs it.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Git identity for throwaway repos
+        run: |
+          git config --global user.name "harness-mini ci"
+          git config --global user.email "ci@users.noreply.github.com"
+      - name: Run tests
+        run: bash tests/run.sh
