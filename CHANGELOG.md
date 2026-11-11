@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-11
+
 ### Added
 - **`session-coding` Getting Bearings reads a file-truth report.**
   `skills/session-coding/scripts/session-bearings.sh` prints the plan, the
