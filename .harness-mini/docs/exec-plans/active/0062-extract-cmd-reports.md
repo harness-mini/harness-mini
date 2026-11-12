@@ -45,7 +45,28 @@ lines, and sections cannot be tested in isolation.
   next starts.
 
 ## Evidence (fill on completion)
-- <per-slice: test counts + byte-diff proof against baseline snapshots>
+- **slice-001** (commit `5f34384`): 975/0 green before + after each of 10 extractions;
+  status/doctor/version snapshots byte-identical on fixed temp fixture
+  (`HARNESS_NO_NET=1`, determinism double-captured pre-edit; recipes in
+  `.harness-mini/trace/runtime/0062-baseline/fixture.sh`). Dispatcher 19 lines;
+  largest extracted `print_active_plans` 67 (overview loop + session-path
+  classifier kept as one, per "don't shred the classifier"). Cross-section
+  values write back via shell dynamic scoping (documented in dispatcher).
+- **slice-002** (commit `69f9ee0`): 975/0 green before + after each of 10 extractions;
+  status/doctor/version snapshots byte-identical against the SAME pre-slice-001
+  baseline (both footprint directions proven). Dispatcher 29 lines; largest
+  check 27 (`check_manifest`); `emit()` kept nested verbatim — `fails`/`warns`
+  write-back native to the original design, no new cross-group variables.
+- **slice-003** (commit `b1098b7`): 975/0 green before + after each extraction;
+  status/doctor/version/update snapshots byte-identical. `update.txt` pin
+  required freezing the update `--src` input (`git archive` snapshot in the
+  baseline dir) — naive pinning was caught by the double-capture determinism
+  check (runtime converges to refactored source mid-refactor). Downgrade guard
+  + banner stayed inline in the dispatcher (plan rule: no guard logic moves);
+  `.new` flow moved whole as `update_apply_pairs`; deferred self-swap locals
+  kept bare-assignment so the swap still fires (deferred-swap tests pass).
+  One honest incident: move 4 initially wired `"$src"` missing → 55 reds →
+  fixed by completing the call (not touching behavior), green re-run.
 
 ## Session Context Handoff
 **Last Updated**: 2026-11-12 (Session #1)
