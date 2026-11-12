@@ -1,7 +1,7 @@
 ---
 plan: extract-cmd-reports
 seq: 0062
-stage: implement
+stage: done
 owner: main
 mode: quick
 eval: L1        # lightweight reviewer; behavior-preserving refactor of the status/doctor/update entry points
@@ -21,17 +21,17 @@ lines, and sections cannot be tested in isolation.
 
 ## Acceptance criteria
 <!-- Behavior-preserving: outputs byte-identical, tests green at every step. -->
-- [ ] Baseline pinned before any edit: `bash tests/run.sh` green on `main`
-      (baseline 961 pass / 0 fail) and deterministic output snapshots of
+- [x] Baseline pinned before any edit: `bash tests/run.sh` green on `main`
+      (baseline 961 pass / 0 fail — actual at execution: 975/0) and deterministic output snapshots of
       `status` / `doctor` / `version` captured on a temp `HARNESS_HOME`
       (`.harness-mini/trace/runtime/0062-baseline/`).
-- [ ] After each slice: `bash tests/run.sh` still 961+ pass / 0 fail, and the
+- [x] After each slice: `bash tests/run.sh` still 961+ pass / 0 fail, and the
       command's output is byte-identical to its baseline snapshot (same temp
       HARNESS_HOME fixture).
-- [ ] `cmd_status`, `cmd_doctor`, `cmd_update` each become thin dispatchers
+- [x] `cmd_status`, `cmd_doctor`, `cmd_update` each become thin dispatchers
       (≤ ~40 lines) calling named per-section functions; extracted functions
       stay POSIX sh in the file's existing style; no function exceeds ~90 lines.
-- [ ] `git diff` shows only moved/renamed function bodies — no changed echo
+- [x] `git diff` shows only moved/renamed function bodies — no changed echo
       strings, no reordered output, no new flags or behavior.
 
 ## The change
@@ -70,12 +70,14 @@ lines, and sections cannot be tested in isolation.
 
 ## Session Context Handoff
 **Last Updated**: 2026-11-12 (Session #1)
-**Completed Work**: plan opened from garden backlog item; baseline snapshots to be taken by slice-001.
-**Current Blockers / Risks**: `cmd_update` interacts with the checksum-guard and
-`.new` flow — keep its extraction purely structural; no guard logic may move.
+**Completed Work**: all 3 slices extracted & committed (`5f34384`, `69f9ee0`, `b1098b7`); eval L1 PASS 4/4 (`trace/evals/0062-extract-cmd-reports-001.md`); dispatchers 19/29/22 lines; outputs byte-identical; 975/0 green; checkpoint 001 committed.
+**Current Blockers / Risks**: none — remaining step is the PR to main; garden sweep clears the backlog item after merge.
 
 ## Decisions
 - Quick mode despite 3 slices: mechanical, unambiguous refactor with a precise
   backlog spec; full PRD/issues ceremony adds no information.
 - Slice order = descending size (status → doctor → update): biggest risk first
   while context is freshest.
+- 2026-11-12 stage implement→evaluate→checkpoint: eval L1 pass 4/4 (grader: evaluator, independent re-run); slices flipped on the evaluator verdict only.
+- 2026-11-12 stage checkpoint→done: checkpoint 001 committed; plan moved to `completed/`.
+- Evaluator follow-ups recorded: (a) stale "961" in criterion 1 annotated as 975 actual; (b) tmp discussion reply files are session scratch, not repo debt.
