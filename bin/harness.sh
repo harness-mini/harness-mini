@@ -154,27 +154,8 @@ update_runtime() {
   return $rc
 }
 
-# cmd_update [--src DIR] [--force] — refresh what the harness owns, checksum-guarded. A source
-# older than the installed runtime is refused (nothing changed) unless --force. In order:
-#   1. runtime   $HARNESS_HOME/bin + VERSION        (runtime.lock; the running script swaps last;
-#                installed from the source tree when absent — a bootstrap)
-#   2. globals   map, docs, skills, agents sources  (global.lock — separate from runtime.lock)
-#   3. migration a pre-0059 project layout moves into .harness-mini/ (plans, trace; unchanged
-#                harness files are removed by checksum, edited ones kept) — silent when none.
-#                REFUSED (nothing touched) unless step 1 left a usable runtime.
-#   4. project   the skills + role files `agent install <host>` placed in this project
-#                (harness.lock under $HARNESS_HOME/projects/<project-id>/)
-# Per file (base = lock baseline, cur = on disk, new = upstream):
-#   absent          -> ADD       missing managed file
-#   new == cur      -> UNCHANGED  already matches upstream
-#   cur == base     -> UPDATE     upstream changed, user untouched -> overwrite
-#   otherwise       -> CONFLICT   user-edited & diverged -> keep, write <file>.new
-# Only the managed set (skills + roles, keyed by target path in the project lock) is
-# iterated; a target that was never installed is recorded but not created. User space
-# (.harness-mini/ progress, project code, your .gitignore) is never touched. Any <file>.new
-# left behind (here or by an earlier run) is announced once at the end: see dotnew_notice.
-cmd_update() {
-  local src="" force=""
+# parse_update_args — --src DIR / --force; anything else is a usage error.
+parse_update_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --src) src="$2"; shift 2 ;;
@@ -183,8 +164,12 @@ cmd_update() {
     esac
   done
   src="${src:-${HARNESS_SRC:-}}"
+}
 
-  local tmpclone=""
+# acquire_update_source — resolve the source tree: --src/HARNESS_SRC, else a
+# shallow upstream clone (needs git + network). $tmpclone is the caller's to
+# clean up (the downgrade guard discards it on refusal).
+acquire_update_source() {
   if [ -z "$src" ]; then
     [ -n "${HARNESS_NO_NET:-}" ] && die "update: no --src and network disabled" 64
     command -v git >/dev/null 2>&1 || die "update: need git to fetch upstream (or pass --src DIR)" 64
@@ -195,22 +180,15 @@ cmd_update() {
     src="$tmpclone"
   fi
   [ -d "$src" ] || die "update: source not found: $src" 64
+}
 
-  local src_ver="0.0.0"
-  [ -f "$src/VERSION" ] && src_ver="$(read_version "$src/VERSION")"
-  # No downgrade of the runtime (the same version_newer test init.sh uses), unless --force.
-  local rt_ver; rt_ver="$(lock_version "$(harness_home)/harness/runtime.lock")"
-  if [ -z "$force" ] && version_newer "$src_ver" "$rt_ver"; then
-    [ -z "$tmpclone" ] || rm -rf "$tmpclone"
-    die "update: refusing to downgrade the runtime at $(harness_home) (installed v$rt_ver, source v$src_ver); nothing was changed. Pass --force to install it anyway." 1
-  fi
-  echo "updating harness-mini $(installed_version) -> $src_ver"
-
-  local newlock log pairs
-  local deferred_runtime_src="" deferred_runtime_dst=""
+# update_refresh — refresh runtime + global copies, migrate a legacy layout.
+# Creates the $newlock/$log scratch files (the caller commits/removes them);
+# update_runtime's deferred self-swap paths land in the caller's locals.
+update_refresh() {
+  local src="$1" src_ver="$2" urc=0
   newlock="$(mktemp)"; log="$(mktemp)"
   printf 'version: %s\n' "$src_ver" > "$newlock"
-  local urc=0
   update_runtime "$src" "$src_ver" "$log" || urc=$?
   [ "$urc" -le 2 ] || die "update: runtime refresh failed" 1
   [ "$urc" -ne 2 ] || printf 'runtime none: %s has no bin/harness.sh, so it cannot install a runtime\n' "$src" >> "$log"
@@ -220,9 +198,15 @@ cmd_update() {
   # A pre-0059 project layout is migrated first (silent when there is none). The
   # migration refuses to run unless the runtime installed above is usable.
   migrate_legacy_layout "$HARNESS_ROOT" "$src" || die "update: legacy migration failed" 1
+}
+
+# update_apply_pairs — the checksum-guarded managed-file pass (the .new flow),
+# moved whole: per file, add / already-matches / update / keep-with-.new against
+# the lock baseline; appends per-file records to $newlock, progress to $log.
+update_apply_pairs() {
+  local src="$1" newlock="$2" log="$3" pairs targets stage
   # The running runtime script is never part of the project set (executables
   # live in $RUNTIME_ROOT); update_runtime defers swapping it to the very end.
-  local targets stage
   targets="$(targets_text "$HARNESS_ROOT")"; stage="$(mktemp -d)"
   pairs="$(HM_STAGE="$stage" emit_managed_pairs "$src" "$targets")"
   while IFS="$(printf '\t')" read -r s rel; do
@@ -255,12 +239,22 @@ cmd_update() {
     printf '%s  %s\n' "$rec" "$rel" >> "$newlock"
   done <<< "$pairs"
   rm -rf "$stage"
+}
 
+# update_commit_result — atomically install the new lock, print the run log
+# (or "already up to date."), clean scratch, announce any .new files left.
+update_commit_result() {
+  local newlock="$1" log="$2" tmpclone="$3"
   mkdir -p "$(dirname "$LOCK")" && mv "$newlock" "$LOCK" || die "update: cannot write $LOCK" 1
   if [ -s "$log" ]; then sed 's/^/  /' "$log"; else echo "  already up to date."; fi
   rm -f "$log"
   [ -n "$tmpclone" ] && rm -rf "$tmpclone"
   dotnew_notice "$HARNESS_ROOT"
+}
+
+# update_swap_runtime_last — apply the deferred self-swap of the running
+# runtime script, if this update replaced it.
+update_swap_runtime_last() {
   if [ -n "$deferred_runtime_src" ]; then
     # bash reads scripts lazily: overwriting the executing file mid-run would
     # resume the NEW file at the OLD byte offset. Swap last, then exit at once.
@@ -268,6 +262,51 @@ cmd_update() {
     exit 0
   fi
   return 0
+}
+
+# cmd_update [--src DIR] [--force] — refresh what the harness owns, checksum-guarded. A source
+# older than the installed runtime is refused (nothing changed) unless --force. In order:
+#   1. runtime   $HARNESS_HOME/bin + VERSION        (runtime.lock; the running script swaps last;
+#                installed from the source tree when absent — a bootstrap)
+#   2. globals   map, docs, skills, agents sources  (global.lock — separate from runtime.lock)
+#   3. migration a pre-0059 project layout moves into .harness-mini/ (plans, trace; unchanged
+#                harness files are removed by checksum, edited ones kept) — silent when none.
+#                REFUSED (nothing touched) unless step 1 left a usable runtime.
+#   4. project   the skills + role files `agent install <host>` placed in this project
+#                (harness.lock under $HARNESS_HOME/projects/<project-id>/)
+# Per file (base = lock baseline, cur = on disk, new = upstream):
+#   absent          -> ADD       missing managed file
+#   new == cur      -> UNCHANGED  already matches upstream
+#   cur == base     -> UPDATE     upstream changed, user untouched -> overwrite
+#   otherwise       -> CONFLICT   user-edited & diverged -> keep, write <file>.new
+# Only the managed set (skills + roles, keyed by target path in the project lock) is
+# iterated; a target that was never installed is recorded but not created. User space
+# (.harness-mini/ progress, project code, your .gitignore) is never touched. Any <file>.new
+# left behind (here or by an earlier run) is announced once at the end: see dotnew_notice.
+# Thin dispatcher over the step functions above (parse args, acquire source,
+# refresh, apply pairs, commit result, swap runtime last). The downgrade guard
+# stays INLINE here by design: no guard logic may move (plan 0062).
+cmd_update() {
+  local src="" force="" tmpclone=""
+  parse_update_args "$@"
+  acquire_update_source
+
+  local src_ver="0.0.0"
+  [ -f "$src/VERSION" ] && src_ver="$(read_version "$src/VERSION")"
+  # No downgrade of the runtime (the same version_newer test init.sh uses), unless --force.
+  local rt_ver; rt_ver="$(lock_version "$(harness_home)/harness/runtime.lock")"
+  if [ -z "$force" ] && version_newer "$src_ver" "$rt_ver"; then
+    [ -z "$tmpclone" ] || rm -rf "$tmpclone"
+    die "update: refusing to downgrade the runtime at $(harness_home) (installed v$rt_ver, source v$src_ver); nothing was changed. Pass --force to install it anyway." 1
+  fi
+  echo "updating harness-mini $(installed_version) -> $src_ver"
+
+  local newlock log
+  local deferred_runtime_src="" deferred_runtime_dst=""
+  update_refresh "$src" "$src_ver"
+  update_apply_pairs "$src" "$newlock" "$log"
+  update_commit_result "$newlock" "$log" "$tmpclone"
+  update_swap_runtime_last
 }
 
 # changelog_section <file> <version> — print the body of a version's section.
