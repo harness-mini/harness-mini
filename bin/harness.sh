@@ -395,7 +395,6 @@ cmd_release() {
 # $HARNESS_HOME; the project is only ever added to, never overwritten.
 
 agent_list() {
-  local tab; tab="$(printf '\t')"
   echo "# harness-mini hosts. Pass YOUR OWN host id:  harness.sh agent install <id> [--root DIR]"
   echo "# columns (TAB-separated): id, skills dir, agents dir, agents format, confidence/notes"
   echo "# aliases: claude-code, github-copilot, codex-cli, z-code, mimo-code, dsh, deepseek-harness"
@@ -886,7 +885,7 @@ print_resumable() {
 # print_ready_verdict — the readiness verdict, one line; blocked > warning >
 # ready (grill #1 → A). Reads every shared write-back the sections above set.
 print_ready_verdict() {
-  local root="$1" pdir="$2" level=ready next="" done_plan="" r
+  local root="$1" pdir="$2" level=ready next="" r
   local f stage plan
 
   if [ ! -f "$root/AGENTS.md" ]; then
@@ -908,7 +907,6 @@ print_ready_verdict() {
       done
       if [ "$has_pass" != "yes" ]; then
         level=blocked
-        done_plan="$plan"
         next="run evaluate for $plan (anti-self-praise gate)"
         break
       fi
