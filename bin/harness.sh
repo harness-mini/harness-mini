@@ -611,19 +611,21 @@ cmd_doctor() {
   [ "$fails" -eq 0 ]
 }
 
-# cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
-# Ends with a single readiness verdict (OpenHarness dry-run idea, Mini-shaped):
-#   ready: <ready|warning|blocked> — <one next action>
-cmd_status() {
-  local root="$HARNESS_ROOT" pdir
-  pdir="$(progress_dir "$root")"
+# print_version_header — the four version lines that open the status report.
+print_version_header() {
+  local root="$1" pver
   echo "harness-mini $(installed_version)"
   echo "runtime: $(runtime_version)"
-  local pver; pver="$(project_version "$root")"
+  pver="$(project_version "$root")"
   echo "project: $pver"
-  local nskills; nskills="$(shared_skill_count "$root")"
+  nskills="$(shared_skill_count "$root")"
   echo "shared skills: $nskills"
-  local manifest_missing="" manifest_count=0 mf
+}
+
+# print_manifest_health — manifest vs the installed shared skills;
+# $manifest_missing feeds the blocked verdict.
+print_manifest_health() {
+  local root="$1" manifest_count=0 mf
   mf="$(manifest_file "$root")"
   if [ -z "$(existing_skill_dirs "$root")" ]; then
     echo "manifest: skills not installed"
@@ -640,18 +642,24 @@ cmd_status() {
   else
     echo "manifest: missing .agents/skills section"
   fi
+}
 
-  # update check (best-effort) — remind on entry if a newer harness-mini exists.
-  # Silent when offline/unknown so the cold-resume view stays fast & quiet.
-  local _latest _behind=no
+# update check (best-effort) — remind on entry if a newer harness-mini exists.
+# Silent when offline/unknown so the cold-resume view stays fast & quiet.
+# $_latest/$_behind feed the warning verdict.
+print_update_notice() {
   _latest="$(latest_version)"
   if [ -n "$_latest" ] && version_newer "$(installed_version)" "$_latest"; then
     echo "update: $_latest available — run \`harness.sh update\`"
     _behind=yes
   fi
+}
 
-  local f plan stage cp nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
-  local twin wb wst wcur wnxt wnp wns wpok wtot
+# print_active_plans — one overview + workboard line per active plan, and the
+# session-path classification over the same loop (no second pass).
+print_active_plans() {
+  local pdir="$1" f plan stage cp
+  local twin wb wst wcur wnxt wnp wns wpok wtot pc pr
   # session path — one machine answer to "is this session plan bootstrap or
   # incremental coding?" (discussion #55 / issue #57). Derived ONLY from file
   # truth: MD stage + JSON twin. Priority across plans (first plan wins within
@@ -662,7 +670,6 @@ cmd_status() {
   #   class 2 coding wrap-up               (coding stage + twin all green, plan open)
   #   class 3 init  twin missing|unparseable (conservative: coding unprovable)
   #   class 4 init  still planning         (intake|prd|issues, or twin w/o slices)
-  local p_class=9 p_reason="empty board" pc pr
   if ls "$pdir"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"
     for f in "$pdir"/docs/exec-plans/active/*.md; do
@@ -716,17 +723,27 @@ cmd_status() {
   else
     echo "active plans: none"
   fi
+}
 
-  # session path verdict — the line gate v2 and the session-* skills branch on
+# print_session_path — the session path verdict: the two lines gate v2 and the
+# session-* skills branch on.
+print_session_path() {
   local p_path=init; [ "$p_class" -le 2 ] && p_path=coding
   printf 'path: %s\n' "$p_path"
   printf 'path_reason: %s\n' "$p_reason"
+}
 
-  local nnew nglob; nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
+# print_update_conflicts — unresolved .new files left by update (project + home).
+print_update_conflicts() {
+  local root="$1" nglob
+  nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
   nnew=$((nnew + nglob))
   echo "update conflicts: $nnew .new file(s)$(dotnew_where "$nglob")"
+}
 
-  local newest last cpct ev run
+# print_last_trace — ctx_pct/event/run off the newest runtime JSONL line.
+print_last_trace() {
+  local pdir="$1" newest last cpct ev run
   newest="$(ls -t "$pdir"/trace/runtime/*.jsonl 2>/dev/null | head -n1)"
   if [ -n "$newest" ]; then
     last="$(tail -n1 "$newest" 2>/dev/null)"
@@ -737,12 +754,15 @@ cmd_status() {
   else
     echo "last trace: none"
   fi
+}
 
-  # garden trigger — cadence (committed checkpoints since the last sweep) + the
-  # smell backlog. grep/ls/sed only, like the rest of status. DUE iff there are
-  # >= HARNESS_GARDEN_EVERY (default 5) checkpoints since last garden, OR any
-  # high-severity open item, OR >= 3 open items in .harness-mini/trace/garden-backlog.md.
-  local bl="$pdir/trace/garden-backlog.md" total gat since open high gdue
+# garden trigger — cadence (committed checkpoints since the last sweep) + the
+# smell backlog. grep/ls/sed only, like the rest of status. DUE iff there are
+# >= HARNESS_GARDEN_EVERY (default 5) checkpoints since last garden, OR any
+# high-severity open item, OR >= 3 open items in .harness-mini/trace/garden-backlog.md.
+print_garden_line() {
+  local pdir="$1" bl total gat since open high
+  bl="$pdir/trace/garden-backlog.md"
   total=$(ls "$pdir"/trace/checkpoints/*.md 2>/dev/null | wc -l | tr -d ' ')
   gat=0; open=0; high=0
   if [ -f "$bl" ]; then
@@ -758,9 +778,11 @@ cmd_status() {
     gdue=ok
   fi
   printf 'garden: %s (%s checkpoint(s) since last; %s backlog item(s))\n' "$gdue" "$since" "$open"
+}
 
-  # resumable — plan-scoped: only checkpoints matching an active plan's slug count
-  local resume=no
+# print_resumable — plan-scoped: only checkpoints matching an active plan's
+# slug count; $resume feeds the warning verdict.
+print_resumable() {
   if [ "$nplans" -eq 0 ]; then
     echo "resumable: no (no active plan)"
     resume=no
@@ -771,9 +793,13 @@ cmd_status() {
     echo "resumable: partial (plan, no checkpoint yet)"
     resume=partial
   fi
+}
 
-  # readiness verdict — one line; blocked > warning > ready (grill #1 → A)
-  local level=ready next="" done_plan="" r
+# print_ready_verdict — the readiness verdict, one line; blocked > warning >
+# ready (grill #1 → A). Reads every shared write-back the sections above set.
+print_ready_verdict() {
+  local root="$1" pdir="$2" level=ready next="" done_plan="" r
+  local f stage plan
 
   if [ ! -f "$root/AGENTS.md" ]; then
     level=blocked; next="restore AGENTS.md (re-run init.sh)"
@@ -827,6 +853,34 @@ cmd_status() {
 
   printf 'ready: %s — %s\n' "$level" "$next"
   return 0
+}
+
+# cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
+# Ends with a single readiness verdict (OpenHarness dry-run idea, Mini-shaped):
+#   ready: <ready|warning|blocked> — <one next action>
+# Thin dispatcher over the per-section printers above. A section hands values
+# to later sections and the final verdict by assigning the shared locals
+# declared here (nskills, manifest_missing, p_class/p_reason, nplans*,
+# first_*, _latest/_behind, nnew, gdue, resume): the sections both print and
+# compute, so dynamic scoping is the write-back channel.
+cmd_status() {
+  local root="$HARNESS_ROOT" pdir
+  pdir="$(progress_dir "$root")"
+  # shared write-backs: printed early, consumed by later sections / the verdict
+  local nskills manifest_missing="" _latest _behind=no
+  local p_class=9 p_reason="empty board"
+  local nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
+  local nnew gdue resume=no
+  print_version_header "$root"
+  print_manifest_health "$root"
+  print_update_notice
+  print_active_plans "$pdir"
+  print_session_path
+  print_update_conflicts "$root"
+  print_last_trace "$pdir"
+  print_garden_line "$pdir"
+  print_resumable
+  print_ready_verdict "$root" "$pdir"
 }
 
 # cmd_report [run] — aggregate .harness-mini/trace into a metrics summary so thresholds are
