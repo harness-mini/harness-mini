@@ -460,21 +460,12 @@ cmd_diff() {
 # dotnew_where <n_global> — " (n under $HARNESS_HOME)" when some .new files sit in the runtime.
 dotnew_where() { [ "$1" -eq 0 ] || printf ' (%s under %s)' "$1" "$(harness_home)"; }
 
-# cmd_doctor — install health. 3 severities (ok/warn/fail); exit 1 iff any FAIL.
-cmd_doctor() {
-  local root="$HARNESS_ROOT" pdir fails=0 warns=0
-  pdir="$(progress_dir "$root")"
-  emit() { # <sev> <msg>
-    case "$1" in
-      ok)   printf '  ok   %s\n' "$2" ;;
-      warn) printf '  warn %s\n' "$2"; warns=$((warns + 1)) ;;
-      fail) printf '  fail %s\n' "$2"; fails=$((fails + 1)) ;;
-    esac
-  }
-
+# check_install_core — AGENTS.md, runtime/project version, lock or source-repo shape.
+check_install_core() {
+  local root="$1" pver
   [ -f "$root/AGENTS.md" ] && emit ok "AGENTS.md present" || emit fail "AGENTS.md missing"
   emit ok "runtime: $(runtime_version)"
-  local pver; pver="$(project_version "$root")"
+  pver="$(project_version "$root")"
   [ "$pver" = "uninitialized" ] && emit warn "project: uninitialized" \
                                 || emit ok "project: $pver"
   if [ -f "$LOCK" ]; then
@@ -484,21 +475,26 @@ cmd_doctor() {
   else
     emit fail "harness.lock missing in $(state_dir "$root") (run init.sh)"
   fi
+}
 
-  # update check (best-effort; never a FAIL) — skip silently when offline/unknown.
+# check_update_available — best-effort; never a FAIL; silent when offline/unknown.
+check_update_available() {
   local latest; latest="$(latest_version)"
   if [ -n "$latest" ]; then
     version_newer "$(installed_version)" "$latest" \
       && emit warn "harness-mini $latest available (installed $(installed_version)) — run harness.sh update" \
       || emit ok "harness-mini up to date ($(installed_version))"
   fi
+}
 
+# check_shared_skills — count + shape of the installed shared skills.
+check_shared_skills() {
+  local root="$1" skill_dirs skill_label="" d skill_total
   # Installed projects read their persisted skill targets (state_dir/targets,
   # default .agents/skills); a source checkout falls back to its own skills/.
-  local skill_dirs skill_label="" d
   skill_dirs="$(existing_skill_dirs "$root")"
   if [ -z "$skill_dirs" ] && [ -d "$root/skills" ]; then skill_dirs="skills"; fi
-  local skill_total; skill_total="$(shared_skill_count "$root")"
+  skill_total="$(shared_skill_count "$root")"
   if [ -n "$skill_dirs" ]; then
     local nfolders=0 nflat=0
     for d in $skill_dirs; do
@@ -514,10 +510,14 @@ cmd_doctor() {
     # init installs no skills (it cannot know the host): a normal first state.
     emit warn "skills not installed — run harness.sh agent list, then agent install <host>"
   fi
+}
 
+# check_manifest — the project manifest vs the installed shared skills.
+check_manifest() {
+  local root="$1" mf
   # The manifest describes the installed shared skills, so it is only checked
   # once they exist.
-  local mf; mf="$(manifest_file "$root")"
+  mf="$(manifest_file "$root")"
   if [ -z "$(existing_skill_dirs "$root")" ]; then
     :
   elif [ -f "$mf" ]; then
@@ -539,14 +539,16 @@ cmd_doctor() {
   else
     emit warn "manifest.md missing in $(state_dir "$root")"
   fi
+}
 
+# check_exec_plans — active plan presence + dual-file JSON-twin workboards.
+check_exec_plans() {
+  local pdir="$1" pf2 twin2 wb2 wpid2 wst2
   ls "$pdir"/docs/exec-plans/active/*.md >/dev/null 2>&1 \
     && emit ok "active exec-plan present" || emit warn "no active exec-plan"
-
   # dual-file twins: each active MD plan should carry a same-basename .json
   # workboard (WARN only, never FAIL — the MD stays the lifecycle authority and
   # status degrades gracefully to MD-only without the twin).
-  local pf2 twin2 wb2 wpid2 wst2
   for pf2 in "$pdir"/docs/exec-plans/active/*.md; do
     [ -f "$pf2" ] || continue
     twin2="${pf2%.md}.json"
@@ -561,34 +563,54 @@ cmd_doctor() {
         || emit warn "$(basename "$pf2" .md): JSON twin unparseable — fix fields or delete it"
     fi
   done
+}
 
+# check_trace_gitignore — runtime trace dir must stay out of version control.
+check_trace_gitignore() {
+  local pdir="$1"
   { [ -f "$pdir/.gitignore" ] && grep -qx 'trace/runtime/' "$pdir/.gitignore"; } \
     && emit ok ".harness-mini trace/runtime gitignored" || emit warn ".harness-mini trace/runtime not gitignored (add trace/runtime/ to .harness-mini/.gitignore)"
+}
 
-  local nnew nglob; nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
+# check_dotnew — unresolved .new files left behind by update (project + home).
+check_dotnew() {
+  local root="$1" nnew nglob
+  nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
   [ $((nnew + nglob)) -eq 0 ] && emit ok "no unresolved .new files" \
                     || emit warn "$((nnew + nglob)) unresolved .new file(s) from update$(dotnew_where "$nglob") — resolve & delete"
+}
 
+# check_version_match — the source VERSION file vs the installed lock version.
+check_version_match() {
+  local root="$1"
   if [ -f "$root/VERSION" ] && [ -f "$LOCK" ]; then
     local fv lv; fv="$(read_version "$root/VERSION")"; lv="$(installed_version)"
     [ "$fv" = "$lv" ] && emit ok "VERSION matches lock ($lv)" \
                       || emit warn "VERSION ($fv) != lock ($lv)"
   fi
+}
 
+# check_installed_drift — installed copies vs source; only meaningful for a
+# source checkout that persisted install targets.
+check_installed_drift() {
+  local root="$1" drift
   # source<->installed drift: only a source checkout (skills/ + agents/ at the
   # root) that persisted install targets has anything to compare; an installed
   # project, or a checkout with no `agent install`, skips this check.
-  local drift; drift="$(installed_drift "$root")"
+  drift="$(installed_drift "$root")"
   if [ -n "$drift" ]; then
     emit warn "installed copy differs from source ($(printf '%s' "$drift" | wc -l | tr -d ' ') file(s), e.g. $(printf '%s' "$drift" | head -n1)) — re-run harness.sh agent install <host>"
   elif [ -s "$(state_dir "$root")/targets" ] && [ -d "$root/skills" ]; then
     emit ok "installed skills/roles match source"
   fi
+}
 
-  # eval-gate (anti-self-praise teeth): an active plan that reached `done` must
-  # have a passing evaluation on record (.harness-mini/trace/evals/<plan>-*.md, verdict: pass).
-  # Scoped to active/ so legacy completed/ plans are never retroactively failed.
-  local pf stg plan r rec
+# check_eval_gate — anti-self-praise teeth: an active plan that reached `done`
+# must have a passing evaluation on record (.harness-mini/trace/evals/<plan>-*.md,
+# verdict: pass). Scoped to active/ so legacy completed/ plans are never
+# retroactively failed.
+check_eval_gate() {
+  local pdir="$1" pf stg plan r rec
   for pf in "$pdir"/docs/exec-plans/active/*.md; do
     [ -f "$pf" ] || continue
     stg="$(awk -F': *' '/^stage:/{print $2; exit}' "$pf")"
@@ -602,6 +624,33 @@ cmd_doctor() {
     [ -n "$rec" ] && emit ok "$plan done: evaluation on record" \
                   || emit fail "$plan marked done with no passing evaluation — anti-self-praise gate"
   done
+}
+
+# cmd_doctor — install health. 3 severities (ok/warn/fail); exit 1 iff any FAIL.
+# Thin dispatcher over the per-check-group functions above: the checks report
+# through emit(), defined here so its warns/fails increments land in these
+# dispatcher locals (same dynamic-scoping contract as cmd_status).
+cmd_doctor() {
+  local root="$HARNESS_ROOT" pdir fails=0 warns=0
+  pdir="$(progress_dir "$root")"
+  emit() { # <sev> <msg>
+    case "$1" in
+      ok)   printf '  ok   %s\n' "$2" ;;
+      warn) printf '  warn %s\n' "$2"; warns=$((warns + 1)) ;;
+      fail) printf '  fail %s\n' "$2"; fails=$((fails + 1)) ;;
+    esac
+  }
+
+  check_install_core "$root"
+  check_update_available
+  check_shared_skills "$root"
+  check_manifest "$root"
+  check_exec_plans "$pdir"
+  check_trace_gitignore "$pdir"
+  check_dotnew "$root"
+  check_version_match "$root"
+  check_installed_drift "$root"
+  check_eval_gate "$pdir"
 
   if [ "$fails" -eq 0 ]; then
     printf 'doctor: healthy (%s warning(s))\n' "$warns"
