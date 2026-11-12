@@ -154,27 +154,8 @@ update_runtime() {
   return $rc
 }
 
-# cmd_update [--src DIR] [--force] — refresh what the harness owns, checksum-guarded. A source
-# older than the installed runtime is refused (nothing changed) unless --force. In order:
-#   1. runtime   $HARNESS_HOME/bin + VERSION        (runtime.lock; the running script swaps last;
-#                installed from the source tree when absent — a bootstrap)
-#   2. globals   map, docs, skills, agents sources  (global.lock — separate from runtime.lock)
-#   3. migration a pre-0059 project layout moves into .harness-mini/ (plans, trace; unchanged
-#                harness files are removed by checksum, edited ones kept) — silent when none.
-#                REFUSED (nothing touched) unless step 1 left a usable runtime.
-#   4. project   the skills + role files `agent install <host>` placed in this project
-#                (harness.lock under $HARNESS_HOME/projects/<project-id>/)
-# Per file (base = lock baseline, cur = on disk, new = upstream):
-#   absent          -> ADD       missing managed file
-#   new == cur      -> UNCHANGED  already matches upstream
-#   cur == base     -> UPDATE     upstream changed, user untouched -> overwrite
-#   otherwise       -> CONFLICT   user-edited & diverged -> keep, write <file>.new
-# Only the managed set (skills + roles, keyed by target path in the project lock) is
-# iterated; a target that was never installed is recorded but not created. User space
-# (.harness-mini/ progress, project code, your .gitignore) is never touched. Any <file>.new
-# left behind (here or by an earlier run) is announced once at the end: see dotnew_notice.
-cmd_update() {
-  local src="" force=""
+# parse_update_args — --src DIR / --force; anything else is a usage error.
+parse_update_args() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --src) src="$2"; shift 2 ;;
@@ -183,8 +164,12 @@ cmd_update() {
     esac
   done
   src="${src:-${HARNESS_SRC:-}}"
+}
 
-  local tmpclone=""
+# acquire_update_source — resolve the source tree: --src/HARNESS_SRC, else a
+# shallow upstream clone (needs git + network). $tmpclone is the caller's to
+# clean up (the downgrade guard discards it on refusal).
+acquire_update_source() {
   if [ -z "$src" ]; then
     [ -n "${HARNESS_NO_NET:-}" ] && die "update: no --src and network disabled" 64
     command -v git >/dev/null 2>&1 || die "update: need git to fetch upstream (or pass --src DIR)" 64
@@ -195,22 +180,15 @@ cmd_update() {
     src="$tmpclone"
   fi
   [ -d "$src" ] || die "update: source not found: $src" 64
+}
 
-  local src_ver="0.0.0"
-  [ -f "$src/VERSION" ] && src_ver="$(read_version "$src/VERSION")"
-  # No downgrade of the runtime (the same version_newer test init.sh uses), unless --force.
-  local rt_ver; rt_ver="$(lock_version "$(harness_home)/harness/runtime.lock")"
-  if [ -z "$force" ] && version_newer "$src_ver" "$rt_ver"; then
-    [ -z "$tmpclone" ] || rm -rf "$tmpclone"
-    die "update: refusing to downgrade the runtime at $(harness_home) (installed v$rt_ver, source v$src_ver); nothing was changed. Pass --force to install it anyway." 1
-  fi
-  echo "updating harness-mini $(installed_version) -> $src_ver"
-
-  local newlock log pairs
-  local deferred_runtime_src="" deferred_runtime_dst=""
+# update_refresh — refresh runtime + global copies, migrate a legacy layout.
+# Creates the $newlock/$log scratch files (the caller commits/removes them);
+# update_runtime's deferred self-swap paths land in the caller's locals.
+update_refresh() {
+  local src="$1" src_ver="$2" urc=0
   newlock="$(mktemp)"; log="$(mktemp)"
   printf 'version: %s\n' "$src_ver" > "$newlock"
-  local urc=0
   update_runtime "$src" "$src_ver" "$log" || urc=$?
   [ "$urc" -le 2 ] || die "update: runtime refresh failed" 1
   [ "$urc" -ne 2 ] || printf 'runtime none: %s has no bin/harness.sh, so it cannot install a runtime\n' "$src" >> "$log"
@@ -220,9 +198,15 @@ cmd_update() {
   # A pre-0059 project layout is migrated first (silent when there is none). The
   # migration refuses to run unless the runtime installed above is usable.
   migrate_legacy_layout "$HARNESS_ROOT" "$src" || die "update: legacy migration failed" 1
+}
+
+# update_apply_pairs — the checksum-guarded managed-file pass (the .new flow),
+# moved whole: per file, add / already-matches / update / keep-with-.new against
+# the lock baseline; appends per-file records to $newlock, progress to $log.
+update_apply_pairs() {
+  local src="$1" newlock="$2" log="$3" pairs targets stage
   # The running runtime script is never part of the project set (executables
   # live in $RUNTIME_ROOT); update_runtime defers swapping it to the very end.
-  local targets stage
   targets="$(targets_text "$HARNESS_ROOT")"; stage="$(mktemp -d)"
   pairs="$(HM_STAGE="$stage" emit_managed_pairs "$src" "$targets")"
   while IFS="$(printf '\t')" read -r s rel; do
@@ -255,12 +239,22 @@ cmd_update() {
     printf '%s  %s\n' "$rec" "$rel" >> "$newlock"
   done <<< "$pairs"
   rm -rf "$stage"
+}
 
+# update_commit_result — atomically install the new lock, print the run log
+# (or "already up to date."), clean scratch, announce any .new files left.
+update_commit_result() {
+  local newlock="$1" log="$2" tmpclone="$3"
   mkdir -p "$(dirname "$LOCK")" && mv "$newlock" "$LOCK" || die "update: cannot write $LOCK" 1
   if [ -s "$log" ]; then sed 's/^/  /' "$log"; else echo "  already up to date."; fi
   rm -f "$log"
   [ -n "$tmpclone" ] && rm -rf "$tmpclone"
   dotnew_notice "$HARNESS_ROOT"
+}
+
+# update_swap_runtime_last — apply the deferred self-swap of the running
+# runtime script, if this update replaced it.
+update_swap_runtime_last() {
   if [ -n "$deferred_runtime_src" ]; then
     # bash reads scripts lazily: overwriting the executing file mid-run would
     # resume the NEW file at the OLD byte offset. Swap last, then exit at once.
@@ -268,6 +262,51 @@ cmd_update() {
     exit 0
   fi
   return 0
+}
+
+# cmd_update [--src DIR] [--force] — refresh what the harness owns, checksum-guarded. A source
+# older than the installed runtime is refused (nothing changed) unless --force. In order:
+#   1. runtime   $HARNESS_HOME/bin + VERSION        (runtime.lock; the running script swaps last;
+#                installed from the source tree when absent — a bootstrap)
+#   2. globals   map, docs, skills, agents sources  (global.lock — separate from runtime.lock)
+#   3. migration a pre-0059 project layout moves into .harness-mini/ (plans, trace; unchanged
+#                harness files are removed by checksum, edited ones kept) — silent when none.
+#                REFUSED (nothing touched) unless step 1 left a usable runtime.
+#   4. project   the skills + role files `agent install <host>` placed in this project
+#                (harness.lock under $HARNESS_HOME/projects/<project-id>/)
+# Per file (base = lock baseline, cur = on disk, new = upstream):
+#   absent          -> ADD       missing managed file
+#   new == cur      -> UNCHANGED  already matches upstream
+#   cur == base     -> UPDATE     upstream changed, user untouched -> overwrite
+#   otherwise       -> CONFLICT   user-edited & diverged -> keep, write <file>.new
+# Only the managed set (skills + roles, keyed by target path in the project lock) is
+# iterated; a target that was never installed is recorded but not created. User space
+# (.harness-mini/ progress, project code, your .gitignore) is never touched. Any <file>.new
+# left behind (here or by an earlier run) is announced once at the end: see dotnew_notice.
+# Thin dispatcher over the step functions above (parse args, acquire source,
+# refresh, apply pairs, commit result, swap runtime last). The downgrade guard
+# stays INLINE here by design: no guard logic may move (plan 0062).
+cmd_update() {
+  local src="" force="" tmpclone=""
+  parse_update_args "$@"
+  acquire_update_source
+
+  local src_ver="0.0.0"
+  [ -f "$src/VERSION" ] && src_ver="$(read_version "$src/VERSION")"
+  # No downgrade of the runtime (the same version_newer test init.sh uses), unless --force.
+  local rt_ver; rt_ver="$(lock_version "$(harness_home)/harness/runtime.lock")"
+  if [ -z "$force" ] && version_newer "$src_ver" "$rt_ver"; then
+    [ -z "$tmpclone" ] || rm -rf "$tmpclone"
+    die "update: refusing to downgrade the runtime at $(harness_home) (installed v$rt_ver, source v$src_ver); nothing was changed. Pass --force to install it anyway." 1
+  fi
+  echo "updating harness-mini $(installed_version) -> $src_ver"
+
+  local newlock log
+  local deferred_runtime_src="" deferred_runtime_dst=""
+  update_refresh "$src" "$src_ver"
+  update_apply_pairs "$src" "$newlock" "$log"
+  update_commit_result "$newlock" "$log" "$tmpclone"
+  update_swap_runtime_last
 }
 
 # changelog_section <file> <version> — print the body of a version's section.
@@ -356,7 +395,6 @@ cmd_release() {
 # $HARNESS_HOME; the project is only ever added to, never overwritten.
 
 agent_list() {
-  local tab; tab="$(printf '\t')"
   echo "# harness-mini hosts. Pass YOUR OWN host id:  harness.sh agent install <id> [--root DIR]"
   echo "# columns (TAB-separated): id, skills dir, agents dir, agents format, confidence/notes"
   echo "# aliases: claude-code, github-copilot, codex-cli, z-code, mimo-code, dsh, deepseek-harness"
@@ -460,21 +498,12 @@ cmd_diff() {
 # dotnew_where <n_global> — " (n under $HARNESS_HOME)" when some .new files sit in the runtime.
 dotnew_where() { [ "$1" -eq 0 ] || printf ' (%s under %s)' "$1" "$(harness_home)"; }
 
-# cmd_doctor — install health. 3 severities (ok/warn/fail); exit 1 iff any FAIL.
-cmd_doctor() {
-  local root="$HARNESS_ROOT" pdir fails=0 warns=0
-  pdir="$(progress_dir "$root")"
-  emit() { # <sev> <msg>
-    case "$1" in
-      ok)   printf '  ok   %s\n' "$2" ;;
-      warn) printf '  warn %s\n' "$2"; warns=$((warns + 1)) ;;
-      fail) printf '  fail %s\n' "$2"; fails=$((fails + 1)) ;;
-    esac
-  }
-
+# check_install_core — AGENTS.md, runtime/project version, lock or source-repo shape.
+check_install_core() {
+  local root="$1" pver
   [ -f "$root/AGENTS.md" ] && emit ok "AGENTS.md present" || emit fail "AGENTS.md missing"
   emit ok "runtime: $(runtime_version)"
-  local pver; pver="$(project_version "$root")"
+  pver="$(project_version "$root")"
   [ "$pver" = "uninitialized" ] && emit warn "project: uninitialized" \
                                 || emit ok "project: $pver"
   if [ -f "$LOCK" ]; then
@@ -484,21 +513,26 @@ cmd_doctor() {
   else
     emit fail "harness.lock missing in $(state_dir "$root") (run init.sh)"
   fi
+}
 
-  # update check (best-effort; never a FAIL) — skip silently when offline/unknown.
+# check_update_available — best-effort; never a FAIL; silent when offline/unknown.
+check_update_available() {
   local latest; latest="$(latest_version)"
   if [ -n "$latest" ]; then
     version_newer "$(installed_version)" "$latest" \
       && emit warn "harness-mini $latest available (installed $(installed_version)) — run harness.sh update" \
       || emit ok "harness-mini up to date ($(installed_version))"
   fi
+}
 
+# check_shared_skills — count + shape of the installed shared skills.
+check_shared_skills() {
+  local root="$1" skill_dirs skill_label="" d skill_total
   # Installed projects read their persisted skill targets (state_dir/targets,
   # default .agents/skills); a source checkout falls back to its own skills/.
-  local skill_dirs skill_label="" d
   skill_dirs="$(existing_skill_dirs "$root")"
   if [ -z "$skill_dirs" ] && [ -d "$root/skills" ]; then skill_dirs="skills"; fi
-  local skill_total; skill_total="$(shared_skill_count "$root")"
+  skill_total="$(shared_skill_count "$root")"
   if [ -n "$skill_dirs" ]; then
     local nfolders=0 nflat=0
     for d in $skill_dirs; do
@@ -514,10 +548,14 @@ cmd_doctor() {
     # init installs no skills (it cannot know the host): a normal first state.
     emit warn "skills not installed — run harness.sh agent list, then agent install <host>"
   fi
+}
 
+# check_manifest — the project manifest vs the installed shared skills.
+check_manifest() {
+  local root="$1" mf
   # The manifest describes the installed shared skills, so it is only checked
   # once they exist.
-  local mf; mf="$(manifest_file "$root")"
+  mf="$(manifest_file "$root")"
   if [ -z "$(existing_skill_dirs "$root")" ]; then
     :
   elif [ -f "$mf" ]; then
@@ -539,14 +577,16 @@ cmd_doctor() {
   else
     emit warn "manifest.md missing in $(state_dir "$root")"
   fi
+}
 
+# check_exec_plans — active plan presence + dual-file JSON-twin workboards.
+check_exec_plans() {
+  local pdir="$1" pf2 twin2 wb2 wpid2 wst2
   ls "$pdir"/docs/exec-plans/active/*.md >/dev/null 2>&1 \
     && emit ok "active exec-plan present" || emit warn "no active exec-plan"
-
   # dual-file twins: each active MD plan should carry a same-basename .json
   # workboard (WARN only, never FAIL — the MD stays the lifecycle authority and
   # status degrades gracefully to MD-only without the twin).
-  local pf2 twin2 wb2 wpid2 wst2
   for pf2 in "$pdir"/docs/exec-plans/active/*.md; do
     [ -f "$pf2" ] || continue
     twin2="${pf2%.md}.json"
@@ -561,34 +601,54 @@ cmd_doctor() {
         || emit warn "$(basename "$pf2" .md): JSON twin unparseable — fix fields or delete it"
     fi
   done
+}
 
+# check_trace_gitignore — runtime trace dir must stay out of version control.
+check_trace_gitignore() {
+  local pdir="$1"
   { [ -f "$pdir/.gitignore" ] && grep -qx 'trace/runtime/' "$pdir/.gitignore"; } \
     && emit ok ".harness-mini trace/runtime gitignored" || emit warn ".harness-mini trace/runtime not gitignored (add trace/runtime/ to .harness-mini/.gitignore)"
+}
 
-  local nnew nglob; nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
+# check_dotnew — unresolved .new files left behind by update (project + home).
+check_dotnew() {
+  local root="$1" nnew nglob
+  nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
   [ $((nnew + nglob)) -eq 0 ] && emit ok "no unresolved .new files" \
                     || emit warn "$((nnew + nglob)) unresolved .new file(s) from update$(dotnew_where "$nglob") — resolve & delete"
+}
 
+# check_version_match — the source VERSION file vs the installed lock version.
+check_version_match() {
+  local root="$1"
   if [ -f "$root/VERSION" ] && [ -f "$LOCK" ]; then
     local fv lv; fv="$(read_version "$root/VERSION")"; lv="$(installed_version)"
     [ "$fv" = "$lv" ] && emit ok "VERSION matches lock ($lv)" \
                       || emit warn "VERSION ($fv) != lock ($lv)"
   fi
+}
 
+# check_installed_drift — installed copies vs source; only meaningful for a
+# source checkout that persisted install targets.
+check_installed_drift() {
+  local root="$1" drift
   # source<->installed drift: only a source checkout (skills/ + agents/ at the
   # root) that persisted install targets has anything to compare; an installed
   # project, or a checkout with no `agent install`, skips this check.
-  local drift; drift="$(installed_drift "$root")"
+  drift="$(installed_drift "$root")"
   if [ -n "$drift" ]; then
     emit warn "installed copy differs from source ($(printf '%s' "$drift" | wc -l | tr -d ' ') file(s), e.g. $(printf '%s' "$drift" | head -n1)) — re-run harness.sh agent install <host>"
   elif [ -s "$(state_dir "$root")/targets" ] && [ -d "$root/skills" ]; then
     emit ok "installed skills/roles match source"
   fi
+}
 
-  # eval-gate (anti-self-praise teeth): an active plan that reached `done` must
-  # have a passing evaluation on record (.harness-mini/trace/evals/<plan>-*.md, verdict: pass).
-  # Scoped to active/ so legacy completed/ plans are never retroactively failed.
-  local pf stg plan r rec
+# check_eval_gate — anti-self-praise teeth: an active plan that reached `done`
+# must have a passing evaluation on record (.harness-mini/trace/evals/<plan>-*.md,
+# verdict: pass). Scoped to active/ so legacy completed/ plans are never
+# retroactively failed.
+check_eval_gate() {
+  local pdir="$1" pf stg plan r rec
   for pf in "$pdir"/docs/exec-plans/active/*.md; do
     [ -f "$pf" ] || continue
     stg="$(awk -F': *' '/^stage:/{print $2; exit}' "$pf")"
@@ -602,6 +662,33 @@ cmd_doctor() {
     [ -n "$rec" ] && emit ok "$plan done: evaluation on record" \
                   || emit fail "$plan marked done with no passing evaluation — anti-self-praise gate"
   done
+}
+
+# cmd_doctor — install health. 3 severities (ok/warn/fail); exit 1 iff any FAIL.
+# Thin dispatcher over the per-check-group functions above: the checks report
+# through emit(), defined here so its warns/fails increments land in these
+# dispatcher locals (same dynamic-scoping contract as cmd_status).
+cmd_doctor() {
+  local root="$HARNESS_ROOT" pdir fails=0 warns=0
+  pdir="$(progress_dir "$root")"
+  emit() { # <sev> <msg>
+    case "$1" in
+      ok)   printf '  ok   %s\n' "$2" ;;
+      warn) printf '  warn %s\n' "$2"; warns=$((warns + 1)) ;;
+      fail) printf '  fail %s\n' "$2"; fails=$((fails + 1)) ;;
+    esac
+  }
+
+  check_install_core "$root"
+  check_update_available
+  check_shared_skills "$root"
+  check_manifest "$root"
+  check_exec_plans "$pdir"
+  check_trace_gitignore "$pdir"
+  check_dotnew "$root"
+  check_version_match "$root"
+  check_installed_drift "$root"
+  check_eval_gate "$pdir"
 
   if [ "$fails" -eq 0 ]; then
     printf 'doctor: healthy (%s warning(s))\n' "$warns"
@@ -611,19 +698,21 @@ cmd_doctor() {
   [ "$fails" -eq 0 ]
 }
 
-# cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
-# Ends with a single readiness verdict (OpenHarness dry-run idea, Mini-shaped):
-#   ready: <ready|warning|blocked> — <one next action>
-cmd_status() {
-  local root="$HARNESS_ROOT" pdir
-  pdir="$(progress_dir "$root")"
+# print_version_header — the four version lines that open the status report.
+print_version_header() {
+  local root="$1" pver
   echo "harness-mini $(installed_version)"
   echo "runtime: $(runtime_version)"
-  local pver; pver="$(project_version "$root")"
+  pver="$(project_version "$root")"
   echo "project: $pver"
-  local nskills; nskills="$(shared_skill_count "$root")"
+  nskills="$(shared_skill_count "$root")"
   echo "shared skills: $nskills"
-  local manifest_missing="" manifest_count=0 mf
+}
+
+# print_manifest_health — manifest vs the installed shared skills;
+# $manifest_missing feeds the blocked verdict.
+print_manifest_health() {
+  local root="$1" manifest_count=0 mf
   mf="$(manifest_file "$root")"
   if [ -z "$(existing_skill_dirs "$root")" ]; then
     echo "manifest: skills not installed"
@@ -640,18 +729,24 @@ cmd_status() {
   else
     echo "manifest: missing .agents/skills section"
   fi
+}
 
-  # update check (best-effort) — remind on entry if a newer harness-mini exists.
-  # Silent when offline/unknown so the cold-resume view stays fast & quiet.
-  local _latest _behind=no
+# update check (best-effort) — remind on entry if a newer harness-mini exists.
+# Silent when offline/unknown so the cold-resume view stays fast & quiet.
+# $_latest/$_behind feed the warning verdict.
+print_update_notice() {
   _latest="$(latest_version)"
   if [ -n "$_latest" ] && version_newer "$(installed_version)" "$_latest"; then
     echo "update: $_latest available — run \`harness.sh update\`"
     _behind=yes
   fi
+}
 
-  local f plan stage cp nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
-  local twin wb wst wcur wnxt wnp wns wpok wtot
+# print_active_plans — one overview + workboard line per active plan, and the
+# session-path classification over the same loop (no second pass).
+print_active_plans() {
+  local pdir="$1" f plan stage cp
+  local twin wb wst wcur wnxt wnp wns wpok wtot pc pr
   # session path — one machine answer to "is this session plan bootstrap or
   # incremental coding?" (discussion #55 / issue #57). Derived ONLY from file
   # truth: MD stage + JSON twin. Priority across plans (first plan wins within
@@ -662,7 +757,6 @@ cmd_status() {
   #   class 2 coding wrap-up               (coding stage + twin all green, plan open)
   #   class 3 init  twin missing|unparseable (conservative: coding unprovable)
   #   class 4 init  still planning         (intake|prd|issues, or twin w/o slices)
-  local p_class=9 p_reason="empty board" pc pr
   if ls "$pdir"/docs/exec-plans/active/*.md >/dev/null 2>&1; then
     echo "active plans:"
     for f in "$pdir"/docs/exec-plans/active/*.md; do
@@ -716,17 +810,27 @@ cmd_status() {
   else
     echo "active plans: none"
   fi
+}
 
-  # session path verdict — the line gate v2 and the session-* skills branch on
+# print_session_path — the session path verdict: the two lines gate v2 and the
+# session-* skills branch on.
+print_session_path() {
   local p_path=init; [ "$p_class" -le 2 ] && p_path=coding
   printf 'path: %s\n' "$p_path"
   printf 'path_reason: %s\n' "$p_reason"
+}
 
-  local nnew nglob; nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
+# print_update_conflicts — unresolved .new files left by update (project + home).
+print_update_conflicts() {
+  local root="$1" nglob
+  nnew="$(count_dotnew "$root")"; nglob="$(count_dotnew_home)"
   nnew=$((nnew + nglob))
   echo "update conflicts: $nnew .new file(s)$(dotnew_where "$nglob")"
+}
 
-  local newest last cpct ev run
+# print_last_trace — ctx_pct/event/run off the newest runtime JSONL line.
+print_last_trace() {
+  local pdir="$1" newest last cpct ev run
   newest="$(ls -t "$pdir"/trace/runtime/*.jsonl 2>/dev/null | head -n1)"
   if [ -n "$newest" ]; then
     last="$(tail -n1 "$newest" 2>/dev/null)"
@@ -737,12 +841,15 @@ cmd_status() {
   else
     echo "last trace: none"
   fi
+}
 
-  # garden trigger — cadence (committed checkpoints since the last sweep) + the
-  # smell backlog. grep/ls/sed only, like the rest of status. DUE iff there are
-  # >= HARNESS_GARDEN_EVERY (default 5) checkpoints since last garden, OR any
-  # high-severity open item, OR >= 3 open items in .harness-mini/trace/garden-backlog.md.
-  local bl="$pdir/trace/garden-backlog.md" total gat since open high gdue
+# garden trigger — cadence (committed checkpoints since the last sweep) + the
+# smell backlog. grep/ls/sed only, like the rest of status. DUE iff there are
+# >= HARNESS_GARDEN_EVERY (default 5) checkpoints since last garden, OR any
+# high-severity open item, OR >= 3 open items in .harness-mini/trace/garden-backlog.md.
+print_garden_line() {
+  local pdir="$1" bl total gat since open high
+  bl="$pdir/trace/garden-backlog.md"
   total=$(ls "$pdir"/trace/checkpoints/*.md 2>/dev/null | wc -l | tr -d ' ')
   gat=0; open=0; high=0
   if [ -f "$bl" ]; then
@@ -758,9 +865,11 @@ cmd_status() {
     gdue=ok
   fi
   printf 'garden: %s (%s checkpoint(s) since last; %s backlog item(s))\n' "$gdue" "$since" "$open"
+}
 
-  # resumable — plan-scoped: only checkpoints matching an active plan's slug count
-  local resume=no
+# print_resumable — plan-scoped: only checkpoints matching an active plan's
+# slug count; $resume feeds the warning verdict.
+print_resumable() {
   if [ "$nplans" -eq 0 ]; then
     echo "resumable: no (no active plan)"
     resume=no
@@ -771,9 +880,13 @@ cmd_status() {
     echo "resumable: partial (plan, no checkpoint yet)"
     resume=partial
   fi
+}
 
-  # readiness verdict — one line; blocked > warning > ready (grill #1 → A)
-  local level=ready next="" done_plan="" r
+# print_ready_verdict — the readiness verdict, one line; blocked > warning >
+# ready (grill #1 → A). Reads every shared write-back the sections above set.
+print_ready_verdict() {
+  local root="$1" pdir="$2" level=ready next="" r
+  local f stage plan
 
   if [ ! -f "$root/AGENTS.md" ]; then
     level=blocked; next="restore AGENTS.md (re-run init.sh)"
@@ -794,7 +907,6 @@ cmd_status() {
       done
       if [ "$has_pass" != "yes" ]; then
         level=blocked
-        done_plan="$plan"
         next="run evaluate for $plan (anti-self-praise gate)"
         break
       fi
@@ -827,6 +939,34 @@ cmd_status() {
 
   printf 'ready: %s — %s\n' "$level" "$next"
   return 0
+}
+
+# cmd_status — current work state for cold resume. grep/awk/tail only; always 0.
+# Ends with a single readiness verdict (OpenHarness dry-run idea, Mini-shaped):
+#   ready: <ready|warning|blocked> — <one next action>
+# Thin dispatcher over the per-section printers above. A section hands values
+# to later sections and the final verdict by assigning the shared locals
+# declared here (nskills, manifest_missing, p_class/p_reason, nplans*,
+# first_*, _latest/_behind, nnew, gdue, resume): the sections both print and
+# compute, so dynamic scoping is the write-back channel.
+cmd_status() {
+  local root="$HARNESS_ROOT" pdir
+  pdir="$(progress_dir "$root")"
+  # shared write-backs: printed early, consumed by later sections / the verdict
+  local nskills manifest_missing="" _latest _behind=no
+  local p_class=9 p_reason="empty board"
+  local nplans=0 nplans_with_cp=0 first_plan="" first_stage="" first_file=""
+  local nnew gdue resume=no
+  print_version_header "$root"
+  print_manifest_health "$root"
+  print_update_notice
+  print_active_plans "$pdir"
+  print_session_path
+  print_update_conflicts "$root"
+  print_last_trace "$pdir"
+  print_garden_line "$pdir"
+  print_resumable
+  print_ready_verdict "$root" "$pdir"
 }
 
 # cmd_report [run] — aggregate .harness-mini/trace into a metrics summary so thresholds are

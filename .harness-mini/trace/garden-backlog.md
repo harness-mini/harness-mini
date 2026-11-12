@@ -3,7 +3,7 @@
 
 ## Open
 - [ ] 2026-11-07 | Layered config overrides (tool defaults → project-level shared config → user-local config) so users never edit the install dir; today edited install files only produce .new + diff notice. | medium | generator (plan 0060)
-- [ ] 2026-11-08 | bin/harness.sh:cmd_status/cmd_doctor/cmd_update (~213/148/95 lines) | long-function | med | Extract Function per report section / check group, one command at a time under green tests
+- [ ] 2026-11-08 | bin/harness.sh:cmd_status/cmd_doctor/cmd_update (~213/148/95 lines) | long-function | med | Extract Function per report section / check group, one command at a time under green tests (plan 0062)
 
 ## Cleared
 - [x] 2026-08-11 | cadence reset after session-ops completion | gardener
