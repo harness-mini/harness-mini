@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-11-12
+
 ### Changed
 - **Refactor: `bin/harness.sh` report commands are thin dispatchers.**
   `status`, `doctor` and `update` — the three longest functions (214/149/96
