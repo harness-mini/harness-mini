@@ -7,6 +7,15 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Refactor: `bin/harness.sh` report commands are thin dispatchers.**
+  `status`, `doctor` and `update` — the three longest functions (214/149/96
+  lines) — are extracted into named per-section functions, the largest
+  extracted function 67 lines (plan 0062). No behavior change: outputs are
+  byte-identical to frozen snapshot pins and `tests/run.sh` stayed 975/0
+  through every extraction. Two write-only locals surfaced by the shellcheck
+  gate (`agent_list`'s `tab`, the ready verdict's `done_plan`) are gone.
+
 ## [0.15.0] - 2026-11-11
 
 ### Added
