@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-11-14
+
 ### Added
 - **Predictor-drift guard for the test runner (plan 0065).** `tests/run.sh`
   now compares `--list`'s statically predicted assert counts against the
