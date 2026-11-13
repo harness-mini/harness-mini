@@ -7,6 +7,18 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Predictor-drift guard for the test runner (plan 0065).** `tests/run.sh`
+  now compares `--list`'s statically predicted assert counts against the
+  real execution count at the end of every run (full and selected) and
+  prints a non-blocking `warning: predictor drift: ...` on mismatch — a
+  silent drift would have let the TDD inner loop trust lying group counts.
+  Warning-only: the exit contract stays "exit = tests".
+
+### Changed
+- README no longer hardcodes assertion/group counts (stale three times:
+  710→975→984→1003); `bash tests/run.sh --list` is the single source.
+
 ## [0.17.0] - 2026-11-13
 
 ### Added
