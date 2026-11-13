@@ -274,11 +274,16 @@ model override. Set `HARNESS_TOP_MODEL=1` to force the upgrade;
 ## Develop
 
 ```bash
-bash tests/run.sh   # 710 assertions, zero dependencies
+bash tests/run.sh                  # full suite — 984 assertions, zero dependencies
+bash tests/run.sh --list           # 48 test groups + static assert counts
+bash tests/run.sh doctor           # one group — seconds, for the TDD inner loop
+bash tests/affected.sh main        # groups affected by your working-tree diff
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
-and safe to call from `zsh`. See the compatibility notes in
+and safe to call from `zsh`. The full suite is for gates (checkpoint last-green,
+evaluate, release) and CI; the red→green inner loop runs the narrowest group.
+See the compatibility notes in
 [`CONTRIBUTING.md`](CONTRIBUTING.md) before contributing shell.
 
 ## References distilled in `references/`
