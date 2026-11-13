@@ -7,6 +7,21 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **`checkpoint-archive-check.sh` — the plan archive gets a verifier (plan 0064).**
+  `skills/checkpoint/scripts/checkpoint-archive-check.sh` fails on dirty
+  `.harness-mini/docs/exec-plans/` files (a `git mv` stages the rename, not
+  your `stage:`/`passes` edits — this shipped stale board metadata twice) and
+  on completed plans that are not `stage: done` / `passes: true`. The checkpoint
+  skill runs it at plan completion; the stage-viewer `done` condition requires
+  it. Plans predating the dual-file contract (`seq` < 0047) are exempt from
+  the twin requirement, matching the eval-gate's legacy stance.
+
+### Fixed
+- **Nine completed plans (0047–0055) carried stale `"status": "in_progress"`
+  twins** — the first catch for the new verifier, aged since their archival.
+  All flipped to `done` (each verified before the flip).
+
 ## [0.16.0] - 2026-11-13
 
 ### Added
