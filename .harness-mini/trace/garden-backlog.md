@@ -12,3 +12,4 @@
 - [x] 2026-11-08 | duplication: 9 copies of `tr -d ' \t\r\n' < VERSION` → `read_version` | gardener
 - [x] 2026-11-08 | dead code: unused `target_agent_dirs`; stale `exec-plans/active/0059` comment → `completed/` | gardener
 - [x] 2026-11-13 | bin/harness.sh:cmd_status/cmd_doctor/cmd_update long-function → extracted dispatchers, shipped v0.15.1 via plan 0062 | gardener
+- [ ] 2026-11-13 | README Develop block hardcodes the assertion count (710→975→984→1003 went stale three times this cycle) | low | Reference `bash tests/run.sh --list` instead of a literal count; update the literal once more in the same sweep that lands this item
