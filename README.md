@@ -274,7 +274,7 @@ model override. Set `HARNESS_TOP_MODEL=1` to force the upgrade;
 ## Develop
 
 ```bash
-bash tests/run.sh   # 710 assertions, zero dependencies
+bash tests/run.sh   # 975 assertions, zero dependencies
 ```
 
 Pure POSIX shell, no dependencies — tested on macOS `bash` 3.2 and Linux `bash`,
