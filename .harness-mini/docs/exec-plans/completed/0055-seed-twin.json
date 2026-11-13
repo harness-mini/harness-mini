@@ -1,7 +1,7 @@
 {
   "plan_id": "0055-seed-twin",
   "title": "init.sh: seeded plans carry their JSON twin (day-one contract)",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-001",
   "slices": [
     {

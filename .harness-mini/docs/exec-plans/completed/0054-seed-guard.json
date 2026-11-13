@@ -1,7 +1,7 @@
 {
   "plan_id": "0054-seed-guard",
   "title": "init.sh: never seed a bootstrap plan when any active plan exists",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-001",
   "slices": [
     {

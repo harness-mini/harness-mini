@@ -1,7 +1,7 @@
 {
   "plan_id": "0053-session-runner",
   "title": "bin/session.sh — Outer session runner (inject session-* as user message)",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-001",
   "slices": [
     {

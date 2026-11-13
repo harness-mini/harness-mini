@@ -1,7 +1,7 @@
 {
   "plan_id": "0049-session-path",
   "title": "path: init|coding (+ path_reason) in harness.sh status",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-001",
   "slices": [
     {

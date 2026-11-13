@@ -1,7 +1,7 @@
 {
   "plan_id": "0052-path-gate",
   "title": "Path-aware routing gate v3 (branch on path, point to session-*)",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-001",
   "slices": [
     {
