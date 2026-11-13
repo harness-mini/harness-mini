@@ -1,7 +1,7 @@
 ---
 plan: predictor-guard
 seq: 0065
-stage: implement
+stage: done
 owner: main
 mode: quick
 eval: L1        # lightweight reviewer; small guard + docs pointer
@@ -17,22 +17,22 @@ eval: L1        # lightweight reviewer; small guard + docs pointer
 
 ## Acceptance criteria
 <!-- Machine-checkable. No-args byte-identity re-pinned before edits. -->
-- [ ] Baseline pinned: full-suite stdout+exit captured pre-edit under
+- [x] Baseline pinned: full-suite stdout+exit captured pre-edit under
       `.harness-mini/trace/runtime/0065-baseline/`; post-edit no-args run is
       stdout byte-identical (summary line included), stderr equal modulo the
       known nondeterministic mktemp ids, exit 0.
-- [ ] `predictor_warning <predicted> <actual> <label>` exists in the header:
+- [x] `predictor_warning <predicted> <actual> <label>` exists in the header:
       mismatch → one stderr line `warning: predictor drift: ...`; agreement →
       silent; malformed/unset input → silent skip; never changes exit code.
-- [ ] `PREDICTED_TOTAL` computed at startup (sum over selected groups, or all
+- [x] `PREDICTED_TOTAL` computed at startup (sum over selected groups, or all
       groups on a no-args run — reuses `group_assert_count`); the footer
       calls `predictor_warning` with it vs `$((PASS + FAIL))`. Real runs
       today are drift-free → no output change.
-- [ ] New `@group predictor-guard` covers: mismatch warns (naming the label),
+- [x] New `@group predictor-guard` covers: mismatch warns (naming the label),
       agreement silent, malformed input silent, and a real `bash tests/run.sh
       ctx` integration run (predicts 8, runs 8, no warning). groups.tsv gains
       the parity row; `--list` totals updated; full suite green.
-- [ ] README Develop block: hardcoded assertion count replaced by a pointer
+- [x] README Develop block: hardcoded assertion count replaced by a pointer
       to `bash tests/run.sh --list` (closes the backlog item's substance).
 
 ## The change
@@ -62,6 +62,8 @@ eval: L1        # lightweight reviewer; small guard + docs pointer
 **Current Blockers / Risks**: none — remaining step is the PR to main. Note: `garden: DUE` persists by threshold (3 open backlog items) until this plan's README-pointer item lands and a sweep clears it.
 
 ## Decisions
+- 2026-11-13 stage implement→checkpoint: eval L1 pass 5/5 (grader: evaluator; negative probe on a doctored temp clone proved the warning fires on real runs while exit stays 0); slices flipped on the evaluator verdict only.
+- 2026-11-13 stage checkpoint→done: archive check exit 0; checkpoint 001 committed; plan moved to `completed/`. Backlog clearances (README-pointer, predictor-drift) deferred to the next garden sweep to avoid conflicting with open PR #96.
 - Warning-only, non-blocking: `--list` lying is an observability bug, not a
   test failure; the exit contract stays "exit = tests".
 - The drift canary rides the new group: a real `ctx` group run asserting the
