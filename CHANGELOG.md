@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-13
+
 ### Added
 - **`checkpoint-archive-check.sh` — the plan archive gets a verifier (plan 0064).**
   `skills/checkpoint/scripts/checkpoint-archive-check.sh` fails on dirty
