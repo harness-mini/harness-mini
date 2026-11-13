@@ -82,3 +82,4 @@ state-dir-projects	init.sh
 test-selection	tests/groups.tsv
 test-selection	tests/affected.sh
 test-selection	tests/run.sh
+predictor-guard	tests/run.sh
