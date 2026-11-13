@@ -57,6 +57,14 @@ eval: L1        # lightweight reviewer; runner gains selection, behavior-preserv
   "Running tests" note.
 
 ## Evidence (fill on completion)
+- **slice-003** — `skills/tdd/SKILL.md` Rules gained the narrow-run bullet
+  (narrowest group in the loop; full suite = gates + CI);
+  `skills/checkpoint/SKILL.md` Last-green comment now states last green is a
+  FULL-suite pass, never group-selected; `skills/evaluate/SKILL.md` procedure
+  step 2 states the green a gate grades is always full-suite;
+  `README.md` Develop block rewritten: 984 assertions, `--list`, one-group
+  example, `tests/affected.sh main`, gates-vs-inner-loop sentence. (Probed:
+  all four markers grep-clean.)
 - **slice-001** — baseline pinned pre-edit at
   `.harness-mini/trace/runtime/0063-baseline/` (exit 0, `Passed: 975  Failed: 0`).
   Final no-args run (`full4.*`): stdout **byte-identical** (`cmp` clean), exit 0,
