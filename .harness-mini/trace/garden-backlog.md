@@ -1,9 +1,9 @@
 # Garden backlog — deferred smells (committed debt)
-<!-- gardened-at: 21 -->
+<!-- gardened-at: 23 -->
 
 ## Open
-- [ ] 2026-11-07 | Layered config overrides (tool defaults → project-level shared config → user-local config) so users never edit the install dir; today edited install files only produce .new + diff notice. | medium | generator (plan 0060)
-- [ ] 2026-11-08 | bin/harness.sh:cmd_status/cmd_doctor/cmd_update (~213/148/95 lines) | long-function | med | Extract Function per report section / check group, one command at a time under green tests (plan 0062)
+- [ ] 2026-11-07 | Layered config overrides (tool defaults → project-level shared config → user-local config) so users never edit the install dir; today edited install files only produce .new + diff notice. | medium
+- [ ] 2026-11-13 | README Develop block hardcodes the assertion count; replace the literal (currently correct: 1003 asserts / 49 groups, set in 6504c25) with a pointer to `bash tests/run.sh --list` so it stops going stale each cycle | low
 - [ ] 2026-11-13 | tests/run.sh `--list` predictor (static loop expansion) drifts silently: unrecognized helper counts 0, `while read` clamps to 1, no self-test asserts predicted==actual | low | Assert `--list` total == dynamic PASS count, or warn when a selected run's `Passed:` != its `--list` row (eval 0063 minor finding)
 
 ## Cleared
@@ -12,4 +12,3 @@
 - [x] 2026-11-08 | duplication: 9 copies of `tr -d ' \t\r\n' < VERSION` → `read_version` | gardener
 - [x] 2026-11-08 | dead code: unused `target_agent_dirs`; stale `exec-plans/active/0059` comment → `completed/` | gardener
 - [x] 2026-11-13 | bin/harness.sh:cmd_status/cmd_doctor/cmd_update long-function → extracted dispatchers, shipped v0.15.1 via plan 0062 | gardener
-- [ ] 2026-11-13 | README Develop block hardcodes the assertion count (710→975→984→1003 went stale three times this cycle) | low | Reference `bash tests/run.sh --list` instead of a literal count; update the literal once more in the same sweep that lands this item
