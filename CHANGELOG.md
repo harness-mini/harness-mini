@@ -7,6 +7,21 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Added
+- **Test group selection for the TDD inner loop (plan 0063).**
+  `bash tests/run.sh <group>...` runs only the named groups;
+  `bash tests/run.sh --list` prints all 48 groups with static assert counts
+  (total 984). `tests/affected.sh <ref>` maps a working-tree diff to the
+  affected groups via the declarative `tests/groups.tsv` (longest prefix
+  wins; unmapped paths fall back to `all`). Run the narrowest group in each
+  red→green turn — seconds instead of the full suite's ~3 minutes.
+
+### Changed
+- **Gates still run the full suite.** `tdd`, `checkpoint` and `evaluate`
+  skills now state it: the narrow selection is for the inner loop only;
+  checkpoint last-green, evaluation, release and CI keep the whole suite.
+  The no-argument `bash tests/run.sh` path is byte-identical to before.
+
 ## [0.15.1] - 2026-11-12
 
 ### Changed
