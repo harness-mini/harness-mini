@@ -3002,26 +3002,36 @@ assert_eq "true" "$([ -f "$CAC_SCRIPT" ] && echo true || echo false)" "archive-c
 
 CAC_PLANS="$CAC/.harness-mini/docs/exec-plans"
 
-cac_plan() {  # <completed|active> <name> <md_stage> <json_status> <passes_true_or_false>
+cac_md() {  # <completed|active> <name> <seq> <stage>
   local dir="$CAC_PLANS/$1"
   mkdir -p "$dir"
   {
     printf '%s\n' "---"
     printf '%s\n' "plan: $2"
-    printf '%s\n' "seq: 0099"
-    printf '%s\n' "stage: $3"
+    printf '%s\n' "seq: $3"
+    printf '%s\n' "stage: $4"
     printf '%s\n' "---"
     printf '%s\n' "# $2"
   } > "$dir/$2.md"
+}
+
+cac_twin() {  # <completed|active> <name> <json_status> <passes_true_or_false>
+  local dir="$CAC_PLANS/$1"
+  mkdir -p "$dir"
   {
     printf '%s\n' '{'
     printf '%s\n' "  \"plan_id\": \"$2\","
-    printf '%s\n' "  \"status\": \"$4\","
+    printf '%s\n' "  \"status\": \"$3\","
     printf '%s\n' '  "slices": ['
-    printf '%s\n' "    { \"id\": \"slice-001\", \"steps\": [\"one step\"], \"passes\": $5 }"
+    printf '%s\n' "    { \"id\": \"slice-001\", \"steps\": [\"one step\"], \"passes\": $4 }"
     printf '%s\n' '  ]'
     printf '%s\n' '}'
   } > "$dir/$2.json"
+}
+
+cac_plan() {  # <completed|active> <name> <md_stage> <json_status> <passes_true_or_false>
+  cac_md "$1" "$2" "0099" "$3"
+  cac_twin "$1" "$2" "$4" "$5"
 }
 
 # fixture: a committed repo whose exec-plans are consistent — an active plan
@@ -3089,6 +3099,26 @@ cac_plan active "0003-wip" "implement" "in_progress" "false"
 assert_exit 0 "$code" "archive-check: no completed/ dir is skipped (exit 0; cwd fallback outside a repo)"
 
 rm -rf "$CAC" "$CAC_NR"
+
+# legacy exemption: plans predating the twin contract (seq < 47) need no
+# twin; the first post-contract seq (0047) still violates. The exact-output
+# assert pins the boundary from both sides: only 0047-new may be named.
+CAC_LG="$(mktemp -d)"
+CAC_PLANS="$CAC_LG/.harness-mini/docs/exec-plans"
+cac_md completed "0032-old" "0032" "done"
+git -C "$CAC_LG" init -q
+git -C "$CAC_LG" config user.email "test@test"; git -C "$CAC_LG" config user.name "test"
+git -C "$CAC_LG" add -A >/dev/null 2>&1; git -C "$CAC_LG" commit -qm legacy >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC_LG" 2>&1)"; code=$?
+assert_exit 0 "$code" "archive-check: pre-contract twinless completed plan (seq 0032) is exempt"
+assert_eq "" "$out" "archive-check: the seq-0032 exemption is silent"
+cac_md completed "0047-new" "0047" "done"
+git -C "$CAC_LG" add -A >/dev/null 2>&1; git -C "$CAC_LG" commit -qm post-contract >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC_LG" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: post-contract twinless completed plan (seq 0047) exits 1"
+assert_eq "0047-new: twin 0047-new.json is missing" "$out" \
+  "archive-check: names only the seq-0047 twin (seq-0032 exempt)"
+rm -rf "$CAC_LG"
 
 # =============================================================================
 # summary + final cleanup — the tail after the last @group; runs on

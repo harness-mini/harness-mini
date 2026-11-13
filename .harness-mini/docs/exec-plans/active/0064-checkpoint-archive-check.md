@@ -60,3 +60,9 @@ validate `active/` stages (they vary legitimately mid-lifecycle).
 - No doctor wiring this plan: the check runs at checkpoint time (where the
   skill already invokes lint/guard). Doctor integration can ride a later
   garden item if the failure mode reappears.
+- Missing-twin check rescoped after slice-001 probing found 17 pre-existing
+  legacy violations: the 9 status-drifted 0047-0055 twins were repaired to
+  `status: done` (real completion data, verified passes:true), and plans with
+  `seq:` < 47 (or absent/non-numeric) are exempt from the twin requirement —
+  legacy completed records are never retroactively failed (check_eval_gate
+  precedent), rather than fabricating twins for history.

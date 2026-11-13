@@ -20,7 +20,10 @@
 #      root is not inside a git work tree.
 #   B. completed invariant — every completed/*.md is `stage: done`; its twin
 #      .json exists, reads "status": "done", and carries no "passes": false
-#      slice. active/ and other dirs are NOT stage-checked (their stages
+#      slice. Plans predating the twin contract (seq < 47, or no numeric seq)
+#      are exempt from the twin requirement — legacy completed records are
+#      never retroactively failed (same precedent as check_eval_gate).
+#      active/ and other dirs are NOT stage-checked (their stages
 #      legitimately vary mid-lifecycle); a missing completed/ dir skips the
 #      check silently.
 #
@@ -64,6 +67,16 @@ has_failing_slice() {
   grep -Eq '"passes"[[:space:]]*:[[:space:]]*false' "$1"
 }
 
+# is_legacy_seq <seq> — success iff the plan predates the twin contract
+# (0047 was the first plan emitted with a twin); seq is decimal even when
+# zero-padded, and an absent/non-numeric seq counts as legacy
+is_legacy_seq() {
+  case "$1" in
+    ''|*[!0-9]*) return 0 ;;
+    *) [ "$1" -lt 47 ] ;;
+  esac
+}
+
 if [ ! -d "$root" ]; then
   printf 'checkpoint-archive-check.sh: not a directory: %s\n' "$root" >&2
   exit 1
@@ -97,6 +110,9 @@ if [ -d "$completed_dir" ]; then
     fi
     plan_twin="$completed_dir/$plan.json"
     if [ ! -f "$plan_twin" ]; then
+      if is_legacy_seq "$(frontmatter_field "$plan_md" seq)"; then
+        continue
+      fi
       printf '%s: twin %s.json is missing\n' "$plan" "$plan" >&2
       violations=$((violations + 1))
       continue
