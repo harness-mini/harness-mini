@@ -453,6 +453,36 @@ assert_contains() { # <haystack> <needle> <msg>
   esac
 }
 
+predictor_warning() { # <predicted> <actual> <label> — loud, non-blocking drift
+  # notice: --list counts are statically predicted executions; if they drift
+  # from what a run actually executed, the counts are untrusted until fixed.
+  # Warning-only by design — the exit contract stays "exit = tests".
+  [ "$1" -ne "$2" ] 2>/dev/null || return 0
+  printf 'warning: predictor drift: %s predicted %s asserts, ran %s — "tests/run.sh --list" counts are untrusted until the predictor is fixed\n' "$3" "$1" "$2" >&2
+  return 0
+}
+
+# --- predicted assert total for the drift guard: the groups that will run ----
+# (full run = all groups; selected run = the requested ones). Compared against
+# the real execution count in the footer; zero cost beyond --list's own.
+# The group index is normally built lazily (args / --list) — build it here for
+# every path, since the footer compares predictions on full runs too.
+init_group_index
+init_predictor_awk
+PREDICTED_TOTAL=0
+pgi=0
+while [ "$pgi" -lt "${#GROUP_NAMES[@]}" ]; do
+  case " ${SELECTED:-} " in
+    *" ${GROUP_NAMES[$pgi]} "*)
+      PREDICTED_TOTAL=$((PREDICTED_TOTAL + $(group_assert_count "${GROUP_STARTS[$pgi]}" "${GROUP_ENDS[$pgi]}")))
+      ;;
+    "  ") # no selection: every group runs
+      PREDICTED_TOTAL=$((PREDICTED_TOTAL + $(group_assert_count "${GROUP_STARTS[$pgi]}" "${GROUP_ENDS[$pgi]}")))
+      ;;
+  esac
+  pgi=$((pgi + 1))
+done
+
 # --- selected run: eval the requested groups in file order, then the footer --
 # NB: the eval'd sections run in this shell and may reuse short names like `i`,
 # so the dispatch loop keeps to its sel_* namespace.
@@ -3121,6 +3151,25 @@ assert_eq "0047-new: twin 0047-new.json is missing" "$out" \
 rm -rf "$CAC_LG"
 
 # =============================================================================
+echo "run.sh — predictor-drift guard (--list counts vs actual executions)"
+# @group predictor-guard
+# function level: mismatch warns to stderr, agreement and garbage are silent,
+# and the warning never changes the exit contract
+out="$(predictor_warning 9 8 'ctx' 2>&1)"; code=$?
+assert_exit 0 "$code" "predictor_warning never fails the run (warning-only)"
+assert_contains "$out" "predictor drift" "mismatch prints a drift warning"
+assert_contains "$out" "ctx predicted 9 asserts, ran 8" "the warning names label, predicted, actual"
+out="$(predictor_warning 9 9 'ctx' 2>&1)"
+assert_eq "" "$out" "agreement is silent"
+out="$(predictor_warning '' '' 'ctx' 2>&1)"
+assert_eq "" "$out" "malformed (unset) input is a silent skip"
+# integration: a real small group run agrees with its prediction -> no warning;
+# this is the standing canary — if the predictor drifts, this goes red
+out="$(bash "$RUNNER_SCRIPT" ctx 2>&1)"
+assert_contains "$out" "Passed: 8" "ctx group runs exactly its predicted count"
+assert_eq "0" "$(printf '%s' "$out" | grep -c 'predictor drift')" "real group run prints no drift warning"
+
+# =============================================================================
 # summary + final cleanup — the tail after the last @group; runs on
 # selected runs too, hence the :- guards on section-local fixture vars
 rm -rf "${SDS:-}" "${SDH:-}" "${SDP1:-}" "${SDP2:-}" "${SDP3:-}" "${SDP4:-}" "${SDP5:-}" "${SDP6:-}"
@@ -3130,4 +3179,5 @@ rm -rf "$HARNESS_HOME"
 # =============================================================================
 echo ""
 echo "Passed: $PASS  Failed: $FAIL"
+predictor_warning "${PREDICTED_TOTAL:-}" "$((PASS + FAIL))" "suite"
 [ "$FAIL" -eq 0 ]
