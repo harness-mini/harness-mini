@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-13
+
 ### Added
 - **Test group selection for the TDD inner loop (plan 0063).**
   `bash tests/run.sh <group>...` runs only the named groups;
