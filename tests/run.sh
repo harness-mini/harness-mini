@@ -1,8 +1,372 @@
 #!/usr/bin/env bash
 # Zero-dependency test runner for harness-mini bin/ scripts.
-# Usage: bash tests/run.sh
+# Usage: bash tests/run.sh [<group>...|--list]   (no args: full suite)
 # TDD: these tests are written before (or alongside) the implementation.
 set -u
+
+# --- group selection (0063): tests/run.sh [<group>...|--list] ----------------
+# Sections carry a `# @group <name>` tag under their banner; a group extends
+# over following untagged banner blocks (merged fixture clusters). No
+# arguments runs the file below unchanged. Group arguments run only those
+# sections, in file order, evaluated in this shell so the PASS/FAIL counters,
+# helper functions and HARNESS_HOME carry over. --list prints every group
+# with the assert count it will execute, derived statically from this file
+# (call sites expanded by literal for-loops and local fixture functions).
+RUNNER_SCRIPT="$0"
+
+print_group_usage() {
+  printf 'usage: bash tests/run.sh              run the full suite (default)\n' >&2
+  printf '       bash tests/run.sh <group>...   run only these groups, in file order\n' >&2
+  printf '       bash tests/run.sh --list       list groups with assert counts\n' >&2
+}
+
+init_group_index() {
+  GROUP_NAMES=(); GROUP_STARTS=(); GROUP_ENDS=()
+  local ban_line=() ban_tag=() n=0 i j b next lt total_lines
+  total_lines=$(wc -l < "$RUNNER_SCRIPT" | tr -d ' ')
+  for b in $(grep -n '^# ===' "$RUNNER_SCRIPT" | cut -d: -f1); do
+    ban_line[$n]="$b"; n=$((n + 1))
+  done
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    if [ $((i + 1)) -lt "$n" ]; then next=${ban_line[$((i + 1))]}; else next=$((total_lines + 1)); fi
+    ban_tag[$i]=$(sed -n "${ban_line[$i]},${next}p" "$RUNNER_SCRIPT" | sed -n 's/^# @group //p' | head -n 1)
+    i=$((i + 1))
+  done
+  lt=-1; i=0
+  while [ "$i" -lt "$n" ]; do
+    [ -n "${ban_tag[$i]}" ] && lt=$i
+    i=$((i + 1))
+  done
+  [ "$lt" -lt 0 ] && return 0
+  if [ $((lt + 1)) -lt "$n" ]; then FOOTER_START=${ban_line[$((lt + 1))]}; else FOOTER_START=$total_lines; fi
+  i=0
+  while [ "$i" -lt "$n" ]; do
+    if [ -n "${ban_tag[$i]}" ]; then
+      j=$((i + 1)); next=""
+      while [ "$j" -lt "$n" ]; do
+        [ -n "${ban_tag[$j]}" ] && { next=$((ban_line[j] - 1)); break; }
+        j=$((j + 1))
+      done
+      [ -z "$next" ] && next=$((FOOTER_START - 1))
+      GROUP_NAMES[${#GROUP_NAMES[@]}]="${ban_tag[$i]}"
+      GROUP_STARTS[${#GROUP_STARTS[@]}]="${ban_line[$i]}"
+      GROUP_ENDS[${#GROUP_ENDS[@]}]="$next"
+    fi
+    i=$((i + 1))
+  done
+}
+
+init_predictor_awk() {
+  # NB: bash 3.2 mangles heredocs inside $(); capture via read instead
+  IFS= read -r -d '' ASSERT_COUNT_AWK <<'AWK' || true
+# Predict how many assert executions a group's lines will perform: assert
+# call sites multiplied by the literal iteration counts of enclosing for-
+# loops and by the call counts of local fixture functions that contain
+# sites. Quoted text is masked first so keywords inside messages ("until-",
+# "for a non-harness skill") cannot distort the scan.
+{
+  lines[NR] = $0
+}
+END {
+  n = NR
+  for (r = 1; r <= n; r++) masked[r] = mask_line(lines[r])
+  pass1_extents()
+  sp = 0; product = 1; ns = 0; curfn = ""; cdepth = 0; pend = ""
+  in_heredoc = ""
+  for (r = 1; r <= n; r++) {
+    line = masked[r]
+    if (in_heredoc != "") {
+      if (index(line, in_heredoc) == 1) in_heredoc = ""
+      track_fn(line)
+      continue
+    }
+    if (pend != "") { line = pend_feed(line) }
+    if (line ~ /^[ \t]*#/) { track_fn(line); continue }
+    hd = heredoc_start(line)
+    if (hd != "") { in_heredoc = hd; track_fn(line); continue }
+    if (match(line, /^[A-Za-z_][A-Za-z0-9_]*\(\)/)) { curfn = substr(line, 1, RLENGTH - 2); cdepth = 0 }
+    if (curfn != "") { cdepth += brace_delta(line); if (cdepth <= 0) curfn = "" }
+    kw = next_incomplete_header(line)
+    if (kw > 0) {
+      scan_events(substr(line, 1, kw - 1))
+      pend = substr(line, kw)
+      continue
+    }
+    scan_events(line)
+  }
+  for (f = 0; f < nf; f++) {
+    fn = ford[f]
+    if (fsites[fn] == 0) continue
+    calls[fn] = 0
+    for (r = 1; r <= n; r++) {
+      if (r >= fstart[fn] && r <= fend[fn]) continue
+      if (masked[r] ~ /^[ \t]*#/) continue
+      p = 0
+      while ((p = bfind(masked[r], fn, p + 1)) > 0) calls[fn]++
+    }
+  }
+  total = 0
+  for (s = 0; s < ns; s++) {
+    mult = 1
+    if (sitefn[s] != "") mult = calls[sitefn[s]] + 0
+    total += sites[s] * mult
+  }
+  print total
+}
+
+function pass1_extents(   r, line, fname, depth) {
+  nf = 0; fname = ""
+  for (r = 1; r <= n; r++) {
+    line = masked[r]
+    if (match(line, /^[A-Za-z_][A-Za-z0-9_]*\(\)/)) {
+      fname = substr(line, 1, RLENGTH - 2)
+      if (!(fname in fend)) { ford[nf++] = fname; fstart[fname] = r; depth = 0 }
+    }
+    if (fname != "" && !(fname in fend)) {
+      depth += brace_delta(line)
+      if (depth <= 0) { fend[fname] = r; fname = "" }
+    }
+  }
+}
+
+function track_fn(line) {
+  if (match(line, /^[A-Za-z_][A-Za-z0-9_]*\(\)/)) { curfn = substr(line, 1, RLENGTH - 2); cdepth = 0 }
+  if (curfn != "") { cdepth += brace_delta(line); if (cdepth <= 0) curfn = "" }
+}
+
+function mask_line(line,   i, L, c, out, in_dq, in_sq, csdepth, esc) {
+  out = ""; in_dq = 0; in_sq = 0; csdepth = 0; esc = 0
+  L = length(line)
+  for (i = 1; i <= L; i++) {
+    c = substr(line, i, 1)
+    if (esc) { out = out " "; esc = 0; continue }
+    if (c == "\\") { out = out " "; esc = 1; continue }
+    if (in_sq) { out = out (c == "'" ? "'" : " "); if (c == "'") in_sq = 0; continue }
+    if (in_dq && csdepth == 0) {
+      if (c == "\"") { in_dq = 0; out = out "\"" }
+      else if (c == "$" && substr(line, i, 2) == "$(") { csdepth = 1; out = out "  "; i++ }
+      else out = out " "
+      continue
+    }
+    if (in_dq && csdepth > 0) {
+      if (c == "\"") out = out "\""
+      else if (c == "$" && substr(line, i, 2) == "$(") { csdepth++; out = out "  "; i++ }
+      else if (c == ")") { csdepth--; out = out (csdepth == 0 ? " " : ")") }
+      else out = out " "
+      continue
+    }
+    if (c == "'") { in_sq = 1; out = out "'"; continue }
+    if (c == "\"") { in_dq = 1; out = out "\""; continue }
+    out = out c
+  }
+  return out
+}
+
+function heredoc_start(line,   p, rest, d) {
+  p = index(line, "<<")
+  if (p == 0) return ""
+  rest = substr(line, p + 2)
+  if (match(rest, /^[ \t]*'[^']*'/)) {
+    d = substr(rest, RSTART, RLENGTH); gsub(/^[ \t]*'|'$/, "", d); return d
+  }
+  if (match(rest, /^[ \t]*"[^"]*"/)) {
+    d = substr(rest, RSTART, RLENGTH); gsub(/^[ \t]*"|"$/, "", d); return d
+  }
+  if (match(rest, /^[ \t]*[A-Za-z_][A-Za-z0-9_]*/)) {
+    d = substr(rest, RSTART, RLENGTH); gsub(/^[ \t]*/, "", d); return d
+  }
+  return ""
+}
+
+function pend_feed(line,   p, i2) {
+  p = 0
+  while (1) {
+    i2 = index(substr(line, p + 1), ";")
+    if (i2 == 0) break
+    p = p + i2
+    rest = substr(line, p)
+    if (match(rest, /^;[ \t]*do([^A-Za-z0-9_]|$)/)) {
+      push_loop(pend " " substr(line, 1, p + RLENGTH))
+      pend = ""
+      return substr(line, p + RLENGTH)
+    }
+  }
+  pend = pend " " line
+  return ""
+}
+
+function brace_delta(line,   i, L, d, c) {
+  d = 0; L = length(line)
+  for (i = 1; i <= L; i++) {
+    c = substr(line, i, 1)
+    if (c == "$") { i++; continue }   # skip the brace of ${ / $( forms
+    if (c == "{") d++
+    if (c == "}") d--
+  }
+  return d
+}
+
+function push_loop(header,   iters) {
+  iters = 1
+  if (match(header, /[ \t]in[ \t][^;]*/)) {
+    iters = countwords(substr(header, RSTART + 3, RLENGTH - 3))
+    if (iters < 1) iters = 1
+  }
+  stack[++sp] = iters; product *= iters
+}
+
+function pop_loop() { if (sp > 0) { product /= stack[sp]; sp-- } }
+
+function countwords(s,   n, i, L, c, q) {
+  n = 0; i = 1; L = length(s)
+  while (i <= L) {
+    c = substr(s, i, 1)
+    if (c == " " || c == "\t") { i++; continue }
+    if (c == "$") { if (substr(s, i, 2) == "$(") return -1; i++; continue }
+    if (c == "`") return -1
+    n++
+    while (i <= L) {
+      c = substr(s, i, 1)
+      if (c == " " || c == "\t") break
+      if (c == "'" || c == "\"") {
+        q = c; i++
+        while (i <= L && substr(s, i, 1) != q) i++
+        i++
+        continue
+      }
+      i++
+    }
+  }
+  return n
+}
+
+function bfind(str, word, from,   p, L, ch1, ch2, i2) {
+  L = length(str); p = from - 1
+  while (1) {
+    i2 = index(substr(str, p + 1), word)
+    if (i2 == 0) return 0
+    p = p + i2
+    ch1 = (p > 1) ? substr(str, p - 1, 1) : " "
+    ch2 = (p + length(word) <= L) ? substr(str, p + length(word), 1) : " "
+    if (ch1 !~ /[A-Za-z0-9_]/ && ch2 !~ /[A-Za-z0-9_]/) return p
+  }
+}
+
+# loop keywords only: reject flag occurrences like --until
+function kwfind(str, word, from,   p) {
+  while ((p = bfind(str, word, from)) > 0) {
+    if (p > 1 && substr(str, p - 1, 1) == "-") { from = p + 1; continue }
+    return p
+  }
+  return 0
+}
+
+function next_incomplete_header(line,   kws, k, p, best) {
+  split("for while until", kws, " ")
+  best = 0
+  for (k = 1; k <= 3; k++) {
+    p = kwfind(line, kws[k], 1)
+    if (p > 0 && (best == 0 || p < best)) best = p
+  }
+  if (best == 0) return 0
+  if (match(substr(line, best), /^[A-Za-z]+[ \t]+[^;]*;[ \t]*do([^A-Za-z0-9_]|$)/)) return 0
+  return best
+}
+
+function scan_events(line,   pos, p, kind, plen, a, p2) {
+  split("assert_eq assert_exit assert_contains", atoks, " ")
+  pos = 1
+  while (pos <= length(line)) {
+    p = 0; kind = ""; plen = 0
+    for (a = 1; a <= 3; a++) {
+      p2 = bfind(line, atoks[a], pos)
+      if (p2 > 0 && (p == 0 || p2 < p)) { p = p2; kind = "A"; plen = length(atoks[a]) }
+    }
+    a = bfind(line, "done", pos)
+    if (a > 0 && (p == 0 || a < p)) { p = a; kind = "D"; plen = 4 }
+    a = next_opener(line, pos)
+    if (a > 0 && (p == 0 || a < p)) { p = a; kind = "O"; plen = 0 }
+    if (p == 0) break
+    if (kind == "A") { sites[ns] = product; sitefn[ns] = curfn; if (curfn != "") fsites[curfn]++; ns++ }
+    else if (kind == "D") pop_loop()
+    else { plen = opener_length(line, p); push_for_list(line, p) }
+    pos = p + plen
+  }
+}
+
+function next_opener(line, pos,   kws, k, p, best) {
+  split("for while until", kws, " ")
+  best = 0
+  for (k = 1; k <= 3; k++) {
+    p = kwfind(line, kws[k], pos)
+    if (p > 0 && (best == 0 || p < best)) best = p
+  }
+  if (best == 0) return 0
+  if (!match(substr(line, best), /^[A-Za-z]+[ \t]+[^;]*;[ \t]*do([^A-Za-z0-9_]|$)/)) return 0
+  return best
+}
+
+function opener_length(line, p) {
+  match(substr(line, p), /^[A-Za-z]+[ \t]+[^;]*;[ \t]*do/)
+  return RLENGTH
+}
+
+function push_for_list(line, p,   rest, iters, liststr) {
+  rest = substr(line, p)
+  iters = 1
+  if (match(rest, /^[A-Za-z]+[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+in[ \t][^;]*/)) {
+    liststr = substr(rest, RSTART, RLENGTH)
+    sub(/^[A-Za-z]+[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]+in[ \t]/, "", liststr)
+    iters = countwords(liststr)
+    if (iters < 1) iters = 1
+  }
+  stack[++sp] = iters; product *= iters
+}
+AWK
+}
+
+group_assert_count() { # <start> <end> — predicted assert executions (static)
+  sed -n "$1,$2p" "$RUNNER_SCRIPT" | awk "$ASSERT_COUNT_AWK"
+}
+
+if [ "${1:-}" = "--list" ]; then
+  init_group_index
+  init_predictor_awk
+  i=0; total=0
+  while [ "$i" -lt "${#GROUP_NAMES[@]}" ]; do
+    count=$(group_assert_count "${GROUP_STARTS[$i]}" "${GROUP_ENDS[$i]}")
+    printf '%s %s\n' "${GROUP_NAMES[$i]}" "$count"
+    total=$((total + count))
+    i=$((i + 1))
+  done
+  printf 'total %s\n' "$total"
+  exit 0
+fi
+
+SELECTED=""
+if [ "$#" -gt 0 ]; then
+  init_group_index
+  known=" "; i=0
+  while [ "$i" -lt "${#GROUP_NAMES[@]}" ]; do
+    known="$known${GROUP_NAMES[$i]} "
+    i=$((i + 1))
+  done
+  for requested in "$@"; do
+    case "$known" in
+      *" $requested "*) ;;
+      *)
+        printf 'run.sh: unknown test group: %s\n' "$requested" >&2
+        print_group_usage
+        exit 2
+        ;;
+    esac
+    case " $SELECTED " in
+      *" $requested "*) ;;
+      *) SELECTED="$SELECTED$requested " ;;
+    esac
+  done
+fi
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BIN="$ROOT/bin"
@@ -32,6 +396,43 @@ stub_agent_install() { # <src_root> <project>
   return 0
 }
 
+# --- shared snapshot/fixture helpers (hoisted from the migration section
+# in 0063 so any selected group can use them) ---------------------------------
+sha() { bash -c '. "$1"; cksum_file "$2"' _ "$LIB" "$1"; }
+snap() { # <dir> — every file/symlink with its checksum: a no-diff check for repeat runs
+  ( cd "$1" && find . \( -type f -o -type l \) | LC_ALL=C sort | while IFS= read -r f; do printf '%s %s\n' "$f" "$(sha "$f")"; done )
+}
+has() { [ -e "$1" ] || [ -L "$1" ] && echo true || echo false; }
+# an OLD-format lock (harness/harness.lock) whose baselines are the files as they are NOW
+mklock() { # <project> <version> <rel>...
+  local p="$1" v="$2" r; shift 2; mkdir -p "$p/harness"
+  { printf 'version: %s\n' "$v"; for r in "$@"; do printf '%s  %s\n' "$(sha "$p/$r")" "$r"; done; } > "$p/harness/harness.lock"
+}
+# The manifests the old init.sh files GENERATED, byte-for-byte as produced by `git archive HEAD`
+# [0058 layout], v0.12.1 and v0.10.0 init output (entry lists shortened to two skills/roles).
+real_manifest() { # <0058|0121|0100>
+  case "$1" in
+  0058) printf '%s\n' '# harness-mini manifest' '' \
+          'Skills are under .agents/skills/; role descriptions are under harness/agents/.' \
+          'Any coding agent that can read the repo should open the paths below.' '' \
+          '## Skills (.agents/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
+          '## Role descriptions (harness/agents/)' '- explorer.md' '- planner.md' '' \
+          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
+  0121) printf '%s\n' '# harness-mini manifest' '' \
+          'Skills and agents are files under .claude/skills/ and .claude/agents/.' \
+          'Any coding agent that can read the repo should open the paths below.' '' \
+          '## Skills (.claude/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
+          '## Agents (.claude/agents/)' '- explorer.md' '- planner.md' '' \
+          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
+  0100) printf '%s\n' '# harness-mini manifest (CLI-neutral pointer list)' '' \
+          'Claude Code auto-loads skills/agents from .claude/. Other CLIs (codex,' \
+          'cursor) should read the files below directly.' '' \
+          '## Skills (.claude/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
+          '## Agents (.claude/agents/)' '- explorer.md' '- planner.md' '' \
+          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
+  esac
+}
+
 # --- assertion helpers -------------------------------------------------------
 assert_eq() { # <expected> <actual> <msg>
   if [ "$1" = "$2" ]; then
@@ -52,8 +453,27 @@ assert_contains() { # <haystack> <needle> <msg>
   esac
 }
 
+# --- selected run: eval the requested groups in file order, then the footer --
+# NB: the eval'd sections run in this shell and may reuse short names like `i`,
+# so the dispatch loop keeps to its sel_* namespace.
+if [ -n "$SELECTED" ]; then
+  sel_total=${#GROUP_NAMES[@]}
+  sel_idx=0
+  while [ "$sel_idx" -lt "$sel_total" ]; do
+    case " $SELECTED " in
+      *" ${GROUP_NAMES[$sel_idx]} "*)
+        eval "$(sed -n "${GROUP_STARTS[$sel_idx]},${GROUP_ENDS[$sel_idx]}p" "$RUNNER_SCRIPT")"
+        ;;
+    esac
+    sel_idx=$((sel_idx + 1))
+  done
+  eval "$(sed -n "${FOOTER_START},\$p" "$RUNNER_SCRIPT")"
+  exit
+fi
+
 # =============================================================================
 echo "ctx.sh — context occupancy gate (40%% smart/dumb threshold)"
+# @group ctx
 # 50k/200k = 25% -> smart zone, exit 0
 out=$(bash "$BIN/ctx.sh" 50000 200000); code=$?
 assert_eq "25%" "$out" "ctx 50k/200k prints 25%"
@@ -75,6 +495,7 @@ assert_exit 0 "$code" "ctx 50% is smart when threshold raised to 60"
 
 # =============================================================================
 echo "model.sh — resolve a role's model alias (builder upgrades to the top tier when enabled)"
+# @group model
 # static tiers are the unchanged "current use" — never upgraded
 assert_eq "sonnet" "$(bash "$BIN/model.sh" planner)"   "planner -> sonnet (static tier)"
 assert_eq "opus"   "$(bash "$BIN/model.sh" evaluator)" "evaluator -> opus (static tier)"
@@ -99,6 +520,7 @@ assert_exit 64 "$code" "model.sh with no role is a usage error (64)"
 
 # =============================================================================
 echo "trace.sh — best-effort runtime JSONL append"
+# @group trace
 TMPT="$(mktemp -d)"
 HARNESS_TRACE_DIR="$TMPT" HARNESS_RUN="r-test" \
   bash "$BIN/trace.sh" generator implement tool_call tool=Edit ctx_pct=22 >/dev/null
@@ -123,6 +545,7 @@ rm -rf "$TMPT"
 
 # =============================================================================
 echo "ralph.sh — long loop until predicate / max-iters / human flag"
+# @group ralph
 MARK="$(mktemp -u)"
 rm -f "$MARK"
 # stops when --until passes; --cmd creates the marker on first run
@@ -140,6 +563,7 @@ rm -f "$FLAG"
 
 # =============================================================================
 echo "project-id + layout resolver — <name>-<8 base36>, state dir, progress dir (0059 #1)"
+# @group project-id
 pid() { bash -c '. "$1"; project_id "$2"' _ "$LIB" "$1"; }
 # format: lowercase-hyphenated name, dash, exactly 8 chars of [0-9a-z]
 id="$(pid "/nonexistent/x")"
@@ -169,6 +593,7 @@ assert_eq "/tmp/other-home/projects/x-alij4br1" "$state" "state_dir honours the 
 
 # =============================================================================
 echo "central runtime — install executables outside projects and select project root"
+# @group runtime-install
 RUNTIME_PROJECT="$(mktemp -d)"
 HARNESS_SRC="$ROOT" bash "$ROOT/init.sh" "$RUNTIME_PROJECT" >/dev/null 2>&1
 assert_eq "true" "$([ -x "$HARNESS_HOME/bin/harness.sh" ] && echo true || echo false)" "runtime harness.sh installs under HARNESS_HOME"
@@ -221,6 +646,7 @@ rm -rf "$PROJECT_B" "$RUNTIME_PROJECT"
 
 # =============================================================================
 echo "init.sh — additive, idempotent installer with new/existing asymmetry"
+# @group init-bootstrap
 # Build a fake source tree so installer logic is tested independent of real assets.
 FSRC="$(mktemp -d)"; FHOME="$(mktemp -d)"
 mkdir -p "$FSRC/skills" "$FSRC/agents" "$FSRC/bin" "$FSRC/docs" "$FSRC/skills/demo/scripts"
@@ -274,6 +700,7 @@ rm -rf "$FSRC" "$NEW" "$EXIST" "$FHOME"
 
 # =============================================================================
 echo "init.sh — progress files live in <project>/.harness-mini/ (0059 #2)"
+# @group init-progress
 PSRC="$(mktemp -d)"; mkdir -p "$PSRC/skills" "$PSRC/agents" "$PSRC/bin" "$PSRC/docs"
 printf 'skill\n' > "$PSRC/skills/sample.md"; printf 'agent\n' > "$PSRC/agents/planner.md"
 printf 'echo hi\n' > "$PSRC/bin/ctx.sh"; printf 'map\n' > "$PSRC/AGENTS.md"
@@ -328,6 +755,7 @@ rm -rf "$GX" "$GXN"
 
 # =============================================================================
 echo "init.sh — AGENTS.md marker block + global map/docs split (0059 #3)"
+# @group init-agents-md
 ASRC="$(mktemp -d)"; AHOME="$(mktemp -d)"
 mkdir -p "$ASRC/skills/tdd" "$ASRC/agents" "$ASRC/bin" "$ASRC/docs/templates" "$ASRC/references" \
   "$ASRC/assets" "$ASRC/docs/examples/demo"
@@ -423,6 +851,7 @@ rm -rf "$AG" "$AX" "$ASRC" "$AHOME"
 
 # =============================================================================
 echo "init.sh — host-neutral: no host files, no project skills until agent install"
+# @group init-host-neutral
 NSRC="$(mktemp -d)"; NHOME="$(mktemp -d)"
 mkdir -p "$NSRC/skills/tdd" "$NSRC/agents" "$NSRC/bin" "$NSRC/docs"
 printf -- '---\nname: tdd\ndescription: Test-first workflow.\n---\nbody\n' > "$NSRC/skills/tdd/SKILL.md"
@@ -451,14 +880,17 @@ rm -rf "$NSRC" "$NCLAUDE" "$NCURSOR" "$NUNKNOWN" "$NHOME"
 
 # =============================================================================
 echo "repo assets — parallel-slices skill exists"
+# @group repo-assets
 assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true || echo false)" "parallel-slices skill source exists"
 
 # =============================================================================
 echo "tdd skill — one red→green cycle per acceptance criterion (#29)"
+# @group tdd-skill
 assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd source requires a failing test per acceptance criterion"
 
 # =============================================================================
 echo "harness.sh version — report the installed harness version"
+# @group version
 HARN="$BIN/harness.sh"
 # from the source repo (no lock), version falls back to the root VERSION file
 out=$(HARNESS_NO_NET=1 bash "$HARN" version 2>/dev/null); code=$?
@@ -480,6 +912,7 @@ rm -rf "$LK"
 
 # =============================================================================
 echo "version_newer — dependency-free semver compare"
+# @group version-newer
 vnew() { bash -c '. "$1"; version_newer "$2" "$3" && echo yes || echo no' _ "$BIN/_harness_lib.sh" "$1" "$2"; }
 assert_eq "yes" "$(vnew 0.5.0 0.6.0)"  "version_newer: 0.6.0 > 0.5.0"
 assert_eq "no"  "$(vnew 0.5.0 0.5.0)"  "version_newer: equal is not newer"
@@ -491,6 +924,7 @@ assert_eq "no"  "$(vnew '' 0.6.0)"     "version_newer: empty installed is not a 
 
 # =============================================================================
 echo "update reminder — surfaced in version / status / doctor (HARNESS_LATEST injects)"
+# @group update-reminder
 UDIR="$(mktemp -d)"; mkdir -p "$UDIR/harness" "$UDIR/.agents/skills/x" "$UDIR/.harness-mini/docs/exec-plans/active"
 printf 'version: 0.5.0\n' > "$(lockpath "$UDIR")"
 printf 'AGENTS\n' > "$UDIR/AGENTS.md"
@@ -516,6 +950,7 @@ rm -rf "$UDIR"
 
 # =============================================================================
 echo "init.sh — per-project harness.lock + manifest.md under the state dir (0059 #4)"
+# @group manifest
 LSRC="$(mktemp -d)"
 mkdir -p "$LSRC/skills" "$LSRC/agents" "$LSRC/bin" "$LSRC/docs" "$LSRC/skills/demo"
 printf 'skill body\n' > "$LSRC/skills/sample.md"
@@ -550,6 +985,7 @@ rm -rf "$LSRC" "$LDEST" "$LDEST2" "$LHOME"
 
 # =============================================================================
 echo "init.sh — neutral instructions are copied without host-specific gates"
+# @group init-instructions
 GNSRC="$(mktemp -d)"
 mkdir -p "$GNSRC/skills" "$GNSRC/agents" "$GNSRC/bin" "$GNSRC/docs"
 printf 'map\n' > "$GNSRC/AGENTS.md"
@@ -566,17 +1002,9 @@ assert_eq "map" "$(cat "$GNHOME/AGENTS.md")" "the full map is installed globally
 assert_eq "false" "$([ -f "$GNDST/.cursor/rules/harness-mini.mdc" ] && echo true || echo false)" "installer adds no host-specific routing file"
 rm -rf "$GNSRC" "$GNDST" "$GNHOME"
 
+# =============================================================================
 echo "legacy migration — 0058 layout and pre-0058 layout (0059 #7)"
-sha() { bash -c '. "$1"; cksum_file "$2"' _ "$LIB" "$1"; }
-snap() { # <dir> — every file/symlink with its checksum: a no-diff check for repeat runs
-  ( cd "$1" && find . \( -type f -o -type l \) | LC_ALL=C sort | while IFS= read -r f; do printf '%s %s\n' "$f" "$(sha "$f")"; done )
-}
-has() { [ -e "$1" ] || [ -L "$1" ] && echo true || echo false; }
-# an OLD-format lock (harness/harness.lock) whose baselines are the files as they are NOW
-mklock() { # <project> <version> <rel>...
-  local p="$1" v="$2" r; shift 2; mkdir -p "$p/harness"
-  { printf 'version: %s\n' "$v"; for r in "$@"; do printf '%s  %s\n' "$(sha "$p/$r")" "$r"; done; } > "$p/harness/harness.lock"
-}
+# @group migration-0058
 MS="$(mktemp -d)"; MH="$(mktemp -d)"
 mkdir -p "$MS/skills/tdd" "$MS/agents" "$MS/bin" "$MS/docs"
 cp "$BIN"/*.sh "$MS/bin/"                     # a real source ships the runtime: migration requires it
@@ -586,30 +1014,6 @@ printf 'principles\n' > "$MS/docs/principles.md"; printf 'assumptions\n' > "$MS/
 mig_init() { HARNESS_SRC="$MS" HARNESS_HOME="$MH" bash "$ROOT/init.sh" "$1" 2>&1; }
 mstate() { HARNESS_HOME="$MH" bash -c '. "$1"; state_dir "$2"' _ "$LIB" "$1"; }
 BLOCK1="$(bash -c '. "$1"; printf "%s" "$HM_BEGIN"' _ "$LIB")"
-# The manifests the old init.sh files GENERATED, byte-for-byte as produced by `git archive HEAD`
-# [0058 layout], v0.12.1 and v0.10.0 init output (entry lists shortened to two skills/roles).
-real_manifest() { # <0058|0121|0100>
-  case "$1" in
-  0058) printf '%s\n' '# harness-mini manifest' '' \
-          'Skills are under .agents/skills/; role descriptions are under harness/agents/.' \
-          'Any coding agent that can read the repo should open the paths below.' '' \
-          '## Skills (.agents/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
-          '## Role descriptions (harness/agents/)' '- explorer.md' '- planner.md' '' \
-          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
-  0121) printf '%s\n' '# harness-mini manifest' '' \
-          'Skills and agents are files under .claude/skills/ and .claude/agents/.' \
-          'Any coding agent that can read the repo should open the paths below.' '' \
-          '## Skills (.claude/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
-          '## Agents (.claude/agents/)' '- explorer.md' '- planner.md' '' \
-          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
-  0100) printf '%s\n' '# harness-mini manifest (CLI-neutral pointer list)' '' \
-          'Claude Code auto-loads skills/agents from .claude/. Other CLIs (codex,' \
-          'cursor) should read the files below directly.' '' \
-          '## Skills (.claude/skills/)' '- checkpoint/SKILL.md' '- tdd/SKILL.md' '' \
-          '## Agents (.claude/agents/)' '- explorer.md' '- planner.md' '' \
-          '## Map: AGENTS.md   Architecture: ARCHITECTURE.md' ;;
-  esac
-}
 
 # --- (a) a 0058-layout project ------------------------------------------------
 PA="$(mktemp -d)"
@@ -785,6 +1189,7 @@ rm -rf "$MS" "$MH" "$PA" "$PB" "$PC" "$PD1" "$PD2" "$PE"
 
 # =============================================================================
 echo "legacy upgrade — the runtime is installed and usable BEFORE anything is removed (B1)"
+# @group legacy-upgrade
 NEWVER="$(tr -d ' \t\r\n' < "$ROOT/VERSION")"
 block_hs() { grep -o '"[^"]*/bin/harness.sh"' "$1/AGENTS.md" 2>/dev/null | head -n1 | tr -d '"'; }
 have_tag() { git -C "$ROOT" rev-parse -q --verify refs/tags/v0.12.1 >/dev/null 2>&1; }
@@ -916,7 +1321,9 @@ rm -rf "$OH" "$OP" "$NH"
 
 # =============================================================================
 echo "legacy migration — REAL generated 0058/0.12/0.10 manifests are recognised (M1)"
-# (real_manifest, defined with the migration fixtures above, is the generated shape)
+# @group migration-manifests
+# (real_manifest — the generated old-init.sh manifest shape — is defined with the
+# shared fixture helpers in the header, ahead of its first use below)
 XS="$(mktemp -d)"; XH="$(mktemp -d)"
 mkdir -p "$XS/skills/tdd" "$XS/agents" "$XS/docs"; cp -R "$BIN" "$XS/bin"
 printf 'NEW tdd\n' > "$XS/skills/tdd/SKILL.md"; printf 'role\n' > "$XS/agents/planner.md"; printf 'map\n' > "$XS/AGENTS.md"
@@ -985,6 +1392,7 @@ rm -rf "$XP" "$XS" "$XH"
 
 # =============================================================================
 echo "doctor/status surface unresolved .new files under HARNESS_HOME (m5)"
+# @group update-conflicts
 NS="$(mktemp -d)"; NH="$(mktemp -d)"; NP="$(mktemp -d)"
 mkdir -p "$NS/skills/tdd" "$NS/agents" "$NS/docs"; cp -R "$BIN" "$NS/bin"
 printf 'S\n' > "$NS/skills/tdd/SKILL.md"; printf 'r\n' > "$NS/agents/planner.md"; printf 'map\n' > "$NS/AGENTS.md"; printf 'old\n' > "$NS/docs/principles.md"
@@ -1001,6 +1409,7 @@ rm -rf "$NS" "$NH" "$NP"
 
 # =============================================================================
 echo "upgrade polish (0060) — N1: diff subcommand, the .new notice, refusal text"
+# @group update-polish
 mk_src() { # <dir> <version> — a small source tree that ships the real runtime
   mkdir -p "$1/skills/tdd" "$1/agents" "$1/docs"; cp -R "$BIN" "$1/bin"
   printf -- '---\nname: tdd\ndescription: tdd desc\n---\nS\n' > "$1/skills/tdd/SKILL.md"
@@ -1185,6 +1594,7 @@ rm -rf "$LS" "$LH" "$LP"
 
 # =============================================================================
 echo "CONTRIBUTING.md points at the current update command (m9)"
+# @group contributing
 assert_eq "0" "$(grep -c "\`bin/harness.sh update\`" "$ROOT/CONTRIBUTING.md")" "CONTRIBUTING.md no longer names the project-local bin/harness.sh update"
 
 # --- global copies: update refreshes them with the same guard -------------------
@@ -1232,6 +1642,7 @@ rm -rf "$GOLD" "$GNEW" "$GH" "$GP1" "$GP2" "$GP3"
 
 # =============================================================================
 echo "harness.sh update — checksum-guarded sync (ADD / UPDATE / CONFLICT)"
+# @group update
 # old upstream -> install it (records baseline lock)
 # fake versions 0.1.0 -> 0.2.0 must not meet the suite's shared home (real runtime, 0.13.0): that
 # would be a runtime downgrade, which update refuses. Use a private home for this section.
@@ -1290,6 +1701,7 @@ HARNESS_HOME="$HOME_BEFORE_UPD"; export HARNESS_HOME
 
 # =============================================================================
 echo "harness.sh update — project updates do not install centralized executables"
+# @group update-project
 SOOLD="$(mktemp -d)"; SONEW="$(mktemp -d)"; SOHOME="$(mktemp -d)"
 for d in "$SOOLD" "$SONEW"; do
   mkdir -p "$d/bin" "$d/skills" "$d/agents" "$d/docs"
@@ -1324,6 +1736,7 @@ rm -rf "$SOHOME"
 
 # =============================================================================
 echo "harness.sh update — runtime and project locks advance independently"
+# @group update-locks
 RTSRC_OLD="$(mktemp -d)"; RTSRC_NEW="$(mktemp -d)"; RT_HOME="$(mktemp -d)"
 cp -R "$ROOT/bin" "$ROOT/skills" "$ROOT/agents" "$ROOT/docs" "$RTSRC_OLD/"
 cp "$ROOT/AGENTS.md" "$ROOT/ARCHITECTURE.md" "$RTSRC_OLD/"
@@ -1356,6 +1769,7 @@ rm -rf "$RTSRC_OLD" "$RTSRC_NEW" "$RT_HOME" "$RT_A" "$RT_B"
 
 # =============================================================================
 echo "harness.sh release — guarded bump + tag (throwaway repos; --no-push/--no-gh)"
+# @group release
 mkrepo() { # <dir> <version> <tests-exit> — a minimal source repo
   git -C "$1" init -q
   printf '%s\n' "$2" > "$1/VERSION"
@@ -1392,6 +1806,7 @@ rm -rf "$RREPO" "$RRED" "$RDRY"
 
 # =============================================================================
 echo "harness.sh doctor — install health (3-severity, soft exit)"
+# @group doctor
 DDIR="$(mktemp -d)"
 bash "$ROOT/init.sh" "$DDIR" >/dev/null 2>&1          # a healthy fresh install
 stub_agent_install "$ROOT" "$DDIR"                  # ...plus `agent install` (stand-in)
@@ -1458,6 +1873,7 @@ rm -rf "$PDIR"
 
 # =============================================================================
 echo "harness.sh status — current work state (grep/awk/tail only)"
+# @group status
 SDIR="$(mktemp -d)"
 bash "$ROOT/init.sh" "$SDIR" >/dev/null 2>&1          # lock + seeded active plan
 splan="$(awk -F': *' '/^plan:/{print $2; exit}' "$SDIR"/.harness-mini/docs/exec-plans/active/0001-*.md)"
@@ -1476,6 +1892,7 @@ rm -rf "$SDIR"
 
 # =============================================================================
 echo "harness.sh status/doctor — JSON twin workboard (dual-file plans)"
+# @group status-json
 WDIR="$(mktemp -d)"
 bash "$ROOT/init.sh" "$WDIR" >/dev/null 2>&1   # seeds 0001-intake.md (mode: new)
 WMD="$(ls "$WDIR"/.harness-mini/docs/exec-plans/active/0001-*.md)"
@@ -1550,6 +1967,7 @@ rm -rf "$WDIR"
 
 # =============================================================================
 echo "harness.sh status — session path (path: init|coding + path_reason, #57)"
+# @group session-path
 # fixture factory: <root> <slug> <stage> <twin: none|next|green|empty|garbage>
 mkplan() {
   printf -- '---\nplan: %s\nseq: 0001\nstage: %s\nowner: main\n---\n# t\n' "$2" "$3" \
@@ -1607,6 +2025,7 @@ rm -rf "$PB"
 
 # =============================================================================
 echo "harness.sh status — garden trigger (cadence + smell backlog)"
+# @group garden
 GDIR="$(mktemp -d)"; mkdir -p "$GDIR/.harness-mini/trace/checkpoints" "$GDIR/harness"
 printf 'version: 0.0.0\n' > "$(lockpath "$GDIR")"
 mkcp() { printf -- '---\nplan: p\nseq: %s\n---\n' "$1" > "$GDIR/.harness-mini/trace/checkpoints/p-$1.md"; }
@@ -1633,6 +2052,7 @@ rm -rf "$GDIR"
 
 # =============================================================================
 echo "harness.sh status — readiness verdict (ready|warning|blocked) + plan-scoped resumable"
+# @group readiness
 RDY="$(mktemp -d)"; mkdir -p "$RDY/.agents/skills/x" "$RDY/.harness-mini/docs/exec-plans/active" \
   "$RDY/.harness-mini/trace/checkpoints" "$RDY/.harness-mini/trace/evals" "$RDY/harness"
 printf 'AGENTS\n' > "$RDY/AGENTS.md"
@@ -1682,6 +2102,7 @@ rm -rf "$RDY"
 
 # =============================================================================
 echo "harness.sh report — aggregate .trace into a metrics summary (grep/awk only)"
+# @group report
 RPT="$(mktemp -d)"; mkdir -p "$RPT/harness" "$RPT/.harness-mini/trace/runtime" "$RPT/.harness-mini/trace/checkpoints" "$RPT/.harness-mini/trace/evals"
 printf 'version: 0.6.0\n' > "$(lockpath "$RPT")"
 # a runtime trace: two stage advances + ctx samples, one of which crosses 40%
@@ -1710,6 +2131,7 @@ rm -rf "$RPT"
 
 # =============================================================================
 echo "harness.sh doctor — eval-gate teeth (a done plan needs a passing eval record)"
+# @group eval-gate
 EG="$(mktemp -d)"; mkdir -p "$EG/.agents/skills/x" "$EG/.harness-mini/docs/exec-plans/active" "$EG/.harness-mini/trace/evals" "$EG/harness"
 printf 'AGENTS\n' > "$EG/AGENTS.md"; printf 'version: 0.0.0\n' > "$(lockpath "$EG")"
 printf 'x\n' > "$EG/.agents/skills/x/SKILL.md"
@@ -1727,6 +2149,7 @@ rm -rf "$EG"
 
 # =============================================================================
 echo "ctx-hook.sh — heuristic context gauge for the PostToolUse hook"
+# @group ctx-hook
 HK="$BIN/ctx-hook.sh"
 HKT="$(mktemp -d)"
 big="$HKT/big.jsonl"; head -c 4000 /dev/zero | tr '\0' x > "$big"   # ~4000 bytes -> ~1000 est tokens
@@ -1752,6 +2175,7 @@ rm -rf "$HKT"
 
 # =============================================================================
 echo "source repo — AGENTS.md gate contract (one gate, status-first)"
+# @group repo-gate
 am="$ROOT/AGENTS.md"
 assert_contains "$(cat "$am")" "MUST FIRST** run" "AGENTS.md gate is status-first (mandatory)"
 assert_contains "$(cat "$am")" '$HOME/.harness-mini/bin/harness.sh' "AGENTS.md uses the centralized runtime command"
@@ -1766,6 +2190,7 @@ assert_eq "0" "$ambad" "AGENTS.md conditions slice-picking on path: coding"
 
 # =============================================================================
 echo "source repo — session-init skill (#58: plan-layer playbook, no product code)"
+# @group session-init-skill
 si="$ROOT/skills/session-init/SKILL.md"
 assert_eq "true" "$([ -f "$si" ] && echo true || echo false)" "skills/session-init/SKILL.md exists"
 sib="$(cat "$si" 2>/dev/null)"
@@ -1784,6 +2209,7 @@ assert_contains "$(cat "$am")" "session-init" "AGENTS.md skills list mentions se
 
 # =============================================================================
 echo "source repo — session-coding skill + Getting Bearings (#59)"
+# @group session-coding-skill
 sc="$ROOT/skills/session-coding/SKILL.md"
 assert_eq "true" "$([ -f "$sc" ] && echo true || echo false)" "skills/session-coding/SKILL.md exists"
 scb="$(cat "$sc" 2>/dev/null)"
@@ -1813,6 +2239,7 @@ assert_contains "$(cat "$am")" "session-coding" "AGENTS.md skills list mentions 
 
 # =============================================================================
 echo "skills/session-coding/scripts/session-bearings.sh — deterministic coding orientation (#75)"
+# @group session-bearings
 BEAR="$ROOT/skills/session-coding/scripts/session-bearings.sh"
 assert_eq "true" "$([ -f "$BEAR" ] && echo true || echo false)" "session-bearings.sh is skill-owned"
 assert_eq "false" "$([ -e "$BIN/session-bearings.sh" ] && echo true || echo false)" "session-bearings.sh is absent from shared bin"
@@ -1838,6 +2265,7 @@ rm -rf "$PB"
 
 # =============================================================================
 echo "bin/session.sh — Outer session runner (P2, #61)"
+# @group session-runner
 # mkboard/mkplan are defined in the session-path group above and reused here.
 SESS="$BIN/session.sh"
 # both skills installed in every fixture board, so selection is purely
@@ -1913,6 +2341,7 @@ rm -rf "$SGE" "$SGSRC"
 
 # =============================================================================
 echo "init.sh — seed plans carry their JSON twin (#64)"
+# @group seed-plans
 TWSRC="$(mktemp -d)"; mkdir -p "$TWSRC/skills" "$TWSRC/agents" "$TWSRC/bin" "$TWSRC/docs"
 printf 'skill\n' > "$TWSRC/skills/sample.md"
 printf 'agent\n'  > "$TWSRC/agents/planner.md"
@@ -1940,6 +2369,7 @@ rm -rf "$TW2" "$TWSRC"
 # checkpoint-hardening — slice-001: checkpoint-lint.sh
 # Tests written RED (before implementation). Discussion #75 / plan 0001.
 echo "checkpoint-lint.sh — validate Footprint entries enforce file:start-end::STATUS"
+# @group checkpoint-hardening
 CHECKPOINT_SCRIPTS="$ROOT/skills/checkpoint/scripts"
 LINT="$CHECKPOINT_SCRIPTS/checkpoint-lint.sh"
 assert_eq "true" "$([ -f "$LINT" ] && echo true || echo false)" "checkpoint lint helper is skill-owned"
@@ -2143,6 +2573,7 @@ rm -rf "$TMPG"
 # =============================================================================
 # checkpoint-hardening — slice-004: ctx-hook.sh last-green extension
 echo "ctx-hook.sh — auto-stamp last-green.txt when HARNESS_TEST_SCRIPT passes"
+# @group ctx-hook-last-green
 HOOK="$BIN/ctx-hook.sh"
 TMPH="$(mktemp -d)"
 
@@ -2180,6 +2611,7 @@ rm -rf "$TMPH"
 
 # =============================================================================
 echo "harness.sh agent — host-aware skills + agents installer (0059 #5)"
+# @group agent-install
 AGSRC="$(mktemp -d)"; AGH="$(mktemp -d)"
 mkdir -p "$AGSRC/skills/tdd" "$AGSRC/skills/session-init" "$AGSRC/agents" "$AGSRC/bin" "$AGSRC/docs"
 printf -- '---\nname: tdd\ndescription: Test first.\n---\nTDD BODY\n' > "$AGSRC/skills/tdd/SKILL.md"
@@ -2346,6 +2778,7 @@ rm -rf "$AGSRC" "$AGH" "$AGNEW"
 
 # =============================================================================
 echo "source repo layout — dogfood .harness-mini/, references/ + assets/ at root (0059 #6)"
+# @group repo-layout
 for d in references assets .harness-mini/docs/exec-plans/active .harness-mini/docs/exec-plans/completed \
          .harness-mini/trace/checkpoints .harness-mini/trace/evals; do
   assert_eq "true" "$([ -d "$ROOT/$d" ] && echo true || echo false)" "source repo has $d"
@@ -2401,6 +2834,7 @@ rm -rf "$DS" "$DH"
 
 # =============================================================================
 echo "state dir under projects/ — fresh layout + 0.13.0 flat-layout migration (0061 #82)"
+# @group state-dir-projects
 SDS="$(mktemp -d)"; SDH="$(mktemp -d)"
 mkdir -p "$SDS/skills/tdd" "$SDS/agents" "$SDS/bin" "$SDS/docs"
 cp "$BIN"/*.sh "$SDS/bin/"
@@ -2504,7 +2938,10 @@ assert_contains "$out" "project: 0.13.0" "status on an unmigrated project reads 
 mv "$SDH/projects/$SDID6" "$SDH/$SDID6" 2>/dev/null
 out="$(sd_hh --root "$SDP6" agent install claude)"; code=$?
 assert_eq "true" "$([ -s "$SDH/projects/$SDID6/targets" ] && [ ! -e "$SDH/$SDID6" ] && echo true || echo false)" "agent install on an unmigrated project writes into projects/<id>/ (old dir moved first)"
-rm -rf "$SDS" "$SDH" "$SDP1" "$SDP2" "$SDP3" "$SDP4" "$SDP5" "$SDP6"
+# =============================================================================
+# summary + final cleanup — the tail after the last @group; runs on
+# selected runs too, hence the :- guards on section-local fixture vars
+rm -rf "${SDS:-}" "${SDH:-}" "${SDP1:-}" "${SDP2:-}" "${SDP3:-}" "${SDP4:-}" "${SDP5:-}" "${SDP6:-}"
 
 rm -rf "$HARNESS_HOME"
 

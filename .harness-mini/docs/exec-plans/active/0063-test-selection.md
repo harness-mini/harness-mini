@@ -57,7 +57,41 @@ eval: L1        # lightweight reviewer; runner gains selection, behavior-preserv
   "Running tests" note.
 
 ## Evidence (fill on completion)
-- <per-slice: probes, timings, byte-diff results>
+- **slice-001** — baseline pinned pre-edit at
+  `.harness-mini/trace/runtime/0063-baseline/` (exit 0, `Passed: 975  Failed: 0`).
+  Final no-args run (`full4.*`): stdout **byte-identical** (`cmp` clean), exit 0,
+  same summary. stderr = the same 2 pre-existing benign `cd:` warnings; their bytes
+  embed each run's random mktemp id and the runner line number shifted with the
+  insertion, so stderr compares equal only after normalizing both (see
+  `trace/runtime/0063-probes/`).
+- `--list` (deterministic, executes nothing): 47 groups + `total 975`. Per-group
+  counts equal an instrumented ground-truth run (every PASS logged via
+  `BASH_LINENO`, `trace/runtime/0063-probes/ground-truth-assert-sites.log`) and sum
+  to the suite's dynamic 975; header + groups + footer partition the file with no
+  gaps or overlaps. RED evidence (pre-change `--list`/group args just ran the full
+  suite): `trace/runtime/0063-probes/red-*`.
+- Group runs == `--list` counts, exit 0, summary printed; wall time on this Mac:
+  tdd-skill 0.15s(1) · update-conflicts 1.7s(4) · status 1.8s(5) · status-json
+  3.6s(18) · doctor 4.7s(20) · state-dir-projects 6.1s(38) · migration-0058 9.5s(87)
+  · agent-install 9.8s(111) · **update-polish 14.4s(84, largest)**. Largest ≤ 60s;
+  narrow groups ≤ 5s vs 197s full suite. Unknown group → usage on stderr, exit 2;
+  multi-group args dedupe and run in file order.
+- Mechanics: `sed -n '<start>,<end>p' "$0"` + `eval` in the current shell (counters,
+  helpers, HARNESS_HOME preserved; dispatch uses a `sel_*` namespace because eval'd
+  sections reuse short names like `i`). Fixture-cluster merges: legacy-upgrade
+  (S17+S18), migration-manifests (S19+S20), update-polish (N1–N4),
+  checkpoint-hardening (lint+snapshot+guard); the 0058-layout fixtures split out of
+  init-instructions as `migration-0058`. sha/snap/has/mklock/real_manifest hoisted
+  to the header (cross-group helpers). Footer cleanup guarded (`${VAR:-}`) under a
+  footer banner so partial runs can't trip `set -u`.
+- Deviations: `--list` counts are **predicted executions** (static call sites
+  expanded by literal for-loop iteration counts and local fixture-function call
+  counts; plain grep yields 845 sites, expansion is required to reach 975) — the
+  predictor masks quoted text and rejects flag-form keywords (`--until`) after two
+  ground-truth iterations; macOS bash 3.2 cannot parse heredocs inside `$()`, so
+  the predictor is captured via `read -d ''`; stderr byte-equality is unattainable
+  suite-wide (random mktemp ids in pre-existing warnings) — stdout is the
+  byte-identity bar.
 
 ## Session Context Handoff
 **Last Updated**: 2026-11-13 (Session #1)
