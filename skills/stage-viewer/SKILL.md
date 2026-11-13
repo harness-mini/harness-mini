@@ -65,7 +65,7 @@ You may move a plan forward only when the stage's exit condition is met:
 | implement | a vertical slice is green; ready for evaluation (after a fan-out: all parallel slices green + integrated) |
 | evaluate | the **eval tier passed** all criteria — L0/L1/L2, default L1, per the plan's `eval:` field; a fan-out also needs the **integration evaluate** to pass (else loop back to implement) |
 | checkpoint | checkpoint written to `.harness-mini/trace/checkpoints/` |
-| done | plan moved to `.harness-mini/docs/exec-plans/completed/` |
+| done | plan moved to `.harness-mini/docs/exec-plans/completed/` **and** `skills/checkpoint/scripts/checkpoint-archive-check.sh` exits 0 (no dirty plan files; every completed entry is `stage: done` / `passes: true`) |
 
 To advance: edit the plan's `stage:` field, append a line to the plan's
 Decisions log, and `"$HOME/.harness-mini/bin/trace.sh" main <new-stage> stage_advance plan=<plan>`.

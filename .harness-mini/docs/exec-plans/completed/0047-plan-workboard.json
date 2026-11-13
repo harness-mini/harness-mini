@@ -1,7 +1,7 @@
 {
   "plan_id": "0047-plan-workboard",
   "title": "Dual JSON+MD exec-plans (machine workboard) + status-first routing gate",
-  "status": "in_progress",
+  "status": "done",
   "current_slice_id": "slice-006",
   "slices": [
     {

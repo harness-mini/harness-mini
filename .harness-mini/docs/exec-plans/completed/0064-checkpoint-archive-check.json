@@ -1,0 +1,10 @@
+{
+  "plan_id": "0064-checkpoint-archive-check",
+  "title": "Archive-integrity verifier for the checkpoint skill",
+  "status": "done",
+  "current_slice_id": "slice-001",
+  "slices": [
+    { "id": "slice-001", "category": "feature", "description": "checkpoint-archive-check.sh verifier + its test group in run.sh.", "steps": ["Script exists at skills/checkpoint/scripts/checkpoint-archive-check.sh, bash 3.2-safe, zero deps, optional [root] arg defaulting to git toplevel.", "Probe: a fixture git repo with a dirty tracked file under .harness-mini/docs/exec-plans/ makes the script exit 1 and name the file; a completed plan with stage != done, twin status != done, or a passes:false slice exits 1 naming plan+field; a clean consistent fixture exits 0 silently; missing active/ or completed/ dirs are skipped.", "New @group checkpoint-archive-check in tests/run.sh covers those cases; bash tests/run.sh checkpoint-archive-check green with count matching --list; full suite green with updated --list totals."], "passes": true },
+    { "id": "slice-002", "category": "docs", "description": "SKILL wiring: checkpoint, stage-viewer, release.", "steps": ["skills/checkpoint/SKILL.md archival step mandates checkpoint-archive-check (exit 1 => fix first, no checkpoint written).", "skills/stage-viewer/SKILL.md done-advance condition references the check passing.", "skills/release/SKILL.md pre-flight notes the clean-tree gate counts untracked files (move session scratch out first)."], "passes": true }
+  ]
+}
