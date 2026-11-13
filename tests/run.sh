@@ -1263,6 +1263,7 @@ mk_stranded() { # <project> — v0.12.1-shaped project whose only harness is pro
   mkdir -p "$1/bin" "$1/docs/exec-plans/active" "$1/.claude/skills/tdd" "$1/harness"
   cp "$BIN"/*.sh "$1/bin/"; printf 'plan S\n' > "$1/docs/exec-plans/active/0001-s.md"
   printf 'old tdd\n' > "$1/.claude/skills/tdd/SKILL.md"
+  # shellcheck disable=SC2046 # intentional: mklock takes each lock entry as its own arg
   mklock "$1" 0.12.1 $(cd "$1" && ls bin/*.sh) .claude/skills/tdd/SKILL.md
 }
 STRIPPED="$(mktemp -d)"; printf '9.9.9\n' > "$STRIPPED/VERSION"          # a source with no bin/: cannot bootstrap
@@ -1723,7 +1724,7 @@ cp "$ROOT/bin/_harness_lib.sh" "$SONEW/bin/_harness_lib.sh"
 printf '0.2.0\n' > "$SONEW/VERSION"
 SODST="$(mktemp -d)"
 HARNESS_SRC="$SOOLD" HARNESS_HOME="$SOHOME" bash "$ROOT/init.sh" "$SODST" >/dev/null 2>&1
-upout="$(HARNESS_HOME="$SOHOME" HARNESS_NO_NET=1 bash "$SOHOME/bin/harness.sh" --root "$SODST" update --src "$SONEW" 2>&1)"; code=$?
+HARNESS_HOME="$SOHOME" HARNESS_NO_NET=1 bash "$SOHOME/bin/harness.sh" --root "$SODST" update --src "$SONEW" >/dev/null 2>&1; code=$?
 assert_exit 0 "$code" "project update accepts an explicit project root"
 assert_eq "false" "$([ -e "$SODST/bin/harness.sh" ] && echo true || echo false)" "project update does not install a harness executable"
 assert_eq "false" "$(grep -q 'bin/' "$(HARNESS_HOME="$SOHOME" lockpath "$SODST")" && echo true || echo false)" "project lock excludes runtime executable checksums"
@@ -1750,7 +1751,6 @@ RT_A="$(mktemp -d)"; RT_B="$(mktemp -d)"
 HARNESS_SRC="$RTSRC_OLD" HARNESS_HOME="$RT_HOME" bash "$ROOT/init.sh" "$RT_A" >/dev/null 2>&1
 HARNESS_SRC="$RTSRC_OLD" HARNESS_HOME="$RT_HOME" bash "$ROOT/init.sh" "$RT_B" >/dev/null 2>&1
 stub_agent_install "$RTSRC_OLD" "$RT_A"; stub_agent_install "$RTSRC_OLD" "$RT_B"
-runtime_old_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$RT_HOME/bin/ctx.sh")"
 runtime_new_sha="$(bash -c '. "$1"; cksum_file "$2"' _ "$ROOT/bin/_harness_lib.sh" "$RTSRC_NEW/bin/ctx.sh")"
 printf 'user runtime edit\n' >> "$RT_HOME/bin/model.sh"
 HARNESS_HOME="$RT_HOME" bash "$RT_HOME/bin/harness.sh" --root "$RT_A" update --src "$RTSRC_NEW" >/dev/null 2>&1
@@ -2845,7 +2845,8 @@ sd_hh() { HARNESS_HOME="$SDH" bash "$HARNESS_HOME_RUNTIME" "$@" 2>&1; }
 sd_id() { basename "$(HARNESS_HOME="$SDH" state_of "$1")"; }
 # the 0.13.0 layout, built by hand: $H/<id>/{harness.lock,manifest.md,targets}
 sd_flat() { # <project> <tag> — returns the old state dir path
-  local d="$SDH/$(sd_id "$1")"; mkdir -p "$d"
+  local d
+  d="$SDH/$(sd_id "$1")"; mkdir -p "$d"
   printf 'version: 0.13.0\n# %s\n' "$2" > "$d/harness.lock"
   printf '# manifest %s\n' "$2" > "$d/manifest.md"
   printf 'default\t.agents/skills\t.agents/agents\tcopy\n' > "$d/targets"
@@ -2857,7 +2858,9 @@ HARNESS_HOME_RUNTIME="$SDH/bin/harness.sh"
 SDP1="$(mktemp -d)"; sd_init "$SDP1" >/dev/null
 SDID1="$(sd_id "$SDP1")"
 unexpected=""
-for e in $(ls -A "$SDH"); do
+for e in "$SDH"/* "$SDH"/.[!.]*; do
+  [ -e "$e" ] || continue
+  e="${e##*/}"
   case "$e" in projects|bin|docs|skills|agents|harness|AGENTS.md|VERSION) ;; *) unexpected="$unexpected $e" ;; esac
 done
 assert_eq "" "$unexpected" "fresh install adds no top-level entry besides projects/ and the runtime set"
@@ -2916,7 +2919,7 @@ for n in bin docs skills agents harness projects; do
   before="$(snap "$GH")"
   HARNESS_HOME="$GH" bash -c '. "$1"; say() { :; }; project_id() { printf %s "$3"; }; migrate_state_dir "$2"' _ "$LIB" "$GR" "$n" >/dev/null 2>&1
   assert_eq "$before" "$(snap "$GH")" "id '$n': the runtime dir is never moved (even holding a harness.lock)"
-  rm -rf "$GH/$n"
+  rm -rf "${GH:?}/$n"
 done
 mkdir -p "$GH/lockless"; printf 'x\n' > "$GH/lockless/other"
 HARNESS_HOME="$GH" bash -c '. "$1"; say() { :; }; project_id() { printf lockless; }; migrate_state_dir "$2"' _ "$LIB" "$GR" >/dev/null 2>&1
