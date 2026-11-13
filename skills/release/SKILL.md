@@ -16,7 +16,9 @@ the plan first.
 
 ## Pre-flight (the script enforces these — don't fight them)
 1. Working tree is **clean** — commit the feature first; the release commit must
-   contain only the VERSION + CHANGELOG bump.
+   contain only the VERSION + CHANGELOG bump. The gate counts **untracked**
+   files too: move session scratch (e.g. `.harness-mini/tmp-*.md`) out of the
+   repo first.
 2. `tests/run.sh` is **green** (the script aborts on red).
 3. Curate `CHANGELOG.md`: ensure the `## [Unreleased]` section lists what shipped
    in user-facing terms. `release` rolls Unreleased into `## [<version>] - <date>`

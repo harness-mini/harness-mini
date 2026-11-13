@@ -64,12 +64,19 @@ prev: <plan>-<seq-1 or none>
    reads first. If the plan has a JSON twin, update `current_slice_id` to the
    slice now in flight (never flip `passes` — that needs an evaluator verdict,
    see `evaluate`).
-5. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
+5. **Archive check** — when this checkpoint completes the plan (stage→done,
+   plan files moved to `completed/`), run
+   `skills/checkpoint/scripts/checkpoint-archive-check.sh`: it fails on dirty
+   plan files (a `git mv` stages the rename but NOT your `stage:`/`passes`
+   content edits — commit them too; this shipped stale metadata twice, PRs
+   #91/#94) and on any `completed/` entry that is not `stage: done` /
+   `passes: true`. **Exit 1 ⇒ fix first, write no checkpoint.**
+6. **Drop any odor in the backlog.** Noticed a smell *outside* this slice's
    scope? Don't fix it inline (that breaks slice discipline) and don't lose it —
    append it to `.harness-mini/trace/garden-backlog.md` (`- [ ] <date> | <file:line> | <smell>
    | <low|med|high> | <note>`). See the `garden` skill.
-6. `"$HOME/.harness-mini/bin/trace.sh" <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
-7. These files are **committed** (unlike `.harness-mini/trace/runtime/`). Commit them.
+7. `"$HOME/.harness-mini/bin/trace.sh" <agent> <stage> checkpoint seq=<NNN> ctx_pct=<n>`.
+8. These files are **committed** (unlike `.harness-mini/trace/runtime/`). Commit them.
 
 > Each committed checkpoint is a gardening "visit": writing this one may tip
 > `harness.sh status` to `garden: DUE` (≥5 since the last sweep). The main agent
