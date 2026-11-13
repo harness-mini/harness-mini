@@ -3,10 +3,10 @@
 
 ## Open
 - [ ] 2026-11-07 | Layered config overrides (tool defaults → project-level shared config → user-local config) so users never edit the install dir; today edited install files only produce .new + diff notice. | medium
-- [ ] 2026-11-13 | README Develop block hardcodes the assertion count; replace the literal (currently correct: 1003 asserts / 49 groups, set in 6504c25) with a pointer to `bash tests/run.sh --list` so it stops going stale each cycle | low
-- [ ] 2026-11-13 | tests/run.sh `--list` predictor (static loop expansion) drifts silently: unrecognized helper counts 0, `while read` clamps to 1, no self-test asserts predicted==actual | low | Assert `--list` total == dynamic PASS count, or warn when a selected run's `Passed:` != its `--list` row (eval 0063 minor finding)
 
 ## Cleared
+- [x] 2026-11-13 | predictor-drift: footer now compares --list predictions vs actual executions, warning-only (plan 0065, PR #97; eval 5/5 incl. doctored-clone negative probe) | main
+- [x] 2026-11-13 | README assertion-count literal → `bash tests/run.sh --list` pointer (plan 0065 slice-002, PR #97) | main
 - [x] 2026-08-11 | cadence reset after session-ops completion | gardener
 - [x] 2026-11-08 | stale docs: cursor-getting-started `.agents/skills` → `.cursor/skills`, walkthrough sample v0.14.0, README/ARCHITECTURE now cover `diff` + downgrade guard | gardener
 - [x] 2026-11-08 | duplication: 9 copies of `tr -d ' \t\r\n' < VERSION` → `read_version` | gardener
