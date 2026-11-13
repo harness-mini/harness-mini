@@ -32,7 +32,8 @@ criterion needs a human/agent call, it is at least L1.
 2. **Verify by interaction, not by reading.** Run the tests. Run the app/endpoint
    where possible. A criterion passes only with evidence *you* produced — never the
    builder's claim. (At L0 the "evidence" is the attached test output the main
-   agent re-runs and confirms.)
+   agent re-runs and confirms.) The green a gate grades is always a **full-suite**
+   run — a group-selected run proves only its own group.
 3. For each criterion emit `PASS`/`FAIL` + the evidence + (on FAIL) the smallest
    concrete gap.
 4. **L1/L2:** apply `clean-code` as a secondary lens — cite specific violations.

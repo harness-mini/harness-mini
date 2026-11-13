@@ -25,6 +25,11 @@ Red → Green → Refactor. No step skipped, ever.
   an earlier criterion already happens to satisfy it. A criterion with no test that
   went red is not done; it's untested behavior that passed by luck.
 - Keep each cycle tiny: a cycle that needs a checkpoint mid-way was too big.
+- **Run the narrowest selection in the loop.** Where the repo's runner supports
+  groups, each red→green turn runs only the group(s) containing the new test
+  (`tests/run.sh <group>`; pick groups with `tests/affected.sh <ref>` or
+  `tests/run.sh --list`). The **full suite belongs to the gates** — checkpoint
+  last-green, evaluate, release — and CI, never to the inner loop.
 - Trace transitions: `"$HOME/.harness-mini/bin/trace.sh" generator implement test result=red|green`.
 
 ## Discipline against false completion

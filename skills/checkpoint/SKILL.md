@@ -49,7 +49,8 @@ prev: <plan>-<seq-1 or none>
        Run checkpoint-snapshot.sh "src/api.py:45-80::WIP" to record exact lines. -->
 - Last green: <cat .harness-mini/trace/runtime/last-green.txt  — or "none">
   <!-- Populated automatically by "$HOME/.harness-mini/bin/ctx-hook.sh" when HARNESS_TEST_SCRIPT is set
-       and passes. Do not recall from memory — read the file. -->
+       and passes. Do not recall from memory — read the file.
+       Last green is a FULL-suite pass, never a group-selected run — the gate needs the whole suite. -->
 - Open issues: <issue ids still open — or "none">
 ## Decisions
 - <choices made + where the rationale lives>
