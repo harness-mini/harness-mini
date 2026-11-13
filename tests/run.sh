@@ -2939,6 +2939,57 @@ mv "$SDH/projects/$SDID6" "$SDH/$SDID6" 2>/dev/null
 out="$(sd_hh --root "$SDP6" agent install claude)"; code=$?
 assert_eq "true" "$([ -s "$SDH/projects/$SDID6/targets" ] && [ ! -e "$SDH/$SDID6" ] && echo true || echo false)" "agent install on an unmigrated project writes into projects/<id>/ (old dir moved first)"
 # =============================================================================
+echo "tests/groups.tsv + tests/affected.sh — path->group map for the tdd inner loop (0063 #2)"
+# @group test-selection
+TSEL="$(mktemp -d)"
+mkdir -p "$TSEL/bin" "$TSEL/skills/session-coding" "$TSEL/other"
+printf 'x\n' > "$TSEL/bin/ctx.sh"; printf 'y\n' > "$TSEL/bin/harness.sh"
+printf 's\n' > "$TSEL/skills/session-coding/SKILL.md"; printf 'u\n' > "$TSEL/other/unknown.txt"
+git -C "$TSEL" init -q
+git -C "$TSEL" config user.email "test@test"; git -C "$TSEL" config user.name "test"
+git -C "$TSEL" add -A >/dev/null 2>&1; git -C "$TSEL" commit -qm base >/dev/null 2>&1
+
+# a mapped path fires its group
+printf 'changed\n' >> "$TSEL/bin/ctx.sh"
+out="$(AFFECTED_REPO="$TSEL" bash "$ROOT/tests/affected.sh" HEAD)"
+assert_eq "ctx" "$out" "affected: bin/ctx.sh maps to the ctx group"
+git -C "$TSEL" add -A >/dev/null 2>&1; git -C "$TSEL" commit -qm c1 >/dev/null 2>&1
+
+# an unmapped path maps to all
+printf 'changed\n' >> "$TSEL/other/unknown.txt"
+out="$(AFFECTED_REPO="$TSEL" bash "$ROOT/tests/affected.sh" HEAD)"
+assert_eq "all" "$out" "affected: an unmapped path maps to all"
+git -C "$TSEL" add -A >/dev/null 2>&1; git -C "$TSEL" commit -qm c2 >/dev/null 2>&1
+
+# a tie at the winning prefix fires all tying groups, in groups.tsv order
+printf 'changed\n' >> "$TSEL/skills/session-coding/SKILL.md"
+out="$(AFFECTED_REPO="$TSEL" bash "$ROOT/tests/affected.sh" HEAD)"
+assert_eq "$(printf 'session-coding-skill\nsession-bearings\nsession-runner')" "$out" \
+  "affected: a prefix tie fires all tying groups in tsv order"
+git -C "$TSEL" add -A >/dev/null 2>&1; git -C "$TSEL" commit -qm c3 >/dev/null 2>&1
+
+# empty diff prints nothing and exits 0
+out="$(AFFECTED_REPO="$TSEL" bash "$ROOT/tests/affected.sh" HEAD)"; code=$?
+assert_eq "" "$out" "affected: an empty diff prints nothing"
+assert_exit 0 "$code" "affected: an empty diff exits 0"
+
+# a missing ref is a usage error (64)
+AFFECTED_REPO="$TSEL" bash "$ROOT/tests/affected.sh" >/dev/null 2>&1; code=$?
+assert_exit 64 "$code" "affected: missing ref is a usage error (64)"
+
+# --check: the real tsv and the real runner tags agree
+bash "$ROOT/tests/affected.sh" --check >/dev/null 2>&1; code=$?
+assert_exit 0 "$code" "affected --check: every tsv group has a @group tag and vice versa"
+
+# --check failure: an orphan tsv group is named, exit non-zero
+TSEL_TSV="$(mktemp)"
+printf 'no-such-group\tbin/ctx.sh\n' > "$TSEL_TSV"
+err="$(AFFECTED_TSV="$TSEL_TSV" bash "$ROOT/tests/affected.sh" --check 2>&1)"; code=$?
+assert_exit 1 "$code" "affected --check: an orphan tsv group exits non-zero"
+assert_contains "$err" "tsv:no-such-group" "affected --check: names the orphan group"
+rm -rf "$TSEL"; rm -f "$TSEL_TSV"
+
+# =============================================================================
 # summary + final cleanup — the tail after the last @group; runs on
 # selected runs too, hence the :- guards on section-local fixture vars
 rm -rf "${SDS:-}" "${SDH:-}" "${SDP1:-}" "${SDP2:-}" "${SDP3:-}" "${SDP4:-}" "${SDP5:-}" "${SDP6:-}"

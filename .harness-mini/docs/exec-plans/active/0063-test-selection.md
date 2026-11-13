@@ -92,6 +92,24 @@ eval: L1        # lightweight reviewer; runner gains selection, behavior-preserv
   the predictor is captured via `read -d ''`; stderr byte-equality is unattainable
   suite-wide (random mktemp ids in pre-existing warnings) — stdout is the
   byte-identity bar.
+- **slice-002** — `tests/groups.tsv` (48 groups, 76 prefix lines, tsv order =
+  @group order; header documents the rule) + `tests/affected.sh`. Diff choice:
+  `git diff --name-only <ref>` (named ref vs working tree, staged+unstaged,
+  untracked unseen) — documented in the file header; no diff → empty output,
+  exit 0; any unmapped path → `all`; per path the longest matching prefix wins,
+  length ties all fire (e.g. `skills/session-coding/` → session-coding-skill +
+  session-bearings + session-runner); output deduped, tsv order. No
+  function-granularity entries (`bin/harness.sh:cmd_update` style) — a diff
+  path is a file path, so prefix matching is file-level; broad shared files
+  legitimately list many groups. `--check` on the real tree: exit 0, silent;
+  orphan test via `AFFECTED_TSV` override → exit 1, `tsv:no-such-group` named.
+  Self-tests live as the 48th group `test-selection` (9 asserts, 0.6s):
+  mapped→group, unmapped→all, tie→3 groups in tsv order, empty diff→empty+0,
+  missing ref→64, --check pass, --check orphan (exit+name). `--list` total
+  **984** (48 groups); partition probe: header + 48 groups + footer cover all
+  3003 lines exactly once. Full suite: `Passed: 984  Failed: 0`, exit 0.
+  Fixture self-test overrides: `AFFECTED_REPO` / `AFFECTED_TSV` (documented in
+  affected.sh header).
 
 ## Session Context Handoff
 **Last Updated**: 2026-11-13 (Session #1)

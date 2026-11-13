@@ -1,0 +1,83 @@
+# groups.tsv — test-group -> source-path-prefix map (0063 slice-002)
+# Format: <group><TAB><repo-relative path prefix>, one prefix per line; a group
+# may list several prefixes. Matching (see tests/affected.sh): per changed path
+# the LONGEST matching prefix wins, groups tying at the winning length all
+# fire; matches print deduped in this file's order. A path matching no prefix
+# maps to `all`. Diff = git diff --name-only <ref> (ref vs working tree).
+
+ctx	bin/ctx.sh
+model	bin/model.sh
+trace	bin/trace.sh
+ralph	bin/ralph.sh
+project-id	bin/_harness_lib.sh
+runtime-install	init.sh
+runtime-install	bin/_harness_lib.sh
+init-bootstrap	init.sh
+init-progress	init.sh
+init-agents-md	init.sh
+init-agents-md	bin/_harness_lib.sh
+init-host-neutral	init.sh
+repo-assets	skills/parallel-slices/
+tdd-skill	skills/tdd/
+version	bin/harness.sh
+version-newer	bin/_harness_lib.sh
+update-reminder	bin/harness.sh
+update-reminder	bin/_harness_lib.sh
+manifest	init.sh
+manifest	bin/_harness_lib.sh
+init-instructions	init.sh
+migration-0058	bin/_harness_lib.sh
+migration-0058	init.sh
+legacy-upgrade	bin/harness.sh
+legacy-upgrade	bin/_harness_lib.sh
+legacy-upgrade	init.sh
+migration-manifests	bin/_harness_lib.sh
+migration-manifests	init.sh
+update-conflicts	bin/harness.sh
+update-conflicts	bin/_harness_lib.sh
+update-conflicts	init.sh
+update-polish	bin/harness.sh
+update-polish	bin/_harness_lib.sh
+contributing	CONTRIBUTING.md
+contributing	bin/harness.sh
+update	bin/harness.sh
+update	bin/_harness_lib.sh
+update	init.sh
+update-project	bin/harness.sh
+update-project	bin/_harness_lib.sh
+update-locks	bin/harness.sh
+update-locks	bin/_harness_lib.sh
+release	bin/harness.sh
+doctor	bin/harness.sh
+doctor	bin/_harness_lib.sh
+status	bin/harness.sh
+status-json	bin/harness.sh
+status-json	bin/_harness_lib.sh
+session-path	bin/harness.sh
+session-path	bin/_harness_lib.sh
+garden	bin/harness.sh
+readiness	bin/harness.sh
+readiness	bin/_harness_lib.sh
+report	bin/harness.sh
+eval-gate	bin/harness.sh
+ctx-hook	bin/ctx-hook.sh
+repo-gate	AGENTS.md
+session-init-skill	skills/session-init/
+session-coding-skill	skills/session-coding/
+session-bearings	skills/session-coding/
+session-runner	bin/session.sh
+session-runner	skills/session-coding/
+seed-plans	init.sh
+checkpoint-hardening	skills/checkpoint/
+ctx-hook-last-green	bin/ctx-hook.sh
+agent-install	bin/harness.sh
+agent-install	bin/_harness_lib.sh
+agent-install	init.sh
+repo-layout	references/
+repo-layout	assets/
+repo-layout	.gitignore
+state-dir-projects	bin/_harness_lib.sh
+state-dir-projects	init.sh
+test-selection	tests/groups.tsv
+test-selection	tests/affected.sh
+test-selection	tests/run.sh
