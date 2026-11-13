@@ -1,0 +1,11 @@
+{
+  "plan_id": "0063-test-selection",
+  "title": "Test selection for the TDD inner loop (groups + affected map)",
+  "status": "in_progress",
+  "current_slice_id": "slice-001",
+  "slices": [
+    { "id": "slice-001", "category": "feature", "description": "run.sh gains @group tags, group args, --list; no-args path byte-identical.", "steps": ["Baseline pinned: full-suite stdout/stderr captured pre-edit under .harness-mini/trace/runtime/0063-baseline/; no-args run after the change is byte-identical with summary Passed: 975 Failed: 0 and exit 0.", "--list prints every @group name with static assert counts; union of groups partitions the file (sum of per-group assert counts == 975; no orphan executable lines between groups except header/footer).", "run.sh <known-group> runs only that group (assert count matches --list); unknown group prints usage and exits non-zero; per-group wall time recorded, largest <= 60s."], "passes": false },
+    { "id": "slice-002", "category": "feature", "description": "tests/groups.tsv impact map + tests/affected.sh deterministic selector.", "steps": ["affected.sh with a known changed path (e.g. bin/harness.sh cmd_update region) prints the expected group name; with an unknown path prints all; with empty diff prints nothing and exits 0.", "Self-test proves every group in groups.tsv exists as an @group tag in run.sh and vice versa.", "groups.tsv and affected.sh are pure POSIX/bash with no third-party deps."], "passes": false },
+    { "id": "slice-003", "category": "docs", "description": "SKILL + docs lines: narrow inner loop, full-suite gates.", "steps": ["skills/tdd/SKILL.md gains the narrow-run rule (narrowest group for red-green; full suite for gates).", "skills/checkpoint/SKILL.md and skills/evaluate/SKILL.md each gain one line reaffirming gates run the full suite.", "README (or docs walkthrough) gains a short 'Running tests' note covering run.sh [group...] | --list and tests/affected.sh."], "passes": false }
+  ]
+}
