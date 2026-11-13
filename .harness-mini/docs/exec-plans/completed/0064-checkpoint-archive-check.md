@@ -1,7 +1,7 @@
 ---
 plan: checkpoint-archive-check
 seq: 0064
-stage: implement
+stage: done
 owner: main
 mode: quick
 eval: L1        # lightweight reviewer; small verifier + docs wiring
@@ -19,21 +19,24 @@ eval: L1        # lightweight reviewer; small verifier + docs wiring
 
 ## Acceptance criteria
 <!-- Machine-checkable. -->
-- [ ] `skills/checkpoint/scripts/checkpoint-archive-check.sh [root]` exists:
+- [x] `skills/checkpoint/scripts/checkpoint-archive-check.sh [root]` exists:
       POSIX/bash per repo style, zero deps, bash 3.2 compatible, `root`
       defaults to the git toplevel (fallback: `$PWD`).
-- [ ] Dirty tracked file under `<root>/.harness-mini/docs/exec-plans/` →
+- [x] Dirty tracked file under `<root>/.harness-mini/docs/exec-plans/` →
       exit 1, each dirty path named.
-- [ ] Invariant: every `completed/*.md` has `stage: done`; its twin `.json`
+- [x] Invariant: every `completed/*.md` has `stage: done`; its twin `.json`
       has `status: "done"` and no slice with `passes: false` → violations
       exit 1 naming the plan + field. `active/` gets the dirty check only
       (stages legitimately vary there). Missing dirs are skipped, not errors.
-- [ ] Clean, consistent tree → exit 0, silent.
-- [ ] New `checkpoint-archive-check` group in `tests/run.sh` covers: dirty
+      (Revision note: the missing-twin requirement carries a legacy carve-out —
+      seq < 0047 or non-numeric seq is exempt, per check_eval_gate precedent;
+      see Decisions.)
+- [x] Clean, consistent tree → exit 0, silent.
+- [x] New `checkpoint-archive-check` group in `tests/run.sh` covers: dirty
       file, bad stage, bad passes, clean fixture (fixture git repos, temp
       dirs; patterns per `test-selection` group from 0063). `--list` totals
       updated; full suite green.
-- [ ] Docs wiring: checkpoint SKILL archival step mandates running the check
+- [x] Docs wiring: checkpoint SKILL archival step mandates running the check
       (exit 1 ⇒ no checkpoint, fix first); stage-viewer's done-advance
       condition references it; release SKILL gains the "clean gate counts
       untracked scratch — move it out first" line (measured 0.15.1).
@@ -50,10 +53,12 @@ eval: L1        # lightweight reviewer; small verifier + docs wiring
 ## Session Context Handoff
 **Last Updated**: 2026-11-13 (Session #1)
 **Completed Work**: plan opened from the twice-measured git-mv archival bug.
-**Current Blockers / Risks**: invariant scope — `completed/` only; do NOT
-validate `active/` stages (they vary legitimately mid-lifecycle).
+**Current Blockers / Risks**: none — remaining step is the PR to main. Evaluator minors (porcelain dir-level naming for wholly-untracked dirs; docs could name the twin checks) left as-is, safe direction.
 
 ## Decisions
+- 2026-11-13 stage implement→checkpoint: eval L1 pass 6/6 (grader: evaluator, evaluator-built fixtures); slices flipped on the evaluator verdict only.
+- 2026-11-13 rescope (generator course-correct, main-agent decision): real-root run exposed 17 legacy completed/ records — 9 twins with stale `status: in_progress` (0047–0055) repaired in `de95434` (the same board-lies class this verifier targets); 8 twinless pre-contract plans (0001–0046, docs-nav-001) exempted via `is_legacy_seq` (seq < 47 or non-numeric), citing the check_eval_gate "never retroactively fail legacy" precedent at bin/harness.sh:646.
+- 2026-11-13 stage checkpoint→done: archive check dogfooded at archival (exit 0); checkpoint 001 committed; plan moved to `completed/`.
 - Docs-only would rely on the agent remembering; the verifier makes the
   postcondition machine-checkable ("prefer one shell verifier per fragile
   field" — this field is tree state + twin consistency, not prose).
