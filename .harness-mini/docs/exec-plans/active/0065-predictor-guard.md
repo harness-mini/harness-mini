@@ -41,13 +41,25 @@ eval: L1        # lightweight reviewer; small guard + docs pointer
 - **slice-002** — docs: README count → `--list` pointer.
 
 ## Evidence (fill on completion)
+- **slice-001** — TDD: `predictor-guard` group red 5/7 before the guard
+  (predictor_warning undefined; the 2 integration asserts passed), green 7/7
+  after. Placement bug found by the red run itself: the predicted-total sum
+  originally sat before `init_group_index` (lazy init — only args/--list
+  built it) and predicted 0; moved after arg parsing with unconditional
+  `init_group_index` + `init_predictor_awk` on every path.
+- Baseline (pre-edit) vs post-edit full suite: **1010/0, exit 0**; stdout
+  delta = exactly the new banner + 7 ok lines + summary (1003→1010); stderr
+  equal normalized; **zero drift warnings** on the real run (the guard is
+  silent when counts agree). `--list` total 1010; tsv parity row added
+  (`test-selection` group 9/0, `affected.sh --check` exit 0).
+- **slice-002** — README Develop block: hardcoded counts removed, `--list`
+  is the single source for counts (closes the backlog item's substance).
 - <probes, byte-diff, counts>
 
 ## Session Context Handoff
 **Last Updated**: 2026-11-13 (Session #1)
 **Completed Work**: plan opened from the 0063 eval minor finding.
-**Current Blockers / Risks**: the guard must stay warning-only (exit code =
-test result); the no-args byte-identity invariant applies.
+**Current Blockers / Risks**: none — remaining step is the PR to main. Note: `garden: DUE` persists by threshold (3 open backlog items) until this plan's README-pointer item lands and a sweep clears it.
 
 ## Decisions
 - Warning-only, non-blocking: `--list` lying is an observability bug, not a
