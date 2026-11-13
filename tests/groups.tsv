@@ -69,6 +69,7 @@ session-runner	bin/session.sh
 session-runner	skills/session-coding/
 seed-plans	init.sh
 checkpoint-hardening	skills/checkpoint/
+checkpoint-archive-check	skills/checkpoint/scripts/checkpoint-archive-check.sh
 ctx-hook-last-green	bin/ctx-hook.sh
 agent-install	bin/harness.sh
 agent-install	bin/_harness_lib.sh

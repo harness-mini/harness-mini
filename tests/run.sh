@@ -2993,6 +2993,104 @@ assert_contains "$err" "tsv:no-such-group" "affected --check: names the orphan g
 rm -rf "$TSEL"; rm -f "$TSEL_TSV"
 
 # =============================================================================
+# checkpoint-archive-check — slice-001 (0064): plan-archive integrity verifier
+echo "checkpoint-archive-check.sh — archive-integrity gate for the checkpoint skill"
+# @group checkpoint-archive-check
+CAC="$(mktemp -d)"
+CAC_SCRIPT="$ROOT/skills/checkpoint/scripts/checkpoint-archive-check.sh"
+assert_eq "true" "$([ -f "$CAC_SCRIPT" ] && echo true || echo false)" "archive-check helper is skill-owned"
+
+CAC_PLANS="$CAC/.harness-mini/docs/exec-plans"
+
+cac_plan() {  # <completed|active> <name> <md_stage> <json_status> <passes_true_or_false>
+  local dir="$CAC_PLANS/$1"
+  mkdir -p "$dir"
+  {
+    printf '%s\n' "---"
+    printf '%s\n' "plan: $2"
+    printf '%s\n' "seq: 0099"
+    printf '%s\n' "stage: $3"
+    printf '%s\n' "---"
+    printf '%s\n' "# $2"
+  } > "$dir/$2.md"
+  {
+    printf '%s\n' '{'
+    printf '%s\n' "  \"plan_id\": \"$2\","
+    printf '%s\n' "  \"status\": \"$4\","
+    printf '%s\n' '  "slices": ['
+    printf '%s\n' "    { \"id\": \"slice-001\", \"steps\": [\"one step\"], \"passes\": $5 }"
+    printf '%s\n' '  ]'
+    printf '%s\n' '}'
+  } > "$dir/$2.json"
+}
+
+# fixture: a committed repo whose exec-plans are consistent — an active plan
+# mid-flight plus a completed plan with its twin. Every violation case below
+# mutates one field of this clean baseline (and commits the mutation, so only
+# the intended dirt remains).
+cac_plan completed "0001-shipped" "done" "done" "true"
+cac_plan active "0002-wip" "implement" "in_progress" "false"
+git -C "$CAC" init -q
+git -C "$CAC" config user.email "test@test"; git -C "$CAC" config user.name "test"
+git -C "$CAC" add -A >/dev/null 2>&1; git -C "$CAC" commit -qm base >/dev/null 2>&1
+
+# clean + consistent → exit 0, silent (the active plan is mid-flight: active/
+# gets the dirty check only, never the stage check)
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 0 "$code" "archive-check: clean consistent fixture exits 0 (active/ not stage-checked)"
+assert_eq "" "$out" "archive-check: clean fixture prints nothing"
+
+# a tracked plan file edited without committing is dirty — the exact
+# 0062/0063 bug class (git mv stages the rename, the edits stay behind)
+printf 'uncommitted edit\n' >> "$CAC/.harness-mini/docs/exec-plans/active/0002-wip.md"
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: a dirty plan file exits 1"
+assert_contains "$out" "dirty: .harness-mini/docs/exec-plans/active/0002-wip.md" "archive-check: names the dirty path"
+
+# default root: run with no arg from a subdirectory resolves the git toplevel
+( cd "$CAC/.harness-mini" && bash "$CAC_SCRIPT" ) >/dev/null 2>&1; code=$?
+assert_exit 1 "$code" "archive-check: no-arg run from a subdir defaults root to the git toplevel"
+git -C "$CAC" checkout -q -- .harness-mini/docs/exec-plans/active/0002-wip.md
+
+# completed plan whose frontmatter stage never reached done
+cac_plan completed "0001-shipped" "implement" "done" "true"
+git -C "$CAC" add -A >/dev/null 2>&1; git -C "$CAC" commit -qm bad-stage >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: completed stage != done exits 1"
+assert_contains "$out" "0001-shipped: stage is 'implement', want 'done'" "archive-check: names plan + field for a bad stage"
+
+# twin whose status never reached done
+cac_plan completed "0001-shipped" "done" "in_progress" "true"
+git -C "$CAC" add -A >/dev/null 2>&1; git -C "$CAC" commit -qm bad-status >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: twin status != done exits 1"
+assert_contains "$out" "0001-shipped: status is 'in_progress', want 'done'" "archive-check: names plan + field for a bad twin status"
+
+# twin still carrying a failing slice
+cac_plan completed "0001-shipped" "done" "done" "false"
+git -C "$CAC" add -A >/dev/null 2>&1; git -C "$CAC" commit -qm bad-passes >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: a passes:false slice in a completed twin exits 1"
+assert_contains "$out" "0001-shipped: passes is false, want all true" "archive-check: names plan + field for a failing slice"
+
+# twin absent for a completed md — a completed plan must have its twin
+git -C "$CAC" rm -q .harness-mini/docs/exec-plans/completed/0001-shipped.json >/dev/null 2>&1
+git -C "$CAC" commit -qm twinless >/dev/null 2>&1
+out="$(bash "$CAC_SCRIPT" "$CAC" 2>&1)"; code=$?
+assert_exit 1 "$code" "archive-check: a completed md without its twin exits 1"
+assert_contains "$out" "0001-shipped: twin 0001-shipped.json is missing" "archive-check: names the missing twin"
+
+# no completed/ dir at all: the invariant check is skipped silently — and this
+# fixture is not a git repo, so the run also proves the $PWD default-root fallback
+CAC_NR="$(mktemp -d)"
+CAC_PLANS="$CAC_NR/.harness-mini/docs/exec-plans"
+cac_plan active "0003-wip" "implement" "in_progress" "false"
+( cd "$CAC_NR" && bash "$CAC_SCRIPT" ) >/dev/null 2>&1; code=$?
+assert_exit 0 "$code" "archive-check: no completed/ dir is skipped (exit 0; cwd fallback outside a repo)"
+
+rm -rf "$CAC" "$CAC_NR"
+
+# =============================================================================
 # summary + final cleanup — the tail after the last @group; runs on
 # selected runs too, hence the :- guards on section-local fixture vars
 rm -rf "${SDS:-}" "${SDH:-}" "${SDP1:-}" "${SDP2:-}" "${SDP3:-}" "${SDP4:-}" "${SDP5:-}" "${SDP6:-}"
