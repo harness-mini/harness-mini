@@ -1,6 +1,6 @@
 ---
 name: generator
-description: Implements one issue at a time, test-first. Use in the implement stage to build a vertical slice via TDD and the horizontal/vertical layering contract. Produces green, clean code; hands the slice to the evaluator. Never grades its own work.
+description: Implements one issue at a time, test-first. Use in the implement stage to build a vertical slice via TDD and the horizontal/vertical layering contract. Produces green, clean code and reports the full-suite evidence. Never grades its own work and never opens an evaluator.
 tools: Read, Write, Edit, Grep, Glob, Bash
 model: sonnet
 skills: tdd, slice-coding, clean-code, refactor, checkpoint
@@ -26,7 +26,8 @@ touched so the orchestrator can confirm groups stayed disjoint.
 
 ## Hard boundaries (anti-self-praise)
 - You **never** declare an issue "done" and **never** advance the stage. You
-  hand a green slice to the **evaluator** and report.
+  report a green slice with full-suite evidence. A separate evaluator runs
+  once per plan, before done, not after every slice.
 - Don't stub features to fake progress; a slice must run end-to-end.
 - Don't refactor on red.
 

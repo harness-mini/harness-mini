@@ -1,30 +1,47 @@
 ---
 name: evaluate
-description: Grade work against the plan's acceptance criteria from a SEPARATE context — tiered by risk (L0 self-check, L1 lightweight reviewer [default], L2 full evaluator). Use in the evaluate stage. The anti-self-praise firewall — the agent that built the work must never be the one that grades it. Returns pass/fail per criterion with evidence.
+description: Grade a plan once before done, not after every slice. Machine-checkable work is L0 (main agent re-runs the full suite). A separate context — L1, or L2 for architecture, security, data-loss, or a public API — grades the plan only when a criterion needs judgment. The builder never grades its own work.
 ---
 
 You are grading work against its plan's **acceptance criteria** — never against
 vague satisfaction. Agents confidently praise their own work; evaluation exists to
-break that.
+break that. A smarter model does not earn a review after every slice. Tests do.
+
+## When to evaluate
+
+A separate evaluator runs **once per plan, not after every slice.**
+
+- **Each slice** is L0. The builder runs that slice's JSON `steps` and the
+  **full suite**. The main agent re-runs the full suite and may flip `passes`
+  when every step is a machine check (a test, a script exit code, a file or
+  JSON assertion). No second model.
+- **Once, before `done`**, grade the plan's acceptance criteria and write the
+  single `verdict: pass` record `doctor` requires. If every step was a machine
+  check, this review is the same L0: re-run the full suite once. If any
+  criterion needs a judgment, this one review is L1, or L2 for architecture,
+  security, data-loss, or a public API.
+- A failed review returns to `implement`. Do not insert a review between the
+  green slices on the way back.
+- **Fan-out** keeps two reviews, still not one per slice: the walking skeleton
+  before parallel dispatch, and one integration review after the group lands.
 
 ## Pick the tier (record it in the plan's `eval:` field)
 
-"Always spawn an Opus evaluator" is too expensive for every change — if the default
-is too heavy, people bypass it, and then there is *no* firewall. So scale rigor
-with risk. **Default is L1.**
-
 | Tier | Who grades | Use for | Cost |
 |------|-----------|---------|------|
-| **L0** | builder attaches evidence; **main agent** runs a compact checklist | tiny, low-risk changes whose criteria are **100% machine-checkable** (docs, glue, a one-line fix) | ~free |
-| **L1** (default) | an **independent lightweight reviewer** — a fresh context (haiku sub-agent, or a separate prompt/thread on a CLI without sub-agents) | normal slices | low |
-| **L2** | the full **evaluator** agent (Opus / strongest available) | cross-slice work, architecture, security, **data-loss risk**, public-API changes, release gates | high |
+| **L0** (default) | builder attaches the full-suite run; **main agent** re-runs it and checks each step | every step is a machine check | ~free |
+| **L1** | one **independent lightweight reviewer** — a fresh context (haiku sub-agent, or a separate prompt/thread) | the one plan review, when a criterion needs a judgment call | low, once |
+| **L2** | the full **evaluator** agent (Opus / strongest available), still once | architecture, security, **data-loss risk**, public-API changes, release gates | high, once |
 
-When in doubt, go **up** a tier. **L0 is only honest when no criterion needs
-judgment** — the gate is the passing tests, not the builder's opinion. If a
-criterion needs a human/agent call, it is at least L1.
+**L0 is only honest when no criterion needs judgment.** A step written as prose
+that someone must interpret is at least L1 — and that L1 is the one plan
+review, not a review per slice. When the plan review is ambiguous, go **up**
+one tier. Do not add reviews to feel safer.
 
-> The firewall is the **separate context**, not the tooling. No sub-agents
-> available? Run L1/L2 as a fresh prompt/thread with *only* the criteria + the diff
+> The firewall is **who grades**, not how often. The builder never flips
+> `passes`. L0 is the main agent re-running the suite. L1/L2 is one fresh
+> context, and only when a criterion needs judgment. No sub-agents? Run that
+> one review as a fresh prompt with only the criteria and the diff
 > (see `$HOME/.harness-mini/docs/codex-getting-started.md` / `$HOME/.harness-mini/docs/cursor-getting-started.md`).
 
 ## Procedure (every tier)

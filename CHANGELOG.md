@@ -7,6 +7,13 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+### Changed
+- **Evaluate once per plan, not after every slice.** A green slice is the full
+  suite (L0); the main agent may flip `passes` on that re-run. A separate
+  reviewer runs once before `done`, and only when a criterion needs judgment
+  (L2 for architecture, security, data-loss, or a public API). Fan-out keeps
+  the skeleton review and one integration review.
+
 ## [0.17.1] - 2026-11-14
 
 ### Added

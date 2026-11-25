@@ -64,7 +64,12 @@ re-tested against the current model.
 - **Status:** registered 2026-06-12 · audited 2026-06-16 — **keep (durable).**
   Reconfirmed in the wild: the Cursor slugify dogfood's separate-chat evaluator
   caught a real gap (only 1 of 5 criteria tested) that the building chat had
-  reported as "slice done" — the false-pass gap did **not** collapse. No change.
+  reported as "slice done" — the false-pass gap did **not** collapse.
+  · **Cadence (2026-11-25):** per-slice L1 is retired. Each slice is L0 (the
+  main agent re-runs the full suite; the builder still does not flip `passes`).
+  One separate-context review remains, before `done`, when a criterion needs
+  judgment. The false-pass gap was not re-measured. The slugify miss is a
+  step-quality rule: prose steps are that one L1, not a review after every slice.
 
 ## A3 — Explorer fan-out firewall
 - **Assumption:** pulling a big read/search into the main window degrades it, so

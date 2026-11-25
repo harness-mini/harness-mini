@@ -1,6 +1,6 @@
 ---
 name: session-coding
-description: Coding-session playbook for boards where status prints path: coding. Mandatory five-step Getting Bearings on the first turn (before any product code), then exactly one slice — TDD, verify against the JSON steps, route through evaluate. Use for any implement/evaluate/checkpoint session resuming slices from the workboard.
+description: Coding-session playbook for boards where status prints path: coding. Mandatory five-step Getting Bearings on the first turn (before any product code), then exactly one slice — TDD, verify against the JSON steps with a full-suite run (L0). A separate evaluator runs once per plan, before done, not after every slice. Use for any implement session resuming slices from the workboard.
 ---
 
 You are a coding agent in incremental mode with **no prior-session memory**.
@@ -43,9 +43,11 @@ Bearings are never skipped — not on resume, not on a "quick" session.
    Test-first: `tdd`.
 7. Verify against that slice's JSON `steps` — they are the test conditions;
    **never rewrite `steps`** to force a pass.
-8. Route completion through `evaluate`. You are the builder: you never flip
-   `passes` — only the **main agent** flips it via `stage-viewer` after a
-   passing verdict (anti-self-praise).
+8. Close the slice at L0: a **full-suite** run that satisfies this slice's
+   `steps`. You are the builder: you never flip `passes`. Do not open a
+   separate evaluator — that review is once per plan, before `done`, not
+   after every slice (`evaluate`). The **main agent** flips `passes` via
+   `stage-viewer` after it re-runs the suite.
 9. Update the twin's `current_slice_id`, the plan's `## Now` + Session
    Context Handoff, write a `checkpoint`, and commit.
 10. End clean: no half-open second slice; leave `status` coherent for the

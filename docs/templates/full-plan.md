@@ -4,7 +4,7 @@ seq: <NNNN>
 stage: intake
 owner: main
 mode: full
-eval: L1        # L1 default; bump to L2 for arch/security/data-loss/public-API/release
+eval: L0        # L0 when every step is a machine check; one L1/L2 before done when a criterion needs judgment
 ---
 # <Title> — full mode
 

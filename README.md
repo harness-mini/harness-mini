@@ -112,8 +112,8 @@ harness-mini does **not** force ceremony onto every change. Route first:
 
 | If the task is… | Use | Path |
 |---|---|---|
-| a small bug fix · one obvious change · no ambiguity (≤ ~1 slice) | **Quick mode** | copy [`docs/templates/quick-plan.md`](docs/templates/quick-plan.md) → implement (`tdd`) → L0/L1 eval → checkpoint |
-| ambiguous · cross-cutting · architecture/security/data-loss impact | **Full mode** | copy [`docs/templates/full-plan.md`](docs/templates/full-plan.md) → PRD → issues → implement → L1/L2 evaluate → checkpoint |
+| a small bug fix · one obvious change · no ambiguity (≤ ~1 slice) | **Quick mode** | copy [`docs/templates/quick-plan.md`](docs/templates/quick-plan.md) → implement (`tdd`) → L0 (full suite) → checkpoint |
+| ambiguous · cross-cutting · architecture/security/data-loss impact | **Full mode** | copy [`docs/templates/full-plan.md`](docs/templates/full-plan.md) → PRD → issues → implement → one L1/L2 review before done → checkpoint |
 
 Plans live in `.harness-mini/docs/exec-plans/active/`; installed projects find the templates at `~/.harness-mini/docs/templates/` (`docs/templates/` in this source repo).
 
@@ -147,7 +147,8 @@ The `path:` line picks the playbook:
   Exit 2 means the board is still `path: init`. Then confirm the project root,
   read that slice's JSON `steps`, establish the app baseline, and tell the user
   the selected slice. After that, exactly **one slice**, test-first, verified
-  against the twin's `steps` and routed through `evaluate` — the builder never
+  against the twin's `steps` with a full-suite run. A separate evaluator runs
+  once per plan, before done, not after every slice — the builder never
   flips `passes` (anti-self-praise).
 
 Each plan is a **dual file**: `<NNN-slug>.md` (narrative; frontmatter `stage:`
@@ -225,9 +226,10 @@ intake → prd → issues → implement ⇄ evaluate → checkpoint → done
 ```
 
 Only the main agent advances the stage (via `stage-viewer`). No worker promotes
-its own work to "done" — evaluation happens in a **separate context** (the
-anti-self-praise gate), **tiered by risk**: L0 self-check · **L1 lightweight
-reviewer (default)** · L2 full Opus evaluator. See the `evaluate` skill.
+its own work to "done". Each slice is the full suite (L0). A separate context
+grades the plan **once, before done**, and only when a criterion needs
+judgment (L2 for architecture, security, data-loss, or a public API). See the
+`evaluate` skill.
 
 ## Layout
 

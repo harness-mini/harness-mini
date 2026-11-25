@@ -136,7 +136,7 @@ semantics:
 - **intake (new project only):** `founder-check`
 - **plan:** `to-prd`, `to-issues`
 - **implement:** `tdd`, `slice-coding`, `parallel-slices`, `clean-code`, `refactor`
-- **evaluate:** `evaluate` (tiered by risk: L0 self-check · **L1 lightweight, default** · L2 full Opus evaluator)
+- **evaluate:** `evaluate` (once per plan, not after every slice: **L0** re-run the suite · L1/L2 only when a criterion needs judgment)
 - **maintain:** `garden` (triggers: ≥5 checkpoints · plan-done · pre-release · smell backlog; `harness.sh status` shows `garden: DUE|ok`)
 
 ## Sub-agents (separate context windows = firewalls)
