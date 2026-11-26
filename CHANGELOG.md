@@ -7,6 +7,8 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-11-26
+
 ### Changed
 - **Evaluate once per plan, not after every slice.** A green slice is the full
   suite (L0); the main agent may flip `passes` on that re-run. A separate
