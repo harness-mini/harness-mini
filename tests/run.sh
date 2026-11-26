@@ -917,6 +917,8 @@ assert_eq "true" "$([ -f "$ROOT/skills/parallel-slices/SKILL.md" ] && echo true 
 echo "tdd skill — one red→green cycle per acceptance criterion (#29)"
 # @group tdd-skill
 assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "One red→green cycle per acceptance criterion" "tdd source requires a failing test per acceptance criterion"
+assert_contains "$(cat "$ROOT/skills/tdd/SKILL.md")" "cite the runner's assertion name" "tdd cites the runner's assertion name on red"
+assert_contains "$(cat "$ROOT/skills/to-issues/SKILL.md")" "command, an assertion name, or a file/JSON fact" "to-issues writes steps as machine checks"
 
 # =============================================================================
 echo "harness.sh version — report the installed harness version"
