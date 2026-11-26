@@ -79,14 +79,15 @@ eval: L0        # L0 when every step is a machine check; one L1/L2 before done w
   "current_slice_id": "<slice-NNN>",
   "slices": [
     { "id": "<slice-NNN>", "category": "<backend|api|docs|…>",
-      "description": "<one line>", "steps": ["<testable step>", "…"],
+      "description": "<one line>", "steps": ["<command, assertion name, or file/JSON fact>", "…"],
       "passes": false }
   ]
 }
 ```
 Rules: MD frontmatter `stage:` stays the **lifecycle authority** (eval-gate
 reads it); JSON `status` only mirrors plan progress. `passes` flips to `true`
-only when the slice's steps verify green at its eval tier (L0 self-check;
-L1/L2 = separate evaluator) — flipped by the **main agent**, never by the
-slice's builder sub-agent (anti-self-praise). Never rewrite `steps` to make a
-slice pass.
+only after the **main agent** re-runs the full suite and the steps hold (L0).
+A separate evaluator runs once per plan, before done, not after every slice.
+The slice's builder never flips `passes`. Never rewrite `steps` to make a
+slice pass. Write each step as a command, an assertion name, or a file/JSON
+fact; a sentence means the step is not L0.

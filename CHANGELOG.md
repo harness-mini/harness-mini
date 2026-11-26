@@ -13,6 +13,9 @@ capabilities, PATCH fixes glue, MAJOR breaks the install layout or lock contract
   reviewer runs once before `done`, and only when a criterion needs judgment
   (L2 for architecture, security, data-loss, or a public API). Fan-out keeps
   the skeleton review and one integration review.
+- **Slice steps are checks.** `to-issues` writes each JSON `steps` entry as a
+  command, an assertion name, or a file/JSON fact. `tdd` cites the runner's
+  assertion name on red instead of paraphrasing the failure.
 
 ## [0.17.1] - 2026-11-14
 

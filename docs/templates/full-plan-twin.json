@@ -9,7 +9,7 @@
       "category": "backend",
       "description": "<one line — what end-to-end capability this slice proves>",
       "steps": [
-        "<testable step — write these as checks, never weaken them to pass>",
+        "<command, assertion name, or file/JSON fact — never a wish, never weaken to pass>",
         "<…>"
       ],
       "passes": false
