@@ -43,11 +43,12 @@ do not isolate with worktrees; the footprint is the contract.
    the footprints (it likely depends on another slice), and re-dispatch serially.
 
 ## Evaluation (anti-self-praise preserved)
-- Each slice still hands off to the **evaluator** — no generator self-promotes.
-  Per-slice **L1** evals may also fan out in parallel.
-- After all slices in a group land, run **one integration evaluate** (L1/L2 per
-  the plan's `eval:` field, see `evaluate`) to catch cross-slice interactions that
-  no single-slice eval can see.
+- No generator self-promotes, and there is no per-slice evaluator. The main
+  agent records L0 after the full suite and flips `passes`.
+- After all slices in a group land, run **one integration evaluate** (see
+  `evaluate`) to catch cross-slice interactions. The separate reviewer still
+  runs once per plan, not after every slice; for a fan-out this integration
+  review is that once (the skeleton was already reviewed before dispatch).
 - Only the **main agent** advances the stage (`stage-viewer`), and only after the
   integration evaluate passes.
 

@@ -26,10 +26,10 @@ agent (via `stage-viewer`) advances a state; sub-agents never do.**
    └────────────┘
          │  implement → one vertical slice (tdd · slice-coding)
          ▼
-   ┌────────────┐  exit: slice green → hand to the evaluator
+   ┌────────────┐  exit: slice green (full suite); review once per plan
    │ implement  │◀┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┐
    └────────────┘                               ┆
-         │  evaluate (separate window)          ┆ criteria fail
+         │  evaluate once, before done          ┆ criteria fail
          ▼                                      ┆ → rework loop
    ┌────────────┐  verdict: pass                ┆
    │  evaluate  │┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┘

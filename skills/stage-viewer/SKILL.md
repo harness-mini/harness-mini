@@ -23,10 +23,11 @@ your default answer to "what now?".
 > Static docs and templates live at `$HOME/.harness-mini/docs/` once installed (`docs/` in the harness-mini source repo).
 - **Simple** (one obvious change, <1 slice): **quick mode** — skip planning
   ceremony, go straight to `implement` with a lightweight plan note
-  (`$HOME/.harness-mini/docs/templates/quick-plan.md`); evaluate at **L0/L1**.
+  (`$HOME/.harness-mini/docs/templates/quick-plan.md`); the plan review is **L0**.
 - **Complex** (multi-step, ambiguous, cross-cutting): **full mode** — run the full
   funnel (intake→prd→issues) before implementing
-  (`$HOME/.harness-mini/docs/templates/full-plan.md`); evaluate at **L1/L2**.
+  (`$HOME/.harness-mini/docs/templates/full-plan.md`); one plan review at **L1**,
+  or **L2** for architecture, security, data-loss, or a public API.
 
 Record the chosen evaluation tier in the plan's `eval:` field (see the `evaluate`
 skill); the `evaluate` exit condition below reads it.
@@ -62,8 +63,8 @@ You may move a plan forward only when the stage's exit condition is met:
 | intake | founder-check done (new) / recon done (existing) |
 | prd | PRD written and grilled (`grill-me`) |
 | issues | atomic, testable issues exist |
-| implement | a vertical slice is green; ready for evaluation (after a fan-out: all parallel slices green + integrated) |
-| evaluate | the **eval tier passed** all criteria — L0/L1/L2, default L1, per the plan's `eval:` field; a fan-out also needs the **integration evaluate** to pass (else loop back to implement) |
+| implement | each slice is green under its `steps` (full suite). A separate evaluator runs once per plan, not after every slice (after a fan-out: all parallel slices green) |
+| evaluate | the one plan-level review passed — L0 when every criterion is a machine check, otherwise L1/L2 per the plan's `eval:` field; a fan-out also needs the skeleton review and the **integration evaluate** (else loop back to implement) |
 | checkpoint | checkpoint written to `.harness-mini/trace/checkpoints/` |
 | done | plan moved to `.harness-mini/docs/exec-plans/completed/` **and** `skills/checkpoint/scripts/checkpoint-archive-check.sh` exits 0 (no dirty plan files; every completed entry is `stage: done` / `passes: true`) |
 
@@ -71,9 +72,10 @@ To advance: edit the plan's `stage:` field, append a line to the plan's
 Decisions log, and `"$HOME/.harness-mini/bin/trace.sh" main <new-stage> stage_advance plan=<plan>`.
 If the plan has a JSON twin, keep it in sync in the same edit: `status`
 (`planned|in_progress|done` — mirrors, never overrides, the MD `stage:`) and
-`current_slice_id`. **Only you** flip a slice's `passes` to `true` — and only
-after the eval tier passed it (anti-self-praise); a builder's "done" claim is
-routed to the evaluator first.
+`current_slice_id`. **Only you** flip a slice's `passes` to `true`. For a
+machine-checkable slice, do it after you re-run the full suite and the `steps`
+hold (L0) — a builder's claim is not enough, and it does not need a second
+model. The separate evaluator runs once per plan, not after every slice.
 
 ## Garden gate (orthogonal, you dispatch it)
 When a plan reaches `done` (and as a release pre-flight), run `"$HOME/.harness-mini/bin/harness.sh"
@@ -84,7 +86,7 @@ advances a stage or grades feature work. See the `garden` skill for the policy.
 
 ## Hard rule
 A sub-agent never edits `stage:` and never declares "done." If a worker claims
-completion, you route it to the **evaluator** first. Anti-self-praise.
+the plan is finished, you run the one plan-level evaluate first. Anti-self-praise.
 
 You may **not** promote a plan to `done` without a `verdict: pass` record at
 `.harness-mini/trace/evals/<plan>-<NNN>.md` (the `evaluate` skill writes it). This is the
